@@ -1,0 +1,9 @@
+flask
+sqlalchemy
+pandas
+openai
+matplotlib
+seaborn
+pyodbc
+pymysql
+psycopg2-binary
