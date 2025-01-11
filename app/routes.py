@@ -114,6 +114,7 @@ def get_schema_info():
         """
         query_columns = """
         SELECT COLUMN_NAME
+      
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_NAME = '{}'
         """
