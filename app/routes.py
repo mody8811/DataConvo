@@ -14,15 +14,21 @@ from flask import send_file,session,send_file
 from fpdf import FPDF
 import json
 import tempfile
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
 main = Blueprint('main', __name__)
 
 
 
 # Set up OpenAI API key directly in code
-openai.api_key = "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"
+
+openai.api_key = os.getenv('OPENAI_API_KEY')
+
 
 # Set up logging
+log_level = os.getenv('LOG_LEVEL', 'INFO')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 

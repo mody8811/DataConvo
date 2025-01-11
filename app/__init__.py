@@ -1,9 +1,10 @@
+import os
 from flask import Flask
 from flask_session import Session
 
 def create_app():
     app = Flask(__name__)
-    app.secret_key = 'Jana&rayan'  # Ensure you set the secret key
+    app.secret_key = os.getenv('SECRET_KEY')
 
     app.config["SESSION_TYPE"] = "filesystem"
     Session(app)
