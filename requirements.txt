@@ -7,3 +7,4 @@ seaborn
 pyodbc
 pymysql
 psycopg2-binary
+flask_session
