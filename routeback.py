@@ -3,22 +3,34 @@ from flask import send_file
 from sqlalchemy import create_engine, text
 import pandas as pd
 import urllib.parse
-import openai
+from openai import OpenAI
 import io
 import base64
 import matplotlib.pyplot as plt
 import seaborn as sns
 import logging
 import os
-from flask import send_file
+from flask import send_file,session,send_file
 from fpdf import FPDF
+import json
+import tempfile
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
 main = Blueprint('main', __name__)
 
+
+
 # Set up OpenAI API key directly in code
-openai.api_key = "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"
+
+##openai.api_key = os.getenv('OPENAI_API_KEY')
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+
 
 # Set up logging
+log_level = os.getenv('LOG_LEVEL', 'INFO')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -82,43 +94,19 @@ def chat():
     schema_info = get_schema_info()
     return render_template('chat.html', schema_info=schema_info)
 
+@main.route('/export_csv')
+def export_csv():
+    df_dict = session.get('last_dataframe')
+    if not df_dict:
+        return "No data to export", 400
 
-EXPORT_DIR = "exported_files"
+    df = pd.DataFrame(df_dict)
+    csv = df.to_csv(index=False)
+    response = make_response(csv)
+    response.headers["Content-Disposition"] = "attachment; filename=data.csv"
+    response.headers["Content-Type"] = "text/csv"
+    return response
 
-if not os.path.exists(EXPORT_DIR):
-    os.makedirs(EXPORT_DIR)
-
-@main.route('/export/<file_format>', methods=['GET'])
-def export(file_format):
-    try:
-        last_query = session.get('last_query')
-        if not last_query:
-            return "No query to export.", 400
-
-        engine = create_engine(session.get('connection_string'))
-        df = pd.read_sql(last_query, engine)
-
-        file_path = os.path.join(EXPORT_DIR, f"data.{file_format}")
-
-        if file_format == "csv":
-            df.to_csv(file_path, index=False)
-        elif file_format == "excel":
-            df.to_excel(file_path, index=False)
-        elif file_format == "pdf":
-            import matplotlib.backends.backend_pdf
-            pdf = matplotlib.backends.backend_pdf.PdfPages(file_path)
-            fig, ax = plt.subplots(figsize=(12, 8))
-            ax.axis('tight')
-            ax.axis('off')
-            table = ax.table(cellText=df.values, colLabels=df.columns, cellLoc='center', loc='center')
-            pdf.savefig(fig, bbox_inches='tight')
-            pdf.close()
-
-        return send_file(file_path, as_attachment=True)
-
-    except Exception as e:
-        logger.error(f"Error exporting data: {str(e)}")
-        return f"Error exporting data: {str(e)}", 500
 
 def get_schema_info():
     schema_info = {}
@@ -134,6 +122,7 @@ def get_schema_info():
         """
         query_columns = """
         SELECT COLUMN_NAME
+      
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_NAME = '{}'
         """
@@ -187,7 +176,7 @@ def get_response():
     user_message = request.json.get('message')
     state = session.get('state', 'INIT')
     table_name = session.get('table')
-    db_type = session.get('db_type')
+    db_type = session.get('db_type')  # Get the db_type from session
     engine = create_engine(session.get('connection_string'))
     
     logger.info(f"User message: {user_message}, State: {state}, Table: {table_name}")
@@ -222,7 +211,7 @@ def get_response():
             logger.info(f"Table changed to: {user_message}")
             return jsonify({'response': f"AI: Great! You chose the {user_message} table. What do you want to know about it?"})
 
-        if "plot" in user_message.lower() or "visualize" in user_message.lower():
+        if "plot" in user_message.lower() or "visualise" in user_message.lower():
             sql_query = session.get('last_query')
             if sql_query:
                 logger.info("Generating visualization")
@@ -240,13 +229,8 @@ def get_response():
                     with engine.connect() as connection:
                         result = connection.execute(text(sql_query))
                         df = pd.DataFrame(result.fetchall(), columns=result.keys())
-                        response = (
-                            f"<p><strong>SQL Query:</strong> {sql_query}</p>" +
-                            df.to_html(classes='dataframe') +
-                            "<br><a href='/export/csv'>Export as CSV</a> | " +
-                            "<a href='/export/excel'>Export as Excel</a> | " +
-                            "<a href='/export/pdf'>Export as PDF</a>"
-                        )
+                        session['last_dataframe'] = df.to_dict(orient='split')  # Convert DataFrame to dictionary
+                        response = f"<p><strong>SQL Query:</strong> {sql_query}</p>" + df.to_html(classes='dataframe')
                 except Exception as e:
                     response = f"AI: Error: {str(e)}"
             else:
@@ -379,7 +363,7 @@ def parse_natural_language_query(nl_query, schema_info, table_name):
         f"{db_specific_examples}"
     )
 
-    response = openai.ChatCompletion.create(
+    response =client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "You are a helpful assistant that converts natural language queries into SQL queries."},
@@ -387,39 +371,14 @@ def parse_natural_language_query(nl_query, schema_info, table_name):
         ]
     )
 
-    response_text = response['choices'][0]['message']['content']
+    response_text = response.choices[0].message.content
     # Extract SQL query from response
     sql_query = extract_sql_query(response_text)
     return sql_query
 
 def extract_sql_query(response_text):
-    lines = response_text.split('\n')
-    sql_lines = [line for line in lines if line.strip().upper().startswith("SELECT") or line.strip().upper().startswith("INSERT") or line.strip().upper().startswith("UPDATE") or line.strip().upper().startswith("DELETE")]
-    return sql_lines[0] if sql_lines else None
-
-
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant that converts natural language queries into SQL queries."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-
-    sql_query = response['choices'][0]['message']['content']
-    return sql_query
-
-    max_tokens=150
-    
-    
-    response_text = response['choices'][0]['message']['content'].strip()
-    sql_query = extract_sql_query(response_text)
-    return sql_query
-
-
-def extract_sql_query(response_text):
-    # Find the start of the SQL query by looking for the keyword 'SELECT', 'INSERT', 'UPDATE', or 'DELETE'
-    keywords = ["SELECT", "INSERT", "UPDATE", "DELETE"]
+    # Allow only SELECT queries
+    keywords = ["SELECT"]
     start = -1
     for keyword in keywords:
         start = response_text.upper().find(keyword)
