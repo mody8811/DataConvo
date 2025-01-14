@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import logging
 import os
-from flask import send_file,session,send_file
+from flask import send_file, session, send_file
 from fpdf import FPDF
 import json
 import tempfile
@@ -20,14 +20,8 @@ from dotenv import load_dotenv
 load_dotenv()
 main = Blueprint('main', __name__)
 
-
-
 # Set up OpenAI API key directly in code
-
-##openai.api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-
-
 
 # Set up logging
 log_level = os.getenv('LOG_LEVEL', 'INFO')
@@ -48,10 +42,13 @@ def set_connection():
     server = request.form['server']
     auth_type = request.form['auth_type']
     database = request.form['database']
-    schema = request.form['schema']
+    schema = request.form['schema']  # Schema name from the form
     username = request.form['username']
     password = request.form['password']
     
+    # Debugging: Print the schema name
+    print("Schema Name from Form:", schema)
+
     if db_type == "mssql":
         if auth_type == "windows":
             params = urllib.parse.quote_plus(
@@ -80,11 +77,16 @@ def set_connection():
     elif db_type == "google_sql":
         connection_string = f"mysql+pymysql://{username}:{password}@{server}/{database}"
 
+    # Set connection details in the session
     session['connection_string'] = connection_string
     session['db_type'] = db_type
-    session['schema'] = schema
-    
+    session['schema'] = schema  # Set the schema name in the session
+
+    # Debugging: Print the session data
+    print("Session Data After Login:", session)
+
     return redirect(url_for('main.chat'))
+
 @main.route('/chat')
 def chat():
     session['state'] = 'INIT'
@@ -107,11 +109,10 @@ def export_csv():
     response.headers["Content-Type"] = "text/csv"
     return response
 
-
 def get_schema_info():
     schema_info = {}
     engine = create_engine(session.get('connection_string'))
-    schema = session.get('schema')
+    schema = session.get('schema')  # Retrieve schema name from session
     db_type = session.get('db_type')
     
     if db_type == "mssql":
@@ -122,7 +123,6 @@ def get_schema_info():
         """
         query_columns = """
         SELECT COLUMN_NAME
-      
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_NAME = '{}'
         """
@@ -159,7 +159,6 @@ def get_schema_info():
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_NAME = '{}'
         """
-    # Add other database types as needed
     
     with engine.connect() as connection:
         result = connection.execute(text(query_tables))
@@ -238,7 +237,6 @@ def get_response():
         logger.info("Query processed")
         return jsonify({'response': response + "<br>AI: What more do you want to query? Or you can choose a different table."})
 
-
 def handle_join_request(user_message, schema_info, table_name):
     session['last_query'] = user_message
     tables_in_query = [table_name] + [table for table in schema_info.keys() if table in user_message and table != table_name]
@@ -316,6 +314,20 @@ def generate_visualization(sql_query, plot_type):
 
 def parse_natural_language_query(nl_query, schema_info, table_name):
     db_type = session.get('db_type', 'mssql')  # Default to 'mssql' if not set
+    schema_name = session.get('schema')  # Retrieve schema name from session
+    
+    # Debugging: Print the session data
+    print("Session Data in parse_natural_language_query:", session)
+
+    # Debugging: Print the schema name and its type
+    print("Schema Name from Session:", schema_name)
+    print("Type of Schema Name:", type(schema_name))
+
+    # Ensure schema_name is a valid string for PostgreSQL
+    if db_type == "postgresql":
+        if not schema_name or not isinstance(schema_name, str):
+            raise ValueError("Schema name is not set or is invalid. Please log in again.")
+
     schema_details = "\n".join([f"Table {table}: {', '.join(columns)}" for table, columns in schema_info.items()])
 
     if db_type == "mssql":
@@ -343,27 +355,47 @@ def parse_natural_language_query(nl_query, schema_info, table_name):
            SQL: SELECT * FROM table_name ORDER BY column1 LIMIT 10;
         """
     elif db_type == "postgresql":
-        db_specific_examples = """
+        db_specific_examples = f"""
         Examples:
         1. Natural language: How many rows are in the table?
-           SQL: SELECT COUNT(*) FROM table_name;
+           SQL: SELECT COUNT(*) FROM {schema_name}.table_name;
         2. Natural language: Show all columns from the table.
-           SQL: SELECT * FROM table_name;
+           SQL: SELECT * FROM {schema_name}.table_name;
         3. Natural language: Join table1 and table2 on column1.
-           SQL: SELECT * FROM table1 INNER JOIN table2 ON table1.column1 = table2.column1;
+           SQL: SELECT * FROM {schema_name}.table1 INNER JOIN {schema_name}.table2 ON table1.column1 = table2.column1;
         4. Natural language: Show the top 10 rows by column1.
-           SQL: SELECT * FROM table_name ORDER BY column1 LIMIT 10;
+           SQL: SELECT * FROM {schema_name}.table_name ORDER BY column1 LIMIT 10;
         """
     else:
         db_specific_examples = "No specific examples available."
 
-    prompt = (
-        f"Schema details:\n{schema_details}\n\n"
-        f"Convert this natural language query to SQL syntax for {db_type}. The table to query is {table_name}: {nl_query}\n\n"
-        f"{db_specific_examples}"
-    )
+    # Add schema handling for PostgreSQL
+    if db_type == "postgresql":
+        prompt = (
+            f"You are a SQL expert specializing in PostgreSQL. "
+            f"Convert the following natural language query into a PostgreSQL-compatible SQL query. "
+            f"Schema details:\n{schema_details}\n\n"
+            f"The table to query is {table_name} in the schema {schema_name}. "
+            f"Always include the schema name in the SQL query. "
+            f"Query: {nl_query}\n\n"
+            f"Examples of PostgreSQL queries:\n"
+            f"1. Natural language: How many rows are in the table?\n"
+            f"   SQL: SELECT COUNT(*) FROM {schema_name}.table_name;\n"
+            f"2. Natural language: Show all columns from the table.\n"
+            f"   SQL: SELECT * FROM {schema_name}.table_name;\n"
+            f"3. Natural language: Join table1 and table2 on column1.\n"
+            f"   SQL: SELECT * FROM {schema_name}.table1 INNER JOIN {schema_name}.table2 ON table1.column1 = table2.column1;\n"
+            f"4. Natural language: Show the top 10 rows by column1.\n"
+            f"   SQL: SELECT * FROM {schema_name}.table_name ORDER BY column1 LIMIT 10;\n"
+        )
+    else:
+        prompt = (
+            f"Schema details:\n{schema_details}\n\n"
+            f"Convert this natural language query to SQL syntax for {db_type}. "
+            f"The table to query is {table_name}: {nl_query}\n\n"
+        )
 
-    response =client.chat.completions.create(
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "You are a helpful assistant that converts natural language queries into SQL queries."},
@@ -372,6 +404,15 @@ def parse_natural_language_query(nl_query, schema_info, table_name):
     )
 
     response_text = response.choices[0].message.content
+
+    # Fallback: Ensure the schema name is included for PostgreSQL
+    if db_type == "postgresql":
+        # Check if the schema name is already included in the query
+        if f"{schema_name}." not in response_text:
+            # Append the schema name to the table name
+            response_text = response_text.replace("FROM ", f"FROM {schema_name}.")
+            response_text = response_text.replace("JOIN ", f"JOIN {schema_name}.")
+
     # Extract SQL query from response
     sql_query = extract_sql_query(response_text)
     return sql_query

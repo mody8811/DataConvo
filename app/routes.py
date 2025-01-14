@@ -1,5 +1,12 @@
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
-from flask import send_file
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session, flash
+from sqlalchemy.exc import IntegrityError
+from werkzeug.security import generate_password_hash, check_password_hash
+from . import db  # Import the SQLAlchemy instance from __init__.py
+import logging
+import os
+from dotenv import load_dotenv
+import bcrypt
+from .models import User  # Import User model
 from sqlalchemy import create_engine, text
 import pandas as pd
 import urllib.parse
@@ -8,16 +15,16 @@ import io
 import base64
 import matplotlib.pyplot as plt
 import seaborn as sns
-import logging
-import os
-from flask import send_file, session, send_file
 from fpdf import FPDF
 import json
 import tempfile
-from dotenv import load_dotenv
+
+# For OAuth authentication
+from authlib.integrations.flask_client import OAuth
 
 # Load environment variables from .env file
 load_dotenv()
+
 main = Blueprint('main', __name__)
 
 # Set up OpenAI API key directly in code
@@ -25,19 +32,156 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 # Set up logging
 log_level = os.getenv('LOG_LEVEL', 'INFO')
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
 
+# Initialize OAuth client
+oauth = OAuth()
+
+# Set up Google and Microsoft OAuth
+google = oauth.register(
+    'google',
+    client_id=os.getenv('GOOGLE_CLIENT_ID'),
+    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    access_token_url='https://accounts.google.com/o/oauth2/token',
+    client_kwargs={'scope': 'openid profile email'},
+)
+
+microsoft = oauth.register(
+    'microsoft',
+    client_id=os.getenv('MICROSOFT_CLIENT_ID'),
+    client_secret=os.getenv('MICROSOFT_CLIENT_SECRET'),
+    authorize_url='https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+    access_token_url='https://login.microsoftonline.com/common/oauth2/v2.0/token',
+    client_kwargs={'scope': 'openid profile email'},
+)
+
+# Login Routes (from newer version)
 @main.route('/')
 def index():
+    # Serve the landing page at "/"
+    return render_template('landing.html')
+
+@main.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        # Check if the user is already registered
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            logger.info(f"Signup failed: Email {email} is already registered.")
+            return render_template('signup.html', error='Email already registered. Please log in.')
+
+        # If not registered, hash the password and add the user to the database
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+        try:
+            new_user = User(email=email, password=hashed_password.decode('utf-8'))
+            db.session.add(new_user)
+            db.session.commit()
+            session['user_id'] = new_user.id  # Log the user in
+            logger.info(f"New user created and logged in: {email}")
+            return redirect(url_for('main.connection_form'))
+        except IntegrityError:
+            db.session.rollback()
+            logger.error(f"Signup failed: Integrity error for email {email}.")
+            return render_template('signup.html', error='An unexpected error occurred. Please try again.')
+
+    return render_template('signup.html')
+
+@main.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        
+        user = User.query.filter_by(email=email).first()
+        if user:
+            # Compare the hashed password
+            if bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
+                session['user_id'] = user.id
+                flash("Logged in successfully!")
+                return redirect(url_for('main.connection_form'))  # Redirect to connection form
+            else:
+                flash("Invalid email or password.")
+        else:
+            flash("User not found.")
+    
+    return render_template('login.html')
+
+@main.route('/logout')
+def logout():
+    # Clear the session to log the user out
+    session.clear()
+    logger.info("User logged out successfully.")
+    return redirect(url_for('main.index'))
+
+# Google login callback
+@main.route('/login/google')
+def google_login():
+    google_client = oauth.create_client('google')
+    redirect_uri = url_for('main.google_authorize', _external=True)
+    return google_client.authorize_redirect(redirect_uri)
+
+@main.route('/login/google/authorize')
+def google_authorize():
+    google_client = oauth.create_client('google')
+    token = google_client.authorize_access_token()
+    user = google_client.parse_id_token(token)
+    logger.info(f"Google OAuth user: {user}")
+    
+    # Add user to the database or log them in
+    user_in_db = User.query.filter_by(email=user['email']).first()
+    if user_in_db:
+        session['user_id'] = user_in_db.id
+    else:
+        new_user = User(email=user['email'])
+        db.session.add(new_user)
+        db.session.commit()
+        session['user_id'] = new_user.id
     return redirect(url_for('main.connection_form'))
 
+# Microsoft login callback
+@main.route('/login/microsoft')
+def microsoft_login():
+    microsoft_client = oauth.create_client('microsoft')
+    redirect_uri = url_for('main.microsoft_authorize', _external=True)
+    return microsoft_client.authorize_redirect(redirect_uri)
+
+@main.route('/login/microsoft/authorize')
+def microsoft_authorize():
+    microsoft_client = oauth.create_client('microsoft')
+    token = microsoft_client.authorize_access_token()
+    user = microsoft_client.parse_id_token(token)
+    logger.info(f"Microsoft OAuth user: {user}")
+    
+    # Add user to the database or log them in
+    user_in_db = User.query.filter_by(email=user['email']).first()
+    if user_in_db:
+        session['user_id'] = user_in_db.id
+    else:
+        new_user = User(email=user['email'])
+        db.session.add(new_user)
+        db.session.commit()
+        session['user_id'] = new_user.id
+    return redirect(url_for('main.connection_form'))
+
+# App Functionality (from older version)
 @main.route('/connection_form')
 def connection_form():
+    # Redirect to login if user is not authenticated
+    if not session.get('user_id'):
+        return redirect(url_for('main.login'))
     return render_template('connection_form.html')
 
 @main.route('/set_connection', methods=['POST'])
 def set_connection():
+    if not session.get('user_id'):
+        return redirect(url_for('main.login'))
+    
     db_type = request.form['db_type']
     server = request.form['server']
     auth_type = request.form['auth_type']
@@ -45,10 +189,9 @@ def set_connection():
     schema = request.form['schema']  # Schema name from the form
     username = request.form['username']
     password = request.form['password']
-    
-    # Debugging: Print the schema name
-    print("Schema Name from Form:", schema)
 
+    logger.info(f"Connection set for database: {db_type} at {server}")
+    
     if db_type == "mssql":
         if auth_type == "windows":
             params = urllib.parse.quote_plus(
@@ -89,12 +232,16 @@ def set_connection():
 
 @main.route('/chat')
 def chat():
+    if not session.get('user_id'):
+        return redirect(url_for('main.login'))
+    
     session['state'] = 'INIT'
     session['table'] = None
     session['last_query'] = None
     session['tables_in_query'] = []
     schema_info = get_schema_info()
     return render_template('chat.html', schema_info=schema_info)
+
 
 @main.route('/export_csv')
 def export_csv():
