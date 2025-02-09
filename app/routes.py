@@ -35,6 +35,7 @@ import time
 # Load environment variables from .env file
 load_dotenv()
 
+# Initialize blueprint for routes
 main = Blueprint('main', __name__)
 
 # Set up logging
@@ -87,7 +88,6 @@ def load_user(user_id):
 
 @main.route('/')
 def index():
-    print("DEBUG: Rendering landing page")
     return render_template('landing.html')
 
 # Map plan to Stripe price IDs
