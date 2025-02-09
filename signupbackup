@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Data-Convo</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        h2 {
+            color: #343a40;
+        }
+        #payment-status {
+            margin-top: 10px;
+        }
+        #submit-button {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        #submit-button:disabled {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        #payment-element-container {
+            display: none;
+            margin-top: 20px;
+        }
+        #payment-element {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <h2 class="text-center mb-4">Sign Up</h2>
+
+                <!-- Flash Messages -->
+                <div id="payment-status" class="alert" style="display: none;"></div>
+
+                <!-- Signup Form -->
+                <form id="signup-form" action="/signup" method="POST">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Choose a secure password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="plan" class="form-label">Select Plan</label>
+                        <select class="form-select" id="plan-select" name="plan" required>
+                            <option value="free">Free</option>
+                            <option value="pro">Pro (£25/month)</option>
+                            <option value="enterprise">Enterprise (£99/month)</option>
+                        </select>
+                    </div>
+
+                    <!-- Payment Element -->
+                    <div id="payment-element-container">
+                        <div id="payment-element"></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100" id="submit-button">Sign Up</button>
+                </form>
+
+                <!-- Manage Subscription Button -->
+                <button id="manage-subscription" class="btn btn-secondary w-100 mt-3">Manage Subscription</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stripe JS -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const stripe = Stripe('{{ stripe_public_key }}');
+            let paymentElement = null;
+            const form = document.getElementById('signup-form');
+            const planSelect = document.getElementById('plan-select');
+            const paymentElementContainer = document.getElementById('payment-element-container');
+            const submitButton = document.getElementById('submit-button');
+            const paymentStatus = document.getElementById('payment-status');
+
+            // Initialize Payment Element
+            async function initializePayment(email, password, plan) {
+                try {
+                    const response = await fetch('/create-checkout-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password, plan }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to create payment session.');
+                    }
+
+                    const data = await response.json();
+                    const elements = stripe.elements({ clientSecret: data.clientSecret });
+
+                    if (paymentElement) {
+                        paymentElement.unmount();
+                    }
+
+                    paymentElement = elements.create('payment');
+                    paymentElement.mount('#payment-element');
+                    paymentElementContainer.style.display = 'block';
+                } catch (error) {
+                    console.error('Error initializing payment:', error);
+                    paymentElementContainer.style.display = 'none';
+                }
+            }
+
+            // Handle plan selection
+            planSelect.addEventListener('change', async () => {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const plan = planSelect.value;
+
+                if (plan === 'pro' || plan === 'enterprise') {
+                    await initializePayment(email, password, plan);
+                } else {
+                    if (paymentElement) {
+                        paymentElement.unmount();
+                        paymentElement = null;
+                    }
+                    paymentElementContainer.style.display = 'none';
+                }
+            });
+
+            // Handle form submission
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();  // Prevent traditional form submission
+                submitButton.disabled = true;
+                submitButton.textContent = 'Processing...';
+
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const plan = planSelect.value;
+
+                try {
+                    const response = await fetch('/signup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password, plan }),
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Signup failed.');
+                    }
+
+                    const data = await response.json();
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;  // Redirect to the provided URL
+                    }
+                } catch (error) {
+                    paymentStatus.textContent = error.message;  // Display the error message
+                    paymentStatus.className = 'alert alert-danger';
+                    paymentStatus.style.display = 'block';
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Sign Up';
+                }
+            });
+
+            // Handle Manage Subscription Button Click
+            document.getElementById('manage-subscription').addEventListener('click', async () => {
+                
+
+                try {
+                    const response = await fetch('/create-customer-portal-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ customer_id: customerId }),
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to create customer portal session.');
+                    }
+
+                    const data = await response.json();
+                    window.location.href = data.url;  // Redirect to the Stripe Customer Portal
+                } catch (error) {
+                    alert(error.message);  // Show an error message
+                }
+            });
+        });
+    </script>
+</body>
+</html>

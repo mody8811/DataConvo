@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Chat with Data</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        {% if request.endpoint != 'main.chat' %}
+        <a href="{{ url_for('main.index') }}">
+            <img src="{{ url_for('static', filename='images/logo-no-background.png') }}" alt="Chat with Data Logo" class="logo">
+        </a>
+        {% endif %}
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('main.index') }}">Home</a></li>
+                <li><a href="{{ url_for('main.schema') }}">Schema Info</a></li>
+                <li><a href="{{ url_for('main.er_diagram') }}">ER Diagram</a></li>
+                <li><a href="{{ url_for('main.chat') }}">Chat</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

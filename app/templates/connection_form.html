@@ -4,50 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <title>Database Connection</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
             margin: 0;
             padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
         }
 
         .connection-form {
             background: #fff;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
         }
 
         h1 {
-            font-size: 1.5rem;
+            font-size: 1.75rem;
             color: #333;
             margin-bottom: 1.5rem;
             text-align: center;
+            font-weight: 600;
         }
 
         label {
             display: block;
             margin-bottom: 0.5rem;
             color: #555;
+            font-weight: 500;
         }
 
         input[type="text"],
         input[type="password"],
-        select {
+        select,
+        input[type="file"] {
             width: 100%;
             padding: 0.75rem;
             margin-bottom: 1rem;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        select:focus,
+        input[type="file"]:focus {
+            border-color: #007bff;
+            outline: none;
         }
 
         button {
@@ -56,9 +69,10 @@
             background-color: #007bff;
             color: #fff;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 1rem;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
 
         button:hover {
@@ -71,14 +85,14 @@
 
         .field-container {
             position: relative;
-            margin-bottom: 1.5rem; /* Added more space for the icon */
+            margin-bottom: 1.5rem;
         }
 
         .info-icon {
             cursor: pointer;
             position: absolute;
             left: 0;
-            top: -20px; /* Position above the input box */
+            top: -20px;
             color: #007bff;
             font-size: 0.9rem;
         }
@@ -93,18 +107,171 @@
             background-color: #fff;
             border: 1px solid #ddd;
             padding: 0.75rem;
-            border-radius: 4px;
+            border-radius: 6px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             max-width: 250px;
             font-size: 0.9rem;
             color: #555;
-            top: -10px; /* Adjust pop-up position */
-            left: 20px; /* Position pop-up to the right of the icon */
+            top: -10px;
+            left: 20px;
         }
 
         .info-icon:hover .info-popup {
             display: block;
+        }
+
+        .file-upload-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .file-upload-section h2 {
+            font-size: 1.25rem;
+            color: #333;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .file-upload-section button {
+            background-color: #28a745;
+        }
+
+        .file-upload-section button:hover {
+            background-color: #218838;
+        }
+
+        .file-format-note {
+            font-size: 0.875rem;
+            color: #666;
+            text-align: center;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+            font-style: italic;
+        }
+
+        .file-format-note strong {
+            color: #333;
+        }
+
+        .fa-info-circle {
+            margin-right: 0.5rem;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .button-group button {
+            flex: 1;
+        }
+
+        .test-connection {
+            background-color: #6c757d;
+        }
+
+        .test-connection:hover {
+            background-color: #5a6268;
+        }
+
+        .connect-btn {
+            background-color: #007bff;
+        }
+
+        .connection-status {
+            display: none;
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-loading {
+            background-color: #e2e3e5;
+            color: #383d41;
+            border: 1px solid #d6d8db;
+        }
+
+        .navigation-options {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .option-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .option-button {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+        
+        .db-option {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .file-option {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .option-button:hover {
+            opacity: 0.9;
+        }
+
+        .option-button.active {
+            opacity: 0.8;
+            transform: scale(0.98);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .upload-status {
+            margin-top: 10px;
+            padding: 10px;
+            display: none;
+            text-align: center;
+            color: #666;
+        }
+
+        .error-message {
+            margin-top: 10px;
+            padding: 10px;
+            display: none;
+            color: #dc3545;
+            background-color: #f8d7da;
+            border-radius: 4px;
+        }
+
+        .selected-file {
+            margin-top: 10px;
+            display: none;
+            color: #28a745;
         }
     </style>
     <script>
@@ -163,92 +330,290 @@
             }
         }
 
+        async function uploadFile(event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please select a file to upload.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload_chat/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    // Redirect to the chat-upload page after successful upload
+                    window.location.href = '/upload_chat/chat_upload';
+                } else {
+                    alert('Error uploading file. Please try again.');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function testConnection() {
+            const testBtn = document.querySelector('.test-connection');
+            const statusDiv = document.getElementById('connection-status');
+            const formData = new FormData(document.querySelector('form'));
+            
+            // Show loading state
+            testBtn.disabled = true;
+            statusDiv.className = 'connection-status status-loading';
+            statusDiv.style.display = 'block';
+            statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing connection...';
+
+            try {
+                const response = await fetch('/test-connection', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.className = 'connection-status status-success';
+                    statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> ' + data.message;
+                } else {
+                    statusDiv.className = 'connection-status status-error';
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + data.error;
+                }
+            } catch (error) {
+                statusDiv.className = 'connection-status status-error';
+                statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Connection test failed: ' + error.message;
+            } finally {
+                testBtn.disabled = false;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', (event) => {
             toggleAuthFields(); // Initial call to set the correct fields visibility
             updateFieldExamples(); // Initial call to set examples based on the selected DB type
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get the buttons and forms
+            const dbButton = document.getElementById('dbButton');
+            const fileButton = document.getElementById('fileButton');
+            const dbForm = document.getElementById('dbForm');
+            const fileForm = document.getElementById('fileForm');
+            const uploadForm = document.getElementById('uploadForm');
+            const fileInput = document.getElementById('fileInput');
+            const selectedFile = document.getElementById('selectedFile');
+            const uploadStatus = document.getElementById('uploadStatus');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Add click handlers for the buttons
+            dbButton.addEventListener('click', function() {
+                dbForm.style.display = 'block';
+                fileForm.style.display = 'none';
+                dbButton.classList.add('active');
+                fileButton.classList.remove('active');
+            });
+
+            fileButton.addEventListener('click', function() {
+                dbForm.style.display = 'none';
+                fileForm.style.display = 'block';
+                fileButton.classList.add('active');
+                dbButton.classList.remove('active');
+            });
+
+            // File input change handler
+            fileInput.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    selectedFile.textContent = `Selected: ${this.files[0].name}`;
+                    selectedFile.style.display = 'block';
+                    errorMessage.style.display = 'none';
+                } else {
+                    selectedFile.style.display = 'none';
+                }
+            });
+
+            // Form submission handler
+            uploadForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData();
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    errorMessage.textContent = 'Please select a file';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+                
+                formData.append('file', file);
+                
+                try {
+                    uploadStatus.textContent = 'Uploading...';
+                    uploadStatus.style.display = 'block';
+                    errorMessage.style.display = 'none';
+                    
+                    const response = await fetch('/upload_chat/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        uploadStatus.textContent = 'Upload successful! Redirecting...';
+                        window.location.href = '/upload_chat/chat_upload';
+                    } else {
+                        throw new Error(data.error || 'Upload failed');
+                    }
+                } catch (error) {
+                    errorMessage.textContent = `Error: ${error.message}`;
+                    errorMessage.style.display = 'block';
+                    uploadStatus.style.display = 'none';
+                }
+            });
         });
     </script>
 </head>
 <body>
     <div class="connection-form">
-        <h1>Enter Database Connection Details</h1>
-        <form action="{{ url_for('main.set_connection') }}" method="post">
-            <!-- Database Type -->
-            <div class="field-container">
-                <label for="db_type">Database Type:</label>
-                <span class="info-icon">ℹ️
-                    <span class="info-popup">Select the type of database you are connecting to.</span>
-                </span>
-                <select name="db_type" id="db_type" required onchange="updateFieldExamples()">
-                    <option value="mssql">SQL Server</option>
-                    <option value="mysql">MySQL</option>
-                    <option value="postgresql">PostgreSQL</option>
-                    <option value="azure_sql">Azure SQL</option>
-                    <option value="aws_rds">AWS RDS</option>
-                    <option value="google_sql">Google SQL</option>
-                </select>
+        <div class="navigation-options">
+            <h2>Choose Your Data Source</h2>
+            <div class="option-buttons">
+                <button class="option-button db-option" id="dbButton">
+                    <i class="fas fa-database"></i> Connect to Database
+                </button>
+                <button class="option-button file-option" id="fileButton">
+                    <i class="fas fa-file-upload"></i> Upload File
+                </button>
             </div>
+        </div>
 
-            <!-- Server -->
-            <div class="field-container">
-                <label for="server">Server:</label>
-                <span class="info-icon">ℹ️
-                    <span class="info-popup" id="server-example">Example: Enter server details</span>
-                </span>
-                <input type="text" name="server" id="server" required>
-            </div>
-
-            <!-- Database -->
-            <div class="field-container">
-                <label for="database">Database:</label>
-                <span class="info-icon">ℹ️
-                    <span class="info-popup" id="database-example">Example: Enter database name</span>
-                </span>
-                <input type="text" name="database" id="database" required>
-            </div>
-
-            <!-- Schema -->
-            <div class="field-container">
-                <label for="schema">Schema:</label>
-                <span class="info-icon">ℹ️
-                    <span class="info-popup" id="schema-example">Example: Enter schema name</span>
-                </span>
-                <input type="text" name="schema" id="schema" required>
-            </div>
-
-            <!-- Authentication Type -->
-            <div class="field-container">
-                <label for="auth_type">Authentication Type:</label>
-                <span class="info-icon">ℹ️
-                    <span class="info-popup">Choose the authentication method for your database.</span>
-                </span>
-                <select name="auth_type" id="auth_type" onchange="toggleAuthFields()" required>
-                    <option value="windows">Windows Authentication</option>
-                    <option value="sql">Database Authentication</option>
-                </select>
-            </div>
-
-            <!-- Username and Password (Conditional) -->
-            <div id="user-pass-fields">
+        <!-- Database Connection Form -->
+        <div id="dbForm">
+            <hr style="margin: 2rem 0;">
+            <h1>Enter Database Connection Details</h1>
+            <form action="{{ url_for('main.set_connection') }}" method="post">
+                <!-- Database Type -->
                 <div class="field-container">
-                    <label for="username">Username:</label>
-                    <span class="info-icon">ℹ️
-                        <span class="info-popup">Enter your database username.</span>
+                    <label for="db_type">Database Type:</label>
+                    <span class="info-icon"><i class="fas fa-info-circle"></i>
+                        <span class="info-popup">Select the type of database you are connecting to.</span>
                     </span>
-                    <input type="text" name="username" id="username">
+                    <select name="db_type" id="db_type" required onchange="updateFieldExamples()">
+                        <option value="mssql">SQL Server</option>
+                        <option value="mysql">MySQL</option>
+                        <option value="postgresql">PostgreSQL</option>
+                        <option value="azure_sql">Azure SQL</option>
+                        <option value="aws_rds">AWS RDS</option>
+                        <option value="google_sql">Google SQL</option>
+                    </select>
                 </div>
 
+                <!-- Server -->
                 <div class="field-container">
-                    <label for="password">Password:</label>
-                    <span class="info-icon">ℹ️
-                        <span class="info-popup">Enter your database password.</span>
+                    <label for="server">Server:</label>
+                    <span class="info-icon"><i class="fas fa-info-circle"></i>
+                        <span class="info-popup" id="server-example">Example: Enter server details</span>
                     </span>
-                    <input type="password" name="password" id="password">
+                    <input type="text" name="server" id="server" required>
                 </div>
-            </div>
 
-            <button type="submit">Connect</button>
-        </form>
+                <!-- Database -->
+                <div class="field-container">
+                    <label for="database">Database:</label>
+                    <span class="info-icon"><i class="fas fa-info-circle"></i>
+                        <span class="info-popup" id="database-example">Example: Enter database name</span>
+                    </span>
+                    <input type="text" name="database" id="database" required>
+                </div>
+
+                <!-- Schema -->
+                <div class="field-container">
+                    <label for="schema">Schema:</label>
+                    <span class="info-icon"><i class="fas fa-info-circle"></i>
+                        <span class="info-popup" id="schema-example">Example: Enter schema name</span>
+                    </span>
+                    <input type="text" name="schema" id="schema" required>
+                </div>
+
+                <!-- Authentication Type -->
+                <div class="field-container">
+                    <label for="auth_type">Authentication Type:</label>
+                    <span class="info-icon"><i class="fas fa-info-circle"></i>
+                        <span class="info-popup">Choose the authentication method for your database.</span>
+                    </span>
+                    <select name="auth_type" id="auth_type" onchange="toggleAuthFields()" required>
+                        <option value="windows">Windows Authentication</option>
+                        <option value="sql">Database Authentication</option>
+                    </select>
+                </div>
+
+                <!-- Username and Password (Conditional) -->
+                <div id="user-pass-fields">
+                    <div class="field-container">
+                        <label for="username">Username:</label>
+                        <span class="info-icon"><i class="fas fa-info-circle"></i>
+                            <span class="info-popup">Enter your database username.</span>
+                        </span>
+                        <input type="text" name="username" id="username">
+                    </div>
+
+                    <div class="field-container">
+                        <label for="password">Password:</label>
+                        <span class="info-icon"><i class="fas fa-info-circle"></i>
+                            <span class="info-popup">Enter your database password.</span>
+                        </span>
+                        <input type="password" name="password" id="password">
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="test-connection" onclick="testConnection()">
+                        <i class="fas fa-plug"></i> Test Connection
+                    </button>
+                    <button type="submit" class="connect-btn">
+                        <i class="fas fa-sign-in-alt"></i> Connect
+                    </button>
+                </div>
+                <!-- Connection status message -->
+                <div id="connection-status" class="connection-status"></div>
+            </form>
+        </div>
+
+        <!-- File Upload Form -->
+        <div id="fileForm" style="display: none;">
+            <hr style="margin: 2rem 0;">
+            <h1>Upload Your Data File</h1>
+            <form id="uploadForm" class="upload-form" enctype="multipart/form-data" method="POST">
+                <div class="file-input-container">
+                    <input type="file" 
+                           id="fileInput" 
+                           name="file" 
+                           class="file-input" 
+                           accept=".csv,.xlsx,.xls" 
+                           required>
+                    <label for="fileInput" class="file-label">
+                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                        <span>Click or drag file to upload</span>
+                    </label>
+                    <div id="selectedFile" class="selected-file"></div>
+                </div>
+                <button type="submit" id="uploadButton" class="upload-button">
+                    <i class="fas fa-upload"></i> Upload and Analyze
+                </button>
+            </form>
+            <div id="uploadStatus" class="upload-status"></div>
+            <div class="supported-formats">
+                <strong>Supported formats:</strong> CSV, Excel (.xlsx, .xls)
+            </div>
+            <div id="errorMessage" class="error-message"></div>
+        </div>
     </div>
 </body>
 </html>

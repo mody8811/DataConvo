@@ -7,6 +7,16 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
 <body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
+                <img src="{{ url_for('static', filename='images/logo-no-background.png') }}" 
+                     alt="Data-Convo Logo" 
+                     style="height: 40px; width: auto;">
+            </a>
+            <!-- Rest of navbar -->
+        </div>
+    </nav>
     <div class="container mt-5">
         <h1 class="text-center">Log In</h1>
         <form method="POST" class="mt-4">

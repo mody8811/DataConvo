@@ -19,6 +19,7 @@ from fpdf import FPDF
 import json
 import tempfile
 from sqlalchemy.exc import OperationalError, ProgrammingError
+import numpy as np
 
 # For OAuth authentication
 from authlib.integrations.flask_client import OAuth
@@ -429,7 +430,7 @@ def get_response():
             logger.info(f"Table changed to: {user_message}")
             return jsonify({'response': f"AI: Great! You chose the {user_message} table. What do you want to know about it?"})
 
-        if "plot" in user_message.lower() or "visualise" in user_message.lower():
+        if "plot" in user_message.lower() or "visualise" or "bar" or "pie" in user_message.lower():
             sql_query = session.get('last_query')
             if sql_query:
                 logger.info("Generating visualization")
@@ -502,24 +503,43 @@ def generate_visualization(sql_query, plot_type):
         with engine.connect() as connection:
             df = pd.read_sql(sql_query, connection)
         
-        # Check if the dataframe is not empty
         if df.empty:
             return "The query returned no data for visualization."
 
-        # Generate a simple plot based on user request (e.g., a bar plot or pie chart)
         plt.figure(figsize=(10, 6))
 
+        # Pie chart
         if "pie" in plot_type.lower():
             colors = sns.color_palette("viridis", len(df))
             plt.pie(df.iloc[:, 1], labels=df.iloc[:, 0], autopct='%1.1f%%', startangle=140, colors=colors)
             plt.title('Pie Chart')
-        else:
+
+        # Bar plot
+        elif "bar" in plot_type.lower():
             sns.barplot(x=df.iloc[:, 0], y=df.iloc[:, 1], palette="viridis")
             plt.xticks(rotation=50, ha='right')
             plt.xlabel(df.columns[0])
             plt.ylabel(df.columns[1])
             plt.title('Bar Plot')
             plt.tight_layout()
+
+        # Add more plot types if needed (e.g., line, scatter)
+        elif "line" in plot_type.lower():
+            sns.lineplot(x=df.iloc[:, 0], y=df.iloc[:, 1], marker="o", color="b")
+            plt.title('Line Plot')
+            plt.xlabel(df.columns[0])
+            plt.ylabel(df.columns[1])
+            plt.tight_layout()
+
+        elif "scatter" in plot_type.lower():
+            sns.scatterplot(x=df.iloc[:, 0], y=df.iloc[:, 1], color="r")
+            plt.title('Scatter Plot')
+            plt.xlabel(df.columns[0])
+            plt.ylabel(df.columns[1])
+            plt.tight_layout()
+
+        else:
+            return "Unsupported plot type."
 
         # Save the plot to a string buffer
         buffer = io.BytesIO()
@@ -529,8 +549,8 @@ def generate_visualization(sql_query, plot_type):
         # Encode the image to base64 string
         img_str = base64.b64encode(buffer.getvalue()).decode()
 
-        # Return the image tag to embed in HTML
         return f'<img src="data:image/png;base64,{img_str}" alt="Visualization"/>'
+
     except Exception as e:
         return f"Error generating visualization: {str(e)}"
 
@@ -690,6 +710,132 @@ def extract_sql_query(response_text):
 
     return sql_query
 # Add the new routes here
+@main.route('/get_table_data', methods=['GET'])
+def get_table_data():
+    try:
+        # Get the last table data from the session
+        df_dict = session.get('last_dataframe')
+        if not df_dict or not isinstance(df_dict, dict) or 'data' not in df_dict or 'columns' not in df_dict:
+            logging.error("Session data is invalid or incomplete.")
+            return jsonify({"error": "Invalid or incomplete table data in session."}), 400
+
+        # Return the table data
+        return jsonify({
+            "message": "Table data fetched successfully",
+            "data": {
+                "columns": df_dict['columns'],
+                "data": df_dict['data']
+            }
+        })
+
+    except Exception as e:
+        logging.error(f"Error fetching table data: {e}")
+        return jsonify({"error": "An error occurred while fetching table data"}), 500
+
+
+# New /anonymize endpoint
+@main.route('/data-tools', methods=['POST'])
+def data_tools():
+    tool = request.json.get('tool')
+    if tool == 'clean':
+        # Fetch the last table data from the session
+        df_dict = session.get('last_dataframe')
+        if not df_dict:
+            return jsonify({"error": "No table data found in session. Please run a query first."}), 400
+
+        # Convert the dictionary to a DataFrame
+        df = pd.DataFrame(df_dict['data'], columns=df_dict['columns'])
+
+        # Generate cleaning suggestions
+        suggestions = generate_cleaning_suggestions(df)
+        return jsonify({"suggestions": suggestions})
+
+def generate_cleaning_suggestions(df):
+    """Generate cleaning suggestions based on the DataFrame."""
+    suggestions = []
+
+    # Check for missing values
+    for col in df.columns:
+        if df[col].isnull().any():
+            suggestions.append(f"Column '{col}' has missing values. Consider filling or removing them.")
+
+    # Check for negative values in numeric columns
+    numeric_columns = df.select_dtypes(include=['number']).columns
+    for col in numeric_columns:
+        if (df[col] < 0).any():
+            suggestions.append(f"Column '{col}' has negative values. Check for data entry errors.")
+
+    # Check for single-value columns
+    for col in df.columns:
+        if df[col].nunique() == 1:
+            suggestions.append(f"Column '{col}' has only one unique value. Consider removing it.")
+
+    return suggestions
+@main.route('/anonymize', methods=['POST'])
+def anonymize():
+    try:
+        # Get the selected columns from the request
+        selected_columns = request.json.get('columns', [])
+
+        if not selected_columns:
+            return jsonify({"error": "No columns selected for anonymization."}), 400
+
+        # Get the last table data from the session
+        df_dict = session.get('last_dataframe')
+        if not df_dict:
+            return jsonify({"error": "No table data found in session. Please run a query first."}), 400
+
+        # Convert the dictionary to a DataFrame
+        df = pd.DataFrame(df_dict['data'], columns=df_dict['columns'])
+
+        # Anonymize the selected columns
+        anonymized_df = anonymize_data(df, selected_columns)
+
+        # Update the session with anonymized data
+        session['last_dataframe'] = {
+            "data": anonymized_df.values.tolist(),
+            "columns": anonymized_df.columns.tolist()
+        }
+
+        return jsonify({
+            "message": "Data anonymized successfully.",
+            "data": {
+                "columns": anonymized_df.columns.tolist(),
+                "data": anonymized_df.values.tolist()
+            }
+        })
+
+    except Exception as e:
+        logging.error(f"Error in anonymize: {e}", exc_info=True)
+        return jsonify({"error": "An error occurred during anonymization."}), 500
+@main.route('/get_columns', methods=['GET'])
+def get_columns():
+    try:
+        # Get the last table data from the session
+        df_dict = session.get('last_dataframe')
+        if not df_dict:
+            return jsonify({"error": "No table data found in session. Please run a query first."}), 400
+
+        # Extract columns from the DataFrame
+        columns = df_dict.get('columns', [])
+        return jsonify({"columns": columns})
+
+    except Exception as e:
+        logging.error(f"Error fetching columns: {e}")
+        return jsonify({"error": "An error occurred while fetching columns."}), 500
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+def anonymize_data(df, selected_columns):
+    """Anonymize the specified columns in the DataFrame."""
+    for column in selected_columns:
+        if column in df.columns:
+            # Mask the column data (e.g., replace with '*****')
+            df[column] = '*****'
+        else:
+            logging.warning(f"Column '{column}' not found in the DataFrame for anonymization.")
+    return df
 @main.route('/get_insights', methods=['POST'])
 def get_insights():
     try:
@@ -723,22 +869,38 @@ def generate_dynamic_prompts(df):
     categorical_columns = df.select_dtypes(include=['object', 'category']).columns.tolist()
 
     # Generate prompts based on column types and names
-    if numeric_columns:
-        # If there are numeric columns, suggest aggregation or analysis
-        prompts.append(f"What is the total {numeric_columns[0]} in this table?")
-        prompts.append(f"What is the average {numeric_columns[0]} in this table?")
-        if len(numeric_columns) > 1:
-            prompts.append(f"What is the correlation between {numeric_columns[0]} and {numeric_columns[1]}?")
-
-    if datetime_columns:
-        # If there are datetime columns, suggest time-based analysis
-        prompts.append(f"What is the distribution of records by {datetime_columns[0]}?")
-        prompts.append(f"What is the trend over time for {numeric_columns[0] if numeric_columns else 'records'}?")
-
-    if categorical_columns:
-        # If there are categorical columns, suggest grouping or counting
-        prompts.append(f"What are the unique values in {categorical_columns[0]}?")
-        prompts.append(f"What is the distribution of records by {categorical_columns[0]}?")
+    for col in columns:
+        if col in numeric_columns:
+            # Numeric columns: suggest aggregations, distributions, and outliers
+            prompts.append(f"What is the total {col} in this table?")
+            prompts.append(f"What is the average {col} in this table?")
+            prompts.append(f"Show a histogram of {col}.")
+            if len(numeric_columns) > 1:
+                for other_col in numeric_columns:
+                    if other_col != col:
+                        prompts.append(f"What is the correlation between {col} and {other_col}?")
+                        prompts.append(f"Show a scatter plot of {col} vs {other_col}.")
+        
+        elif col in datetime_columns:
+            # Datetime columns: suggest time-based analysis
+            prompts.append(f"What is the trend of rows over time by {col}?")
+            prompts.append(f"Show a line chart of rows over time by {col}.")
+            if numeric_columns:
+                prompts.append(f"What is the trend of {numeric_columns[0]} over time by {col}?")
+                prompts.append(f"Show a line chart of {numeric_columns[0]} over time by {col}.")
+        
+        elif col in categorical_columns:
+            # Categorical columns: suggest grouping, counting, and unique values
+            prompts.append(f"What are the unique values in {col}?")
+            prompts.append(f"Show a bar chart of rows by {col}.")
+            if numeric_columns:
+                prompts.append(f"What is the total {numeric_columns[0]} by {col}?")
+                prompts.append(f"Show a bar chart of {numeric_columns[0]} by {col}.")
+        
+        # Text analysis for columns with text data
+        if df[col].dtype == 'object' and df[col].str.len().max() > 50:  # Assume text data if strings are long
+            prompts.append(f"What is the overall sentiment of {col}?")
+            prompts.append(f"Show a word cloud of {col}.")
 
     # Fallback prompts if no specific columns are found
     if not prompts:
@@ -747,11 +909,11 @@ def generate_dynamic_prompts(df):
         if 'name' in columns or 'title' in columns:
             prompts.append(f"What are the unique names/titles in this table?")
         if 'date' in columns or 'created_at' in columns:
-            prompts.append(f"What is the distribution of records by date?")
+            prompts.append(f"What is the distribution of rows by date?")
         if 'amount' in columns or 'price' in columns:
             prompts.append(f"What is the total amount/price in this table?")
         if 'category' in columns or 'type' in columns:
-            prompts.append(f"What is the distribution of records by category/type?")
+            prompts.append(f"What is the distribution of rows by category/type?")
         if not prompts:
             prompts.append(f"Show the first 10 rows of this table.")
 

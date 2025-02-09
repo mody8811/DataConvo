@@ -1,19 +1,264 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Landing Page</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-</head>
-<body>
-    <div class="container text-center mt-5">
-        <h1>Welcome to Data-Convo!</h1>
-        <p>Your go-to app for database queries made easy.</p>
-        <div class="auth-buttons mt-4">
-            <a href="{{ url_for('main.signup') }}" class="btn btn-primary btn-lg">Sign Up</a>
-            <a href="{{ url_for('main.login') }}" class="btn btn-secondary btn-lg">Sign In</a>
+{% extends "base.html" %}
+
+{% block title %}Data-Convo{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="container">
+        <h1 class="display-4">Transform Data Into Insights Through Conversation</h1>
+        <div class="typing-container">
+            <span class="typing-text" id="typing-text"></span>
+        </div>
+        <p class="lead">Interact with your data using natural language—let AI guide your analysis journey.</p>
+        <div class="mt-4">
+            <a href="{{ url_for('main.pricing') }}" class="btn btn-primary btn-lg">Get Started</a>
         </div>
     </div>
-</body>
-</html>
+</section>
+
+<!-- Platform Demo Section -->
+<section class="demo-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="demo-wrapper">
+                    <img src="{{ url_for('static', filename='images/platform-demo.gif') }}" 
+                         alt="Platform Demo" 
+                         class="img-fluid m-0 p-0">
+                    <div class="demo-caption text-center p-3">
+                        <h5 class="mb-2">
+                            <i class="fas fa-magic me-2"></i>
+                            See Data-Convo in Action
+                        </h5>
+                        <p class="text-muted small mb-0">
+                            Real-time analysis • Smart visualizations • Natural language queries
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="features" class="features">
+    <div class="container">
+        <h2 class="mb-5">Features</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fas fa-database"></i>
+                    <h3>Speak to Your Data with SQL</h3>
+                    <p>Analyze your data through natural language conversations, letting AI guide you to discover meaningful insights and create visualizations - no SQL knowledge required</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fas fa-project-diagram"></i>
+                    <h3>Visualise Relationships</h3>
+                    <p>See real-time relationships between tables and perform joins with ease.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fas fa-comments"></i>
+                    <h3>Natural Language Data Manipulation</h3>
+                    <p>Transform your data into insights through natural conversation—let AI do your complex analysis.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fas fa-user-secret"></i>
+                    <h3>Anonymize Data</h3>
+                    <p>Protect sensitive information by anonymizing data with just one click.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <h3>Optimize Queries</h3>
+                    <p>Automatically optimize your SQL queries for faster performance and efficiency.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Real-Time Insights</h3>
+                    <p>Get real-time insights and analytics from your data with interactive visualizations.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="how-it-works" class="how-it-works">
+    <div class="container">
+        <h2 class="mb-5">How It Works</h2>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="step">
+                    <i class="fas fa-plug"></i>
+                    <h3>Connect Your Data</h3>
+                    <p>Link your database or upload your dataset to get started.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="step">
+                    <i class="fas fa-terminal"></i>
+                    <h3>Query with Natural Language</h3>
+                    <p>Use natural language to interact with your data.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="step">
+                    <i class="fas fa-chart-bar"></i>
+                    <h3>Visualise and Analyze</h3>
+                    <p>See relationships between tables, perform joins, and visualize insights in real-time.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="step">
+                    <i class="fas fa-shield-alt"></i>
+                    <h3>Anonymize and Optimize</h3>
+                    <p>Anonymize sensitive data and optimize queries for better performance.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="testimonials" class="testimonials">
+    <div class="container">
+        <h2 class="mb-5">What Our Users Say</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="testimonial-card">
+                    <p class="mb-3">"Data-Convo revolutionized how we analyze customer feedback..."</p>
+                    <h4>Sarah Johnson</h4>
+                    <div class="text-muted small">
+                        <span class="d-block">Senior Data Analyst</span>
+                        <span class="text-primary">@TechInnovate UK</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="testimonial-card">
+                    <p class="mb-3">"The natural language queries saved us hundreds of hours..."</p>
+                    <h4>Michael Chen</h4>
+                    <div class="text-muted small">
+                        <span class="d-block">Head of Business Intelligence</span>
+                        <span class="text-primary">Global Insights Ltd</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="testimonial-card">
+                    <p>"This app has transformed the way I manage my tasks. Highly recommended!"</p>
+                    <h4>– John Doe</h4>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="testimonial-card">
+                    <p>"The interface is so intuitive, and the authentication options are a lifesaver!"</p>
+                    <h4>– Jane Smith</h4>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="testimonial-card">
+                    <p>"A must-have tool for anyone looking to streamline their workflow."</p>
+                    <h4>– Alex Johnson</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="cta">
+    <div class="container text-center">
+        <h2>Ready to Transform Your Data Workflow?</h2>
+        <a href="mailto:dataconvo1@gmail.com?subject=Data-Convo%20Inquiry" 
+           class="btn btn-primary btn-lg mt-3">
+            Contact Our Team <i class="fas fa-envelope ms-2"></i>
+        </a>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const phrases = [
+            "If your data could speak, what would it tell?",
+            "What stories does your data tell?",
+            "Discover hidden patterns...",
+            "Predict future trends...",
+            "Make data-driven decisions...",
+            "Visualise your insights..."
+        ];
+        
+        let phraseIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        let isPaused = false;
+        
+        function type() {
+            const currentPhrase = phrases[phraseIndex];
+            const typingText = document.getElementById('typing-text');
+            
+            if (isDeleting) {
+                typingText.textContent = currentPhrase.substring(0, charIndex - 1);
+                charIndex--;
+            } else {
+                typingText.textContent = currentPhrase.substring(0, charIndex + 1);
+                charIndex++;
+            }
+            
+            if (!isDeleting && charIndex === currentPhrase.length) {
+                isPaused = true;
+                setTimeout(() => {
+                    isPaused = false;
+                    isDeleting = true;
+                }, 2000);
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                phraseIndex = (phraseIndex + 1) % phrases.length;
+            }
+            
+            const typingSpeed = isDeleting ? 30 : 50;
+            const delay = isPaused ? 0 : typingSpeed;
+            
+            setTimeout(type, delay);
+        }
+        
+        type();
+    });
+</script>
+{% endblock %}
+
+<style>
+    /* Add this to your landing page styles */
+    .cta .btn-primary {
+        position: relative;
+        overflow: hidden;
+        padding: 12px 30px;
+        border: none;
+        background: #007BFF;
+        background: linear-gradient(to right, #0069D9, #007BFF);
+    }
+
+    /* Remove any existing overlay styles */
+    .cta .btn-primary::before {
+        content: none;
+    }
+
+    /* Add hover effect */
+    .cta .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+    }
+
+    /* Ensure text visibility */
+    .cta .btn-primary span {
+        position: relative;
+        z-index: 2;
+    }
+</style>

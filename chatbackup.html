@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Convo.beta</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Add Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        #chat-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            color: #fff;
+            padding: 20px;
+            overflow-y: auto;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        #table-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        #table-list li {
+            margin-bottom: 10px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        #table-list li:hover {
+            background-color: #34495e;
+        }
+
+        .columns-list {
+            list-style: none;
+            padding-left: 20px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .columns-list li {
+            font-size: 14px;
+            padding: 5px 0;
+        }
+
+        #chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            background-color: #f9f9f9;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        #chat-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        #chat-display {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        /* Message and Table Container */
+        .message {
+            margin: 12px 0;
+            padding: 12px;
+            border-radius: 6px;
+            background: #f8f9fa;
+            max-width: 85%;
+            margin-left: 0;    /* Keep left alignment */
+            margin-right: auto;
+        }
+
+        .message.AI {
+            background: #f8f9fa;
+            width: auto;       /* Allow content to determine width */
+            max-width: none;   /* Remove max-width for visualizations */
+        }
+
+        .message.User {
+            background: #e9ecef;
+            max-width: 70%;
+        }
+
+        .message strong {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .status {
+            color: #888;
+            font-style: italic;
+            text-align: center;
+            margin: 10px 0;
+            align-self: center;
+        }
+
+        #chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        #chat-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        #chat-input:focus {
+            outline: none;
+            border-color: #2c3e50;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #2c3e50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #34495e;
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            background-color: #fff;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            z-index: 1000;
+            min-width: 200px;
+        }
+
+        .dropdown-menu a {
+            display: block;
+            padding: 10px 15px;
+            color: #333;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+
+        .dropdown-menu a:hover {
+            background-color: #f1f1f1;
+        }
+
+        .dropdown-toggle::after {
+            content: "▼";
+            margin-left: 5px;
+            font-size: 12px;
+        }
+
+        .table-options {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+
+        .table-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .table-button {
+            padding: 5px 12px;
+            border: 1px solid #007bff;
+            border-radius: 15px;
+            background-color: white;
+            color: #007bff;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .table-button:hover {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .table-button.active {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .selected-table-bubble {
+            display: inline-block;
+            padding: 5px 12px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 15px;
+            margin-left: 5px;
+        }
+
+        /* Base modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            z-index: 1001;
+            width: 400px;
+            max-width: 90%;
+        }
+
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        /* Form styles */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        /* Modal header/footer */
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Buttons */
+        .close {
+            cursor: pointer;
+            font-size: 24px;
+        }
+
+        .button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        /* Style the table presentation */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            overflow: auto;
+        }
+
+        .table th {
+            background-color: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+        }
+
+        .table td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Add sort indicators */
+        .table th::after {
+            content: '↕️';
+            font-size: 12px;
+            margin-left: 5px;
+            opacity: 0.3;
+        }
+
+        .table th.sort-asc::after {
+            content: '↑';
+            opacity: 1;
+        }
+
+        .table th.sort-desc::after {
+            content: '↓';
+            opacity: 1;
+        }
+
+        /* Style favorites in sidebar */
+        #favorites-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .favorite-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background-color: #f8f9fa;
+            transition: all 0.2s ease;
+        }
+
+        .favorite-item:hover {
+            background-color: #fff;
+            border-color: #2c3e50;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transform: translateY(-1px);
+        }
+
+        .favorite-name {
+            font-size: 0.95rem;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .favorite-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .action-btn {
+            padding: 6px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+        }
+
+        .action-btn:hover {
+            background-color: #e9ecef;
+        }
+
+        .action-btn.run {
+            color: #2c3e50;
+        }
+
+        .action-btn.run:hover {
+            color: #34495e;
+            background-color: #e1f5fe;
+        }
+
+        .action-btn.delete {
+            color: #dc3545;
+        }
+
+        .action-btn.delete:hover {
+            color: #c82333;
+            background-color: #fee7e9;
+        }
+
+        .action-btn i {
+            font-size: 14px;
+        }
+
+        #favorites-list {
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        #favorites-container {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        #favorites-container h3 {
+            color: #2c3e50;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            padding-left: 10px;
+        }
+
+        /* Add animation styles */
+        @keyframes cellUpdate {
+            0% { background-color: #fff; }
+            50% { background-color: #e1f5fe; }
+            100% { background-color: #fff; }
+        }
+
+        .cell-update {
+            animation: cellUpdate 0.5s ease;
+        }
+
+        /* Anonymization modal styles */
+        #anonymize-modal {
+            position: fixed;
+            top: 20%;
+            right: 20px;
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            width: 300px;
+            max-height: 70vh;
+            overflow-y: auto;
+            z-index: 1001;
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .checkbox-wrapper {
+            position: relative;
+            z-index: 1002;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .modal-content {
+            position: relative;
+            z-index: 1002;
+        }
+
+        /* Visualization guide styles */
+        .visualization-guide {
+            padding: 10px 0;
+        }
+
+        .visualization-guide h3 {
+            color: #2c3e50;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .guide-text {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .chart-description {
+            margin: 10px 0;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            color: #666;
+        }
+
+        .step-1, .step-2 {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <!-- Sidebar -->
+        <div id="sidebar">
+            <h2>Database Tables</h2>
+            <ul id="table-list">
+                {% for table, details in schema_info.items() %}
+                    <li onclick="toggleColumnsAndRelationships('{{ table }}')">{{ table }}
+                        <ul id="columns-{{ table }}" class="columns-list">
+                            <li><strong>Columns:</strong></li>
+                            {% for column in details.columns %}
+                                <li>{{ column }}</li>
+                            {% endfor %}
+                            <li><strong>Relationships:</strong></li>
+                            {% for relationship in details.relationships %}
+                                <li>
+                                    {{ relationship.foreign_column }} → {{ relationship.primary_table }}.{{ relationship.primary_column }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="favorites-section">
+                <h2>Favorites</h2>
+                <ul id="favorites-list"></ul>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div id="chat-area">
+            <h1 id="chat-title">Speak to Data.beta</h1>
+            <div id="chat-display"></div>
+            <div class="table-options">
+                <p>Available Tables:</p>
+                <div class="table-buttons"></div>
+            </div>
+            <div id="chat-input-container">
+                <input type="text" id="chat-input" placeholder="Type a message...">
+                <button onclick="sendMessage()">Send</button>
+                <div class="dropdown">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Data Tools
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="showVisualizationModal()">
+                            <i class="fas fa-chart-bar"></i> Create Visualization
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectTool('clean')">
+                            <i class="fas fa-broom"></i> Clean Data
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" onclick="selectTool('insights')">
+                            <i class="fas fa-lightbulb"></i> Get Insights
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Query Optimizer Modal -->
+    <div id="query-optimizer-modal" class="modal">
+        <div class="modal-content">
+            <h2>Optimize Your Query</h2>
+            <textarea id="query-input" placeholder="Enter your SQL query here..."></textarea>
+            <button onclick="optimizeQuery()">Optimize</button>
+            <button onclick="closeQueryOptimizer()">Close</button>
+            <div id="optimized-query-result" style="margin-top: 20px; display: none;">
+                <h3>Optimized Query:</h3>
+                <pre id="optimized-query-output"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insights Modal -->
+    <div id="insights-modal" class="modal">
+        <div class="modal-header">
+            <h2>Suggested Insights</h2>
+            <span class="close" onclick="closeInsightsModal()">&times;</span>
+        </div>
+        <div id="insights-prompt-list"></div>
+    </div>
+
+    <!-- Visualization Modal -->
+    <div id="visualization-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Visualization</h2>
+                <span class="close" onclick="closeVisualizationModal()">&times;</span>
+            </div>
+            <div class="form-group">
+                <label for="chartType">Chart Type:</label>
+                <select id="chartType" class="form-control" onchange="updateColumnSelectors()">
+                    <!-- Options will be populated dynamically -->
+                </select>
+                <small class="chart-description text-muted"></small>
+            </div>
+            <div id="columnSelectors"></div>
+            <div class="modal-footer">
+                <button class="secondary" onclick="closeVisualizationModal()">Cancel</button>
+                <button class="primary" onclick="createVisualization()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anonymization Modal -->
+    <div id="anonymize-modal" class="modal">
+        <div class="modal-header">
+            <h2>Select Columns to Anonymize</h2>
+            <button type="button" class="close" onclick="closeAnonymizeModal()" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-content">
+            <p class="modal-description">Select the columns you want to anonymize:</p>
+            <div class="column-list">
+                ${columns.map(header => `
+                    <div class="form-group checkbox-wrapper">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="col-${header.textContent.replace('▼', '').trim()}" 
+                                   value="${header.textContent.replace('▼', '').trim()}">
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">${header.textContent.replace('▼', '').trim()}</span>
+                        </label>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="secondary" onclick="closeAnonymizeModal()">Cancel</button>
+            <button class="primary" onclick="anonymizeData()">Anonymize</button>
+        </div>
+    </div>
+
+    <!-- Favorite Name Modal -->
+    <div id="favorite-modal" class="modal">
+        <div class="modal-header">
+            <h2>Save to Favorites</h2>
+            <button type="button" class="close" onclick="closeFavoriteModal()" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-content">
+            <div class="form-group">
+                <label for="favorite-name">Name your favorite:</label>
+                <input type="text" id="favorite-name" class="form-control" placeholder="Enter a name for this query">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="secondary" onclick="closeFavoriteModal()">Cancel</button>
+            <button class="primary" onclick="saveFavorite()">Save</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Overlay -->
+    <div id="overlay" style="display: none;"></div>
+
+    <!-- Scroll Buttons -->
+    <div class="scroll-buttons">
+        <div class="scroll-button" onclick="scrollToTop()">↑</div>
+        <div class="scroll-button" onclick="scrollToBottom()">↓</div>
+    </div>
+
+    <script>
+        // First, keep all your existing variables
+        const chatDisplay = document.getElementById('chat-display');
+        const chatInput = document.getElementById('chat-input');
+        let lastTableData = null;
+        let currentTableName = null;
+        let pendingFavoriteData = null;
+        let lastQueryData = null;
+        let chartOptions = {};
+        let columnData = {};
+        let lastDataframe = null;
+        let currentTableData = null;
+        let currentTableQuery = null;
+        let favorites = [];
+
+        chatInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const userMessage = chatInput.value.trim();
+            if (!userMessage) return;
+
+            chatInput.value = '';
+            appendMessage('User', userMessage);
+
+            // Remove any existing "thinking" messages first
+            clearStatusMessage();
+            appendStatusMessage('Thinking...');
+
+            fetch('/get_response', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: userMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                clearStatusMessage();
+                if (data.error) {
+                    appendMessage('AI', data.error, true);
+                } else {
+                    appendMessage('AI', data.response);
+                    if (data.response.includes('<table')) {
+                        lastQueryData = {
+                            sql_query: data.sql_query,
+                            user_query: userMessage
+                        };
+                        showVisualizeButton();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                clearStatusMessage();
+                // Only show error message if no response was received
+                if (!document.querySelector('.message.AI:last-child')) {
+                    appendMessage('AI', "I'm having trouble connecting right now. Please try again.", true);
+                }
+            });
+        }
+
+        function appendMessage(sender, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            // If it's an AI message with a table, add the action buttons
+            if (sender === 'AI' && content.includes('<table')) {
+                messageDiv.innerHTML = `
+                    <div class="table-actions">
+                        <button class="action-btn" onclick="showVisualizationModal(this)">
+                            <i class="fas fa-chart-bar"></i> Visualize
+                        </button>
+                        <button class="action-btn" onclick="showAnonymizeModal(this)">
+                            <i class="fas fa-user-secret"></i> Anonymize
+                        </button>
+                        <button class="action-btn" onclick="exportToCSV(this)">
+                            <i class="fas fa-download"></i> Export CSV
+                        </button>
+                        <button class="action-btn favorite-btn" onclick="toggleFavorite(this)">
+                            <i class="far fa-star"></i> Favorite
+                        </button>
+                    </div>
+                    ${content}
+                `;
+            } else {
+                messageDiv.innerHTML = content;
+            }
+            
+            chatDisplay.appendChild(messageDiv);
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+
+            // Update favorite status if needed
+            if (sender === 'AI' && content.includes('<table')) {
+                const queryData = {
+                    query: lastUserQuery,
+                    sql: lastSqlQuery
+                };
+                const queryString = JSON.stringify(queryData);
+                const isFavorite = favorites.some(fav => JSON.stringify(fav) === queryString);
+                if (isFavorite) {
+                    const starIcon = messageDiv.querySelector('.favorite-btn i');
+                    starIcon.className = 'fas fa-star';
+                    messageDiv.querySelector('.favorite-btn').classList.add('active');
+                }
+            }
+        }
+
+        function appendStatusMessage(message) {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'status';
+            statusDiv.textContent = message;
+            chatDisplay.appendChild(statusDiv);
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+        }
+
+        function clearStatusMessage() {
+            const statusMessages = document.querySelectorAll('.status');
+            statusMessages.forEach(msg => msg.remove());
+        }
+
+        function toggleColumnsAndRelationships(table) {
+            currentTableName = table;
+            const columnsList = document.getElementById(`columns-${table}`);
+            if (columnsList) {
+                columnsList.style.display = columnsList.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function exportTableToCSV(table) {
+            if (!table) {
+                alert("No table found to export.");
+                return;
+            }
+
+            const rows = table.querySelectorAll('tr');
+            const csv = [];
+            rows.forEach(row => {
+                const rowData = [];
+                const cols = row.querySelectorAll('th, td');
+                cols.forEach(col => {
+                    rowData.push(col.innerText);
+                });
+                csv.push(rowData.join(','));
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8," + csv.join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'table_data.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function showFavoriteModal() {
+            let modal = document.getElementById('favorite-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'favorite-modal';
+                modal.className = 'modal';
+                document.body.appendChild(modal);
+            }
+
+            modal.innerHTML = `
+                <div class="modal-header">
+                    <h2>Save to Favorites</h2>
+                    <button type="button" class="close" onclick="closeFavoriteModal()" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-content">
+                    <div class="form-group">
+                        <label for="favorite-name">Name your favorite:</label>
+                        <input type="text" id="favorite-name" class="form-control" placeholder="Enter a name for this query">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="secondary" onclick="closeFavoriteModal()">Cancel</button>
+                    <button class="primary" onclick="saveFavorite()">Save</button>
+                </div>
+            `;
+
+            modal.style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+
+            // Focus the input field
+            setTimeout(() => {
+                document.getElementById('favorite-name').focus();
+            }, 100);
+        }
+
+        function closeFavoriteModal() {
+            const modal = document.getElementById('favorite-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        function saveFavorite() {
+            const favoriteName = document.getElementById('favorite-name').value.trim();
+            if (!favoriteName) {
+                showToast('Please enter a name for your favorite', 'error');
+                return;
+            }
+
+            // Get the last query from the session
+            fetch('/get_last_query')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showToast(data.error, 'error');
+                        return;
+                    }
+
+                    // Save the favorite
+                    return fetch('/save_favorite', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: favoriteName,
+                            sql_query: data.sql_query,
+                            user_query: data.user_query
+                        })
+                    });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showToast(data.error, 'error');
+                    } else {
+                        showToast('Favorite saved successfully!', 'success');
+                        closeFavoriteModal();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error saving favorite', 'error');
+                });
+        }
+
+        function loadFavorites() {
+            fetch('/get_favorites')
+                .then(response => response.json())
+                .then(data => {
+                    const favoritesList = document.getElementById('favorites-list');
+                    favoritesList.innerHTML = '';
+
+                    data.favorites.forEach(favorite => {
+                        const listItem = document.createElement('li');
+                        listItem.className = 'favorite-item';
+                        // Escape quotes in the user query and name
+                        const escapedQuery = favorite.user_query.replace(/"/g, '&quot;');
+                        const escapedName = favorite.name.replace(/"/g, '&quot;');
+                        
+                        listItem.innerHTML = `
+                            <span class="favorite-name">${favorite.name}</span>
+                            <div class="favorite-actions">
+                                <button class="action-btn run" onclick='runFavorite("${escapedQuery}")' title="Run Query">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button class="action-btn delete" onclick='deleteFavorite("${escapedName}")' title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                        favoritesList.appendChild(listItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading favorites:', error);
+                    showToast('Error loading favorites', 'error');
+                });
+        }
+
+        function runFavorite(userQuery) {
+            chatInput.value = userQuery;
+            sendMessage();
+        }
+
+        function deleteFavorite(favoriteName) {
+            if (!confirm(`Are you sure you want to delete "${favoriteName}" from favorites?`)) {
+                return;
+            }
+
+            fetch('/delete_favorite', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: favoriteName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(data.error, 'error');
+                } else {
+                    showToast('Favorite deleted successfully!', 'success');
+                    loadFavorites(); // Reload the favorites list
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting favorite:', error);
+                showToast('Error deleting favorite', 'error');
+            });
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        function selectTool(tool) {
+            if (tool === 'clean') {
+                fetch('/data-tools', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ tool: 'clean' }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        const suggestions = data.suggestions.join('<br>');
+                        appendMessage('AI', `Here are some cleaning suggestions:<br>${suggestions}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching cleaning suggestions:', error);
+                    alert("An error occurred while fetching cleaning suggestions.");
+                });
+            } else if (tool === 'insights') {
+                getInsights();
+            }
+        }
+
+        function showVisualizationModal(buttonElement) {
+            const tableElement = buttonElement.closest('.message').querySelector('table');
+            if (!tableElement) {
+                showToast('No table data available to visualize', 'error');
+                return;
+            }
+
+            fetch('/get_visualization_options')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showToast(data.error, 'error');
+                        return;
+                    }
+
+                    columnData = data.columns;
+                    chartOptions = data.charts;
+
+                    const modal = document.createElement('div');
+                    modal.id = 'visualization-modal';
+                    modal.className = 'modal';
+                    modal.innerHTML = `
+                        <div class="modal-header">
+                            <h2>Create Visualization</h2>
+                            <button type="button" class="close" onclick="closeVisualizationModal()">&times;</button>
+                        </div>
+                        <div class="modal-content">
+                            <div class="form-group">
+                                <label for="chartType">Chart Type:</label>
+                                <select id="chartType" class="form-control" onchange="updateColumnSelectors()">
+                                    <option value="">Select a chart type</option>
+                                    ${Object.entries(chartOptions).map(([value, chart]) => 
+                                        `<option value="${value}">${chart.name}</option>`
+                                    ).join('')}
+                                </select>
+                                <small class="text-muted chart-description"></small>
+                            </div>
+                            <div id="columnSelectors"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="secondary" onclick="closeVisualizationModal()">Cancel</button>
+                            <button class="primary" onclick="createVisualization()">Create</button>
+                        </div>
+                    `;
+
+                    // Remove existing modal if present
+                    const existingModal = document.getElementById('visualization-modal');
+                    if (existingModal) {
+                        existingModal.remove();
+                    }
+
+                    document.body.appendChild(modal);
+                    document.getElementById('overlay').style.display = 'block';
+                    modal.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error loading visualization options', 'error');
+                });
+        }
+
+        function updateColumnSelectors() {
+            const chartType = document.getElementById('chartType').value;
+            const columnSelectors = document.getElementById('columnSelectors');
+            const chartDescription = document.querySelector('.chart-description');
+
+            columnSelectors.innerHTML = '';
+            
+            if (!chartType) return;
+
+            // Update chart description
+            chartDescription.textContent = chartOptions[chartType].description;
+
+            // Create column selectors based on chart requirements
+            Object.entries(chartOptions[chartType].requires).forEach(([key, requirement]) => {
+                const availableColumns = requirement === 'numeric' ? columnData.numeric :
+                                       requirement === 'categorical' ? columnData.categorical :
+                                       [...columnData.numeric, ...columnData.categorical];
+
+                const formGroup = document.createElement('div');
+                formGroup.className = 'form-group';
+                formGroup.innerHTML = `
+                    <label for="column_${key}">${key.charAt(0).toUpperCase() + key.slice(1)}:</label>
+                    <select id="column_${key}" class="form-control">
+                        <option value="">Select ${key}</option>
+                        ${availableColumns.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                    <small class="text-muted">
+                        ${requirement === 'numeric' ? 'Select a numeric column' :
+                          requirement === 'categorical' ? 'Select a categorical column' :
+                          'Select any column'}
+                    </small>
+                `;
+                columnSelectors.appendChild(formGroup);
+            });
+        }
+
+        function createVisualization() {
+            try {
+                const chartType = document.getElementById('chartType').value;
+                if (!chartType) {
+                    showToast('Please select a chart type', 'error');
+                    return;
+                }
+
+                const columns = {};
+                Object.keys(chartOptions[chartType].requires).forEach(key => {
+                    const value = document.getElementById(`column_${key}`).value;
+                    if (!value) {
+                        throw new Error(`Please select a value for ${key}`);
+                    }
+                    columns[key] = value;
+                });
+
+                const createButton = document.querySelector('.modal-footer .primary');
+                const originalText = createButton.textContent;
+                createButton.textContent = 'Creating...';
+                createButton.disabled = true;
+
+                fetch('/create_visualization', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chartType: chartType,
+                        columns: columns
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showToast(data.error, 'error');
+                    } else {
+                        appendMessage('AI', data.visualization);
+                        closeVisualizationModal();
+                        showToast('Visualization created successfully!', 'success');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast(error.message, 'error');
+                })
+                .finally(() => {
+                    createButton.textContent = originalText;
+                    createButton.disabled = false;
+                });
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function closeVisualizationModal() {
+            const modal = document.getElementById('visualization-modal');
+            const overlay = document.getElementById('overlay');
+            if (modal) modal.style.display = 'none';
+            if (overlay) overlay.style.display = 'none';
+        }
+
+        function getInsights() {
+            fetch('/get_insights', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({}),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(data.error, 'error');
+                } else {
+                    const insightsModal = document.getElementById('insights-modal');
+                    const insightsPromptList = document.getElementById('insights-prompt-list');
+                    insightsPromptList.innerHTML = '';
+
+                    data.prompts.forEach(prompt => {
+                        const promptButton = document.createElement('button');
+                        promptButton.textContent = prompt;
+                        promptButton.onclick = () => {
+                            chatInput.value = prompt;
+                            closeInsightsModal();
+                        };
+                        insightsPromptList.appendChild(promptButton);
+                    });
+
+                    document.getElementById('overlay').style.display = 'block';
+                    insightsModal.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching insights:', error);
+                showToast("An error occurred while generating insights", 'error');
+            });
+        }
+
+        function closeInsightsModal() {
+            document.getElementById('insights-modal').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        // Add event listener for clicking outside modal
+        document.addEventListener('click', (event) => {
+            const insightsModal = document.getElementById('insights-modal');
+            if (event.target === document.getElementById('overlay')) {
+                closeInsightsModal();
+            }
+        });
+
+        function scrollToTop() {
+            chatDisplay.scrollTop = 0;
+        }
+
+        function scrollToBottom() {
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+        }
+
+        function handleSuggestion(suggestion) {
+            const query = suggestion.replace('-', '').trim();
+            chatInput.value = query;
+        }
+
+        function loadTableOptions() {
+            fetch('/get_tables')
+                .then(response => response.json())
+                .then(data => {
+                    const tableButtons = document.querySelector('.table-buttons');
+                    tableButtons.innerHTML = '';
+                    data.tables.forEach(table => {
+                        const button = document.createElement('button');
+                        button.className = 'table-button';
+                        button.textContent = table;
+                        button.onclick = () => selectTable(table);
+                        tableButtons.appendChild(button);
+                    });
+                });
+        }
+
+        function selectTable(tableName) {
+            document.querySelectorAll('.table-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            const selectedBtn = Array.from(document.querySelectorAll('.table-button'))
+                .find(btn => btn.textContent === tableName);
+            if (selectedBtn) {
+                selectedBtn.classList.add('active');
+            }
+
+            const tableMessage = document.createElement('div');
+            tableMessage.className = 'message User';
+            tableMessage.innerHTML = `
+                <strong>User:</strong> 
+                <span class="selected-table-bubble">${tableName}</span>
+            `;
+            chatDisplay.appendChild(tableMessage);
+
+            fetch('/get_response', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    message: tableName,
+                    type: 'table_selection'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const aiMessage = document.createElement('div');
+                aiMessage.className = 'message AI';
+                aiMessage.innerHTML = data.response;
+                chatDisplay.appendChild(aiMessage);
+                chatDisplay.scrollTop = chatDisplay.scrollHeight;
+            });
+        }
+
+        function showAnonymizeModal(buttonElement) {
+            const tableElement = buttonElement.closest('.message').querySelector('table');
+            if (!tableElement) {
+                showToast('No table data available to anonymize', 'error');
+                return;
+            }
+
+            // Get columns and filter out index columns - get original text content without sort indicators
+            const headers = Array.from(tableElement.querySelectorAll('th'));
+            const columns = headers.filter(header => {
+                // Get the text content without the sort indicator
+                const columnName = header.textContent.replace('▼', '').trim().toLowerCase();
+                
+                // Skip if it's an index column
+                if (columnName === 'index' || columnName === '' || /^\d+$/.test(columnName)) {
+                    return false;
+                }
+                return true;
+            });
+
+            let modal = document.getElementById('anonymize-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'anonymize-modal';
+                modal.className = 'modal';
+                document.body.appendChild(modal);
+            }
+
+            modal.innerHTML = `
+                <div class="modal-header">
+                    <h2>Select Columns to Anonymize</h2>
+                    <button type="button" class="close" onclick="closeAnonymizeModal()" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-content">
+                    <p class="modal-description">Select the columns you want to anonymize:</p>
+                    <div class="column-list">
+                        ${columns.map(header => `
+                            <div class="form-group checkbox-wrapper">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" id="col-${header.textContent.replace('▼', '').trim()}" 
+                                           value="${header.textContent.replace('▼', '').trim()}">
+                                    <span class="checkmark"></span>
+                                    <span class="checkbox-label">${header.textContent.replace('▼', '').trim()}</span>
+                                </label>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="secondary" onclick="closeAnonymizeModal()">Cancel</button>
+                    <button class="primary" onclick="anonymizeData()">Anonymize</button>
+                </div>
+            `;
+
+            modal.style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        function anonymizeData() {
+            const checkboxes = document.querySelectorAll('#anonymize-modal input[type="checkbox"]:checked');
+            const selectedColumns = Array.from(checkboxes).map(cb => cb.value);
+            
+            // Store reference to the current table
+            const currentTable = document.querySelector('.message:last-child table');
+            
+            if (!currentTable) {
+                showToast('Table not found', 'error');
+                return;
+            }
+
+            if (selectedColumns.length === 0) {
+                showToast('Please select at least one column to anonymize', 'error');
+                return;
+            }
+
+            // Show loading state
+            const anonymizeButton = document.querySelector('#anonymize-modal .primary');
+            const originalText = anonymizeButton.textContent;
+            anonymizeButton.textContent = 'Anonymizing...';
+            anonymizeButton.disabled = true;
+
+            fetch('/anonymize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    columns: selectedColumns
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(data.error, 'error');
+                    return;
+                }
+
+                // Update the existing table with anonymized data
+                const headers = Array.from(currentTable.querySelectorAll('th'));
+                const columnIndexes = selectedColumns.map(col => 
+                    headers.findIndex(header => header.textContent === col)
+                );
+
+                // Update the cells in the selected columns
+                const rows = currentTable.querySelectorAll('tbody tr');
+                rows.forEach((row, rowIndex) => {
+                    columnIndexes.forEach((colIndex, i) => {
+                        if (colIndex !== -1 && data.data.data[rowIndex]) {
+                            const cell = row.cells[colIndex];
+                            if (cell) {
+                                cell.classList.add('cell-update');
+                                cell.textContent = data.data.data[rowIndex][i];
+                                setTimeout(() => cell.classList.remove('cell-update'), 500);
+                            }
+                        }
+                    });
+                });
+
+                showToast('Data anonymized successfully!', 'success');
+                closeAnonymizeModal();
+            })
+            .catch(error => {
+                console.error('Error during anonymization:', error);
+                showToast('An error occurred during anonymization', 'error');
+            })
+            .finally(() => {
+                // Reset button state
+                anonymizeButton.textContent = originalText;
+                anonymizeButton.disabled = false;
+            });
+        }
+
+        function closeAnonymizeModal() {
+            const modal = document.getElementById('anonymize-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        // Add animation styles
+        const animationStyles = `
+            @keyframes cellUpdate {
+                0% { background-color: #fff; }
+                50% { background-color: #e1f5fe; }
+                100% { background-color: #fff; }
+            }
+
+            .cell-update {
+                animation: cellUpdate 0.5s ease;
+            }
+        `;
+
+        // Add the animation styles if they don't exist
+        if (!document.getElementById('anonymize-animation-styles')) {
+            const styleSheet = document.createElement('style');
+            styleSheet.id = 'anonymize-animation-styles';
+            styleSheet.textContent = animationStyles;
+            document.head.appendChild(styleSheet);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Clear any existing messages
+            const chatDisplay = document.getElementById('chat-display');
+            chatDisplay.innerHTML = '';
+            
+            // Initialize modals
+            document.getElementById('favorite-modal').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+            
+            // Load tables and favorites
+            loadTableOptions();
+            loadFavorites();
+            
+            // Add initial welcome message
+            appendMessage('AI', 'Hello! Which table would you like to query? You can select a table from the list on the left.');
+        });
+
+        // Add event listener for clicking outside modal
+        document.addEventListener('click', (event) => {
+            const modal = document.getElementById('anonymize-modal');
+            const overlay = document.getElementById('overlay');
+            if (event.target === overlay) {
+                closeAnonymizeModal();
+            }
+        });
+
+        // Add event listener for escape key
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeAnonymizeModal();
+            }
+        });
+
+        // Function to export table to CSV
+        function exportToCSV(buttonElement) {
+            const table = buttonElement.closest('.message').querySelector('table');
+            if (!table) {
+                showToast('No table data available to export', 'error');
+                return;
+            }
+
+            const rows = Array.from(table.querySelectorAll('tr'));
+            const csvContent = rows.map(row => {
+                return Array.from(row.querySelectorAll('th, td'))
+                    .map(cell => `"${cell.textContent.replace(/"/g, '""')}"`)
+                    .join(',');
+            }).join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'table_data.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Updated styles for the action buttons
+        const actionButtonStyles = `
+            .table-actions {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 12px;
+                padding: 8px;
+                background: #f5f5f5;
+                border-radius: 4px;
+            }
+
+            .action-btn {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 6px 12px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                background: white;
+                cursor: pointer;
+                font-size: 14px;
+            }
+
+            .action-btn:hover {
+                background: #f8f8f8;
+            }
+
+            .action-btn i {
+                font-size: 14px;
+            }
+        `;
+
+        // Add the styles if they don't exist
+        if (!document.getElementById('action-button-styles')) {
+            const styleSheet = document.createElement('style');
+            styleSheet.id = 'action-button-styles';
+            styleSheet.textContent = actionButtonStyles;
+            document.head.appendChild(styleSheet);
+        }
+
+        // Restore the original styling
+        const styles = `
+            .table-actions {
+                display: flex;
+                gap: 15px;
+                margin-bottom: 15px;
+                padding: 10px;
+                background-color: #f8f9fa;
+                border-radius: 4px;
+            }
+
+            .action-btn {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 15px;
+                background-color: white;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+                color: #495057;
+                transition: all 0.2s;
+                min-width: fit-content;
+                white-space: nowrap;
+            }
+
+            .action-btn:hover {
+                background-color: #e9ecef;
+            }
+
+            .action-btn i {
+                font-size: 14px;
+                margin-right: 4px;
+            }
+
+            /* Modal styles */
+            .modal {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 24px;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                max-width: 90%;
+                width: 500px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+
+            .modal-header h2 {
+                margin: 0;
+                font-size: 20px;
+                color: #212529;
+            }
+
+            .close {
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                padding: 0;
+                color: #666;
+            }
+
+            .modal-content {
+                margin-bottom: 20px;
+            }
+
+            .column-list {
+                max-height: 300px;
+                overflow-y: auto;
+            }
+
+            .checkbox-wrapper {
+                margin-bottom: 10px;
+            }
+
+            .checkbox-container {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                cursor: pointer;
+            }
+
+            .modal-footer {
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+            }
+
+            .modal-footer button {
+                padding: 8px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+
+            .modal-footer .secondary {
+                background: #f8f9fa;
+                border: 1px solid #dee2e6;
+            }
+
+            .modal-footer .primary {
+                background: #007bff;
+                border: none;
+                color: white;
+            }
+
+            #overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+            }
+        `;
+
+        // Add the styles
+        if (!document.getElementById('custom-styles')) {
+            const styleSheet = document.createElement('style');
+            styleSheet.id = 'custom-styles';
+            styleSheet.textContent = styles;
+            document.head.appendChild(styleSheet);
+        }
+
+        function makeTableSortable(table) {
+            const headers = table.querySelectorAll('th');
+            headers.forEach((header, index) => {
+                if (!header.textContent.trim() || header.textContent.toLowerCase() === 'index') {
+                    return;
+                }
+
+                header.style.cursor = 'pointer';
+                header.addEventListener('click', function() {
+                    const tbody = table.querySelector('tbody');
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+                    const isAsc = !this.classList.contains('sorted-asc');
+                    
+                    // Update header classes
+                    headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+                    this.classList.add(isAsc ? 'sorted-asc' : 'sorted-desc');
+
+                    // Sort rows
+                    rows.sort((a, b) => {
+                        let aVal = a.cells[index].textContent.trim();
+                        let bVal = b.cells[index].textContent.trim();
+                        
+                        // Try numeric sort
+                        const aNum = parseFloat(aVal);
+                        const bNum = parseFloat(bVal);
+                        if (!isNaN(aNum) && !isNaN(bNum)) {
+                            return isAsc ? aNum - bNum : bNum - aNum;
+                        }
+                        
+                        // String sort
+                        return isAsc ? 
+                            aVal.localeCompare(bVal) : 
+                            bVal.localeCompare(aVal);
+                    });
+
+                    // Reattach sorted rows
+                    rows.forEach(row => tbody.appendChild(row));
+                });
+            });
+        }
+
+        function showVisualizeButton() {
+            const tableElement = document.querySelector('.message:last-child table');
+            if (tableElement) {
+                makeTableSortable(tableElement);
+            }
+        }
+
+        // Add favorites functionality
+        function toggleFavorite(button) {
+            const messageDiv = button.closest('.message');
+            const queryData = {
+                query: lastUserQuery,
+                sql: lastSqlQuery
+            };
+            const queryString = JSON.stringify(queryData);
+            const starIcon = button.querySelector('i');
+            
+            const isFavorite = favorites.some(fav => JSON.stringify(fav) === queryString);
+            
+            if (isFavorite) {
+                // Remove from favorites
+                favorites = favorites.filter(fav => JSON.stringify(fav) !== queryString);
+                starIcon.className = 'far fa-star';
+                button.classList.remove('active');
+                showToast('Removed from favorites', 'success');
+            } else {
+                // Add to favorites
+                favorites.push(queryData);
+                starIcon.className = 'fas fa-star';
+                button.classList.add('active');
+                showToast('Added to favorites', 'success');
+            }
+            
+            // Save favorites to localStorage
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+        }
+
+        // Load favorites on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedFavorites = localStorage.getItem('favorites');
+            if (savedFavorites) {
+                favorites = JSON.parse(savedFavorites);
+            }
+        });
+    </script>
+</body>
+</html>

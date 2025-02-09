@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - Data-Convo</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .pricing-card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .pricing-card h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        .pricing-card h3:after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 3px;
+            background: #007BFF;
+        }
+
+        .pricing-card .price {
+            font-size: 36px;
+            font-weight: bold;
+            color: #007BFF;
+        }
+
+        .pricing-card .price small {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .pricing-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+
+        .pricing-card ul li {
+            margin: 10px 0;
+        }
+
+        .pricing-card ul li strong {
+            color: #28a745;
+        }
+
+        .pricing-card .btn {
+            width: 100%;
+        }
+
+        .enterprise {
+            border: 2px solid #007BFF;
+            background: #f8fbff;
+        }
+        
+        .sub-list {
+            list-style: disc;
+            padding-left: 20px;
+            margin: 10px 0;
+            color: #666;
+        }
+        
+        .enterprise .price {
+            color: #007BFF;
+        }
+
+        /* Feature list enhancements */
+        .feature-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .feature-list li {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .popular {
+            border: 2px solid #007BFF;
+            box-shadow: 0 8px 30px rgba(0,123,255,0.1);
+        }
+
+        /* Security badge at bottom */
+        .security-badge {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 25px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container">
+            <nav class="navbar navbar-expand-lg navbar-light">
+                <a class="navbar-brand" href="{{ url_for('main.index') }}">
+                    <img src="{{ url_for('static', filename='images/logo-no-background.png') }}" 
+                         alt="Data-Convo Logo" 
+                         style="height: 45px; width: auto;">
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.index') }}">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.pricing') }}">Pricing</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.login') }}">Log In</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Pricing Section -->
+    <section class="pricing py-5">
+        <div class="container">
+            <h2 class="text-center mb-5">Choose Your Plan</h2>
+            <div class="row">
+                <!-- Free Trial Tier -->
+                <div class="col-md-4">
+                    <div class="pricing-card">
+                        <h3>Free Trial</h3>
+                        <div class="price">£0 <small>/ 14 days</small></div>
+                        <div class="text-muted mb-3">Full platform access</div>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-brain me-2"></i>Smart Data Analysis</li>
+                            <li><i class="fas fa-chart-line me-2"></i>Basic Forecasting Models</li>
+                            <li><i class="fas fa-comments me-2"></i>Natural Language Queries</li>
+                            <li><i class="fas fa-cube me-2"></i>Multi-Table Joins</li>
+                            <li><i class="fas fa-shield-alt me-2"></i>GDPR Compliant</li>
+                            <li><i class="fas fa-eye-slash me-2"></i>Automatic Anonymization</li>
+                            <li><i class="fas fa-chart-pie me-2"></i>Visualization Suggestions</li>
+                            <li><i class="fas fa-bolt me-2"></i>Query Performance Hints</li>
+                        </ul>
+                        <a href="{{ url_for('main.signup') }}" class="btn btn-primary">
+                            Start Free Trial <i class="fas fa-play me-2"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Pro Tier -->
+                <div class="col-md-4">
+                    <div class="pricing-card popular">
+                        <h3>Pro</h3>
+                        <div class="price">£25 <small>/ month</small></div>
+                        <div class="text-muted mb-3">For power users & teams</div>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-rocket me-2"></i>All Free Features</li>
+                            <li><i class="fas fa-crystal-ball me-2"></i>Advanced Forecasting</li>
+                            <li><i class="fas fa-infinity me-2"></i>Unlimited Queries</li>
+                            <li><i class="fas fa-project-diagram me-2"></i>Complex Query Builder</li>
+                            <li><i class="fas fa-bolt me-2"></i>Priority Processing</li>
+                            <li><i class="fas fa-robot me-2"></i>AI Query Optimization</li>
+                            <li><i class="fas fa-palette me-2"></i>Visualization Guidance</li>
+                            <li><i class="fas fa-stethoscope me-2"></i>Data Health Checks</li>
+                            <li><i class="fas fa-file-export me-2"></i>Advanced Exports (CSV/xlsx)</li>
+                        </ul>
+                        <a href="{{ url_for('main.signup') }}" class="btn btn-primary">
+                            Go Pro <i class="fas fa-trophy me-2"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Enterprise Tier -->
+                <div class="col-md-4">
+                    <div class="pricing-card enterprise">
+                        <h3>Enterprise</h3>
+                        <div class="price">Custom</div>
+                        <div class="text-muted mb-3">Tailored business solutions</div>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-star me-2"></i>All Pro Features</li>
+                            <li><i class="fas fa-users-cog me-2"></i>Dedicated Data Team</li>
+                            <li><i class="fas fa-magic me-2"></i>Custom Model Training</li>
+                            <li><i class="fas fa-handshake me-2"></i>White-Glove Onboarding</li>
+                            <li><i class="fas fa-lock me-2"></i>UK-Hosted AI</li>
+                            <li><i class="fas fa-headset me-2"></i>24/7 Premium Support</li>
+                            <li><i class="fas fa-paint-brush me-2"></i>Custom Visualization Templates</li>
+                            <li><i class="fas fa-search-dollar me-2"></i>Query Performance Audits</li>
+                            <li><i class="fas fa-shield-virus me-2"></i>SOC 2 Compliance</li>
+                        </ul>
+                        <a href="mailto:dataconvo1@gmail.com?subject=Enterprise%20Solution" 
+                           class="btn btn-primary">
+                            Schedule Demo <i class="fas fa-calendar-check ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container text-center">
+            <div class="social-icons mb-3">
+                <a href="#" class="text-white me-3"><i class="fab fa-facebook"></i></a>
+                <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="text-white me-3"><i class="fab fa-linkedin"></i></a>
+                <a href="#" class="text-white"><i class="fab fa-instagram"></i></a>
+            </div>
+            <p>&copy; 2023 Data-Convo. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Security badge -->
+    <div class="security-badge text-center">
+        <i class="fas fa-lock me-2"></i>
+        UK Data Hosting · GDPR/SOC 2/ISO 27001 · 
+        99.9% Uptime SLA · 
+        
+    </div>
+</body>
+</html>
