@@ -1755,67 +1755,72 @@ def test_connection():
 
 def create_connection_string(db_type, server, database, auth_type, username=None, password=None):
     """Create database connection string based on database type and authentication."""
-    try:
-        if db_type == 'mssql':
-            # List of possible SQL Server drivers in order of preference
-            drivers = [
-                'ODBC Driver 18 for SQL Server',
-                'ODBC Driver 17 for SQL Server',
-                'SQL Server Native Client 11.0',
-                'SQL Server',
-                'FreeTDS'
-            ]
-            
-            # Find the first available driver
-            driver = None
-            import pyodbc
-            for driver_name in drivers:
-                if driver_name in [d for d in pyodbc.drivers()]:
-                    driver = driver_name
-                    break
-                    
-            if not driver:
-                raise Exception("No SQL Server driver found. Please install an ODBC driver for SQL Server.")
-            
-            # Create connection string with the found driver
-            driver_str = f"driver={driver}"
-            if auth_type == 'windows':
-                return f'mssql+pyodbc://{server}/{database}?{driver_str}&trusted_connection=yes'
-            else:
-                return f'mssql+pyodbc://{username}:{password}@{server}/{database}?{driver_str}'
-        
-        elif db_type == 'mysql':
-            # MySQL connection string
-            if username and password:
-                return f'mysql+pymysql://{username}:{password}@{server}/{database}'
-            return f'mysql+pymysql://{server}/{database}'
-            
-        elif db_type == 'postgresql':
-            # PostgreSQL connection string
-            if username and password:
-                return f'postgresql://{username}:{password}@{server}/{database}'
-            return f'postgresql://{server}/{database}'
-            
-        elif db_type == 'azure_sql':
-            # Azure SQL connection string (using newer ODBC drivers)
-            driver = 'ODBC Driver 17 for SQL Server'  # Azure SQL typically uses this driver
-            driver_str = f"driver={driver}"
-            return f'mssql+pyodbc://{username}:{password}@{server}/{database}?{driver_str}'
-            
-        elif db_type == 'aws_rds':
-            # AWS RDS connection string
-            if 'rds.amazonaws.com' in server.lower():
-                if '.postgres.' in server.lower():
-                    return f'postgresql://{username}:{password}@{server}/{database}'
-                else:
-                    return f'mysql+pymysql://{username}:{password}@{server}/{database}'
-                    
-        elif db_type == 'google_sql':
-            # Google Cloud SQL connection string
-            return f'mysql+pymysql://{username}:{password}@{server}/{database}'
-            
-        raise ValueError(f"Unsupported database type: {db_type}")
-        
-    except Exception as e:
-        logger.error(f"Error creating connection string: {str(e)}")
-        raise Exception(f"Failed to create connection string: {str(e)}")
+    import urllib.parse
+    if db_type == 'mssql':
+        # List of preferred SQL Server drivers
+        import pyodbc
+        drivers = [
+            'ODBC Driver 18 for SQL Server',
+            'ODBC Driver 17 for SQL Server',
+            'SQL Server Native Client 11.0',
+            'SQL Server'
+        ]
+
+        # Find the first available driver
+        driver = None
+        for driver_name in drivers:
+            if driver_name in pyodbc.drivers():
+                driver = driver_name
+                break
+
+        if not driver:
+            raise Exception("No SQL Server driver found. Please install an ODBC driver for SQL Server.")
+
+        if auth_type == 'windows':
+            params = urllib.parse.quote_plus(
+                f"DRIVER={{{driver}}};"
+                f"SERVER={server};"
+                f"DATABASE={database};"
+                "Trusted_Connection=yes;"
+            )
+        else:
+            params = urllib.parse.quote_plus(
+                f"DRIVER={{{driver}}};"
+                f"SERVER={server};"
+                f"DATABASE={database};"
+                f"UID={username};"
+                f"PWD={password};"
+                "Timeout=60;"
+            )
+        return f"mssql+pyodbc:///?odbc_connect={params}"
+
+    elif db_type == 'mysql':
+        if username and password:
+            return f"mysql+pymysql://{username}:{password}@{server}/{database}"
+        return f"mysql+pymysql://{server}/{database}"
+
+    elif db_type == 'postgresql':
+        if username and password:
+            return f"postgresql://{username}:{password}@{server}/{database}"
+        return f"postgresql://{server}/{database}"
+
+    elif db_type == 'azure_sql':
+        # For Azure SQL, we use the same logic as for mssql.
+        # You might need to adjust the port and extra parameters as needed.
+        params = urllib.parse.quote_plus(
+            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+            f"SERVER={server};"
+            f"DATABASE={database};"
+            f"UID={username};"
+            f"PWD={password};"
+        )
+        return f"mssql+pyodbc:///?odbc_connect={params}"
+
+    elif db_type == 'aws_rds':
+        # Example for AWS RDS using Postgres; adjust as needed.
+        return f"postgresql://{username}:{password}@{server}:5432/{database}"
+
+    elif db_type == 'google_sql':
+        return f"mysql+pymysql://{username}:{password}@{server}/{database}"
+
+    raise ValueError(f"Unsupported database type: {db_type}")
