@@ -1745,7 +1745,6 @@ def create_connection_string(db_type, server, database, auth_type, username=None
     import urllib.parse
     if db_type == 'mssql':
         # List of preferred SQL Server drivers
-        import pyodbc
         drivers = [
             'ODBC Driver 18 for SQL Server',
             'ODBC Driver 17 for SQL Server',
@@ -1793,11 +1792,14 @@ def create_connection_string(db_type, server, database, auth_type, username=None
 
     elif db_type == 'azure_sql':
         # Reuse the same driver detection logic as MSSQL
-        driver = None
-        for driver_name in drivers:  # drivers is defined in the MSSQL section
-            if driver_name in pyodbc.drivers():
-                driver = driver_name
-                break
+        import pyodbc
+        drivers = [
+            'ODBC Driver 18 for SQL Server',
+            'ODBC Driver 17 for SQL Server', 
+            'SQL Server Native Client 11.0',
+            'SQL Server'
+        ]
+        driver = next((d for d in drivers if d in pyodbc.drivers()), None)
         if not driver:
             raise Exception("No SQL Server driver found for Azure SQL")
             
