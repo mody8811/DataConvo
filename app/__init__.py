@@ -49,6 +49,11 @@ def create_app():
     app.register_blueprint(main)
     app.register_blueprint(upload_chat, url_prefix='/upload_chat')
     
+    # Register debug blueprint only if DEBUG is enabled (or based on an environment variable)
+    if app.config.get("DEBUG"):
+        from .debug_routes import debug_bp
+        app.register_blueprint(debug_bp)
+    
     # Import models
     from .models import User
     
