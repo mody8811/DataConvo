@@ -31,7 +31,7 @@ from . import login_manager
 import re
 import paypalrestsdk
 import time
-
+import pyodbc
 # Load environment variables from .env file
 load_dotenv()
 
@@ -508,19 +508,19 @@ def set_connection():
     if db_type == "mssql":
         if auth_type == "windows":
             params = urllib.parse.quote_plus(
-                f"DRIVER={{SQL Server}};"
+                "DRIVER={ODBC Driver 17 for SQL Server};"
                 f"SERVER={server};"
                 f"DATABASE={database};"
                 "Trusted_Connection=yes;"
             )
         else:
             params = urllib.parse.quote_plus(
-                f"DRIVER={{SQL Server}};"
+                "DRIVER={ODBC Driver 17 for SQL Server};"
                 f"SERVER={server};"
                 f"DATABASE={database};"
                 f"UID={username};"
                 f"PWD={password};"
-                "Timeout=60;"  # Increase timeout to 60 seconds
+                "Timeout=60;"
             )
         connection_string = f"mssql+pyodbc:///?odbc_connect={params}"
     elif db_type == "mysql":
@@ -1725,16 +1725,14 @@ def test_connection():
         
         # Create connection string based on the database type
         connection_string = create_connection_string(
-            db_type, server, database, auth_type, username, password
+            db_type, server, database, 
+            auth_type, username, password
         )
         
-        # Debug output: log connection string and available drivers
-        print("Using connection string:", connection_string)
-        print("Available ODBC drivers:", pyodbc.drivers())
-        
+        # Try to establish a connection
         engine = create_engine(connection_string)
         with engine.connect() as connection:
-            # Perform a simple query to test the connection
+            # Try a simple query to verify connection
             connection.execute(text("SELECT 1"))
         
         return jsonify({
@@ -1744,41 +1742,80 @@ def test_connection():
         
     except Exception as e:
         error_message = str(e)
+        # Clean up error message for common issues
+        if "password authentication failed" in error_message.lower():
+            error_message = "Invalid username or password"
+        elif "could not connect to server" in error_message.lower():
+            error_message = "Could not connect to server. Please verify the server address"
+            
         return jsonify({
             "success": False,
             "error": f"Connection failed: {error_message}"
         }), 400
 
 def create_connection_string(db_type, server, database, auth_type, username=None, password=None):
-    if db_type == 'mssql':
-        # List of drivers in order of preference
-        drivers = [
-            'ODBC Driver 18 for SQL Server',
-            'ODBC Driver 17 for SQL Server',
-            'SQL Server Native Client 11.0',
-            'SQL Server',
-            'FreeTDS'
-        ]
-        driver = None
-        for driver_name in drivers:
-            if driver_name in pyodbc.drivers():
-                driver = driver_name
-                break
-        if not driver:
-            raise Exception("No SQL Server driver found. Please install an ODBC driver for SQL Server.")
-        # Note: The driver name must be wrapped in curly braces for the connection string.
-        driver_str = f"driver={{{driver}}}"
-        if auth_type == 'windows':
-            return f"mssql+pyodbc://{server}/{database}?{driver_str}&trusted_connection=yes"
-        else:
-            return f"mssql+pyodbc://{username}:{password}@{server}/{database}?{driver_str}"
-    
-    # Add additional logic for other database types as needed.
-    
-    raise ValueError(f"Unsupported database type: {db_type}")
-
-@main.route('/debug-drivers', methods=['GET'])
-def debug_drivers():
-    # Get and return the list of available ODBC drivers
-    drivers = pyodbc.drivers()
-    return jsonify({"available_drivers": drivers})
+    """Create database connection string based on database type and authentication."""
+    try:
+        if db_type == 'mssql':
+            # List of possible SQL Server drivers in order of preference
+            drivers = [
+                'ODBC Driver 18 for SQL Server',
+                'ODBC Driver 17 for SQL Server',
+                'SQL Server Native Client 11.0',
+                'SQL Server',
+                'FreeTDS'
+            ]
+            
+            # Find the first available driver
+            driver = None
+            import pyodbc
+            for driver_name in drivers:
+                if driver_name in [d for d in pyodbc.drivers()]:
+                    driver = driver_name
+                    break
+                    
+            if not driver:
+                raise Exception("No SQL Server driver found. Please install an ODBC driver for SQL Server.")
+            
+            # Create connection string with the found driver
+            driver_str = f"driver={driver}"
+            if auth_type == 'windows':
+                return f'mssql+pyodbc://{server}/{database}?{driver_str}&trusted_connection=yes'
+            else:
+                return f'mssql+pyodbc://{username}:{password}@{server}/{database}?{driver_str}'
+        
+        elif db_type == 'mysql':
+            # MySQL connection string
+            if username and password:
+                return f'mysql+pymysql://{username}:{password}@{server}/{database}'
+            return f'mysql+pymysql://{server}/{database}'
+            
+        elif db_type == 'postgresql':
+            # PostgreSQL connection string
+            if username and password:
+                return f'postgresql://{username}:{password}@{server}/{database}'
+            return f'postgresql://{server}/{database}'
+            
+        elif db_type == 'azure_sql':
+            # Azure SQL connection string (using newer ODBC drivers)
+            driver = 'ODBC Driver 17 for SQL Server'  # Azure SQL typically uses this driver
+            driver_str = f"driver={driver}"
+            return f'mssql+pyodbc://{username}:{password}@{server}/{database}?{driver_str}'
+            
+        elif db_type == 'aws_rds':
+            # AWS RDS connection string
+            if 'rds.amazonaws.com' in server.lower():
+                if '.postgres.' in server.lower():
+                    return f'postgresql://{username}:{password}@{server}/{database}'
+                else:
+                    return f'mysql+pymysql://{username}:{password}@{server}/{database}'
+                    
+        elif db_type == 'google_sql':
+            # Google Cloud SQL connection string
+            return f'mysql+pymysql://{username}:{password}@{server}/{database}'
+            
+        raise ValueError(f"Unsupported database type: {db_type}")
+        
+    except Exception as e:
+        logger.error(f"Error creating connection string: {str(e)}")
+        raise Exception(f"Failed to create connection string: {str(e)}")
