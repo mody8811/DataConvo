@@ -506,23 +506,10 @@ def set_connection():
     logger.info(f"Connection set for database: {db_type} at {server}")
     
     if db_type == "mssql":
-        if auth_type == "windows":
-            params = urllib.parse.quote_plus(
-                "DRIVER={ODBC Driver 17 for SQL Server};"
-                f"SERVER={server};"
-                f"DATABASE={database};"
-                "Trusted_Connection=yes;"
-            )
-        else:
-            params = urllib.parse.quote_plus(
-                "DRIVER={ODBC Driver 17 for SQL Server};"
-                f"SERVER={server};"
-                f"DATABASE={database};"
-                f"UID={username};"
-                f"PWD={password};"
-                "Timeout=60;"
-            )
-        connection_string = f"mssql+pyodbc:///?odbc_connect={params}"
+        connection_string = create_connection_string(
+            db_type, server, database, 
+            auth_type, username, password
+        )
     elif db_type == "mysql":
         connection_string = f"mysql+pymysql://{username}:{password}@{server}/{database}"
     elif db_type == "postgresql":

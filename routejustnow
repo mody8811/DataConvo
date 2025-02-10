@@ -31,10 +31,11 @@ from . import login_manager
 import re
 import paypalrestsdk
 import time
-
+import pyodbc
 # Load environment variables from .env file
 load_dotenv()
 
+# Initialize blueprint for routes
 main = Blueprint('main', __name__)
 
 # Set up logging
@@ -87,7 +88,6 @@ def load_user(user_id):
 
 @main.route('/')
 def index():
-    # Serve the landing page at "/"
     return render_template('landing.html')
 
 # Map plan to Stripe price IDs
@@ -284,6 +284,7 @@ def check_user():
 
     logger.info(f"No existing user found with email: {email}")
     return jsonify({'alreadyRegistered': False}), 200
+
 # Configure PayPal SDK
 paypalrestsdk.configure({
     "mode": "live",  # Use "live" for production
@@ -376,6 +377,8 @@ def login():
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
+            # Manually set the session 'user_id' key for compatibility
+            session['user_id'] = user.id
             session.permanent = True
             flash("Logged in successfully!", 'success')
             return redirect(url_for('main.connection_form'))
@@ -505,19 +508,19 @@ def set_connection():
     if db_type == "mssql":
         if auth_type == "windows":
             params = urllib.parse.quote_plus(
-                f"DRIVER={{SQL Server}};"
+                "DRIVER={ODBC Driver 17 for SQL Server};"
                 f"SERVER={server};"
                 f"DATABASE={database};"
                 "Trusted_Connection=yes;"
             )
         else:
             params = urllib.parse.quote_plus(
-                f"DRIVER={{SQL Server}};"
+                "DRIVER={ODBC Driver 17 for SQL Server};"
                 f"SERVER={server};"
                 f"DATABASE={database};"
                 f"UID={username};"
                 f"PWD={password};"
-                "Timeout=60;"  # Increase timeout to 60 seconds
+                "Timeout=60;"
             )
         connection_string = f"mssql+pyodbc:///?odbc_connect={params}"
     elif db_type == "mysql":
@@ -547,20 +550,18 @@ def chat():
     if not session.get('user_id'):
         return redirect(url_for('main.login'))
     
-    # Clear any upload chat session data
-    keys_to_remove = [
-        'upload_data', 'upload_analysis', 
-        'current_sheet', 'available_sheets'
-    ]
-    for key in keys_to_remove:
+    # Clear any upload-related session data
+    upload_keys = ['upload_data', 'upload_analysis', 'current_sheet']
+    for key in upload_keys:
         session.pop(key, None)
     
-    # Set database-specific session data
+    # Set database-specific session data with prefixes
     session['db_state'] = 'INIT'
     session['db_table'] = None
     session['db_last_query'] = None
     session['db_tables_in_query'] = []
     
+    logger.info(f"Database chat session initialized: {session}")
     schema_info = get_schema_info()
     return render_template('chat.html', schema_info=schema_info)
 
@@ -744,8 +745,8 @@ def format_sql_error(error):
 def get_response():
     try:
         user_message = request.json.get('message')
-        message_type = request.json.get('type')
-        state = session.get('db_state', 'INIT')  # Changed from 'state' to 'db_state'
+        message_type = request.json.get('type')  # New field to identify table selections
+        state = session.get('state', 'INIT')
         db_type = session.get('db_type')
         engine = create_engine(session.get('connection_string'))
         
@@ -753,8 +754,8 @@ def get_response():
         if message_type == 'table_selection':
             schema_info = get_schema_info()
             if user_message in schema_info.keys():
-                session['db_table'] = user_message  # Changed from 'table' to 'db_table'
-                session['db_state'] = 'TABLE_SELECTED'  # Changed from 'state' to 'db_state'
+                session['table'] = user_message
+                session['state'] = 'TABLE_SELECTED'
                 return jsonify({'response': f"Great! You've selected the {user_message} table. What would you like to know about it?"})
             else:
                 return jsonify({'response': "I couldn't find that table. Please select a valid table."})
@@ -763,13 +764,13 @@ def get_response():
         if state == 'INIT':
             schema_info = get_schema_info()
             table_names = list(schema_info.keys())
-            session['db_state'] = 'WAITING_FOR_TABLE'
+            session['state'] = 'WAITING_FOR_TABLE'
             return jsonify({'response': f"Hello! Which table would you like to query? Available tables: {', '.join(table_names)}"})
         
         elif state == 'TABLE_SELECTED':
             try:
                 schema_info = get_schema_info()
-                table_name = session.get('db_table')
+                table_name = session.get('table')
                 schema_name = session.get('schema_name', 'dbo')
 
                 if "plot" in user_message.lower() or "visualise" in user_message.lower():
@@ -885,9 +886,9 @@ def get_favorites():
         return jsonify({'error': str(e)}), 500
 
 def handle_join_request(user_message, schema_info, table_name):
-    session['db_last_query'] = user_message
+    session['last_query'] = user_message
     tables_in_query = [table_name] + [table for table in schema_info.keys() if table in user_message and table != table_name]
-    session['db_tables_in_query'] = tables_in_query
+    session['tables_in_query'] = tables_in_query
     engine = create_engine(session.get('connection_string'))
 
     if len(tables_in_query) == 2:
@@ -896,8 +897,8 @@ def handle_join_request(user_message, schema_info, table_name):
         if common_keys:
             common_key = list(common_keys)[0]
             join_query = f"SELECT * FROM {table1} INNER JOIN {table2} ON {table1}.{common_key} = {table2}.{common_key}"
-            session['db_last_query'] = join_query
-            session['db_tables_in_query'] = []
+            session['last_query'] = join_query
+            session['tables_in_query'] = []
             try:
                 with engine.connect() as connection:
                     result = connection.execute(text(join_query))
@@ -956,7 +957,7 @@ def handle_user_query(user_message):
     
     elif intent == "table":
         # Handle the table view logic
-        sql_query = session.get('db_last_query')
+        sql_query = session.get('last_query')
         
         if sql_query:
             # Show the data as a table (you could fetch the data or format it as needed)
@@ -1076,7 +1077,7 @@ def convert_nl_to_sql(prompt, table_name, table_info, db_type, schema_name):
         
         # Ensure we have valid table name
         if not table_name:
-            table_name = session.get('db_table')
+            table_name = session.get('table')
         
         # Escape table name based on DB type
         escaped_table_name = escape_identifier(table_name, db_type)
@@ -1754,67 +1755,72 @@ def test_connection():
 
 def create_connection_string(db_type, server, database, auth_type, username=None, password=None):
     """Create database connection string based on database type and authentication."""
-    try:
-        if db_type == 'mssql':
-            # List of possible SQL Server drivers in order of preference
-            drivers = [
-                'ODBC Driver 18 for SQL Server',
-                'ODBC Driver 17 for SQL Server',
-                'SQL Server Native Client 11.0',
-                'SQL Server',
-                'FreeTDS'
-            ]
-            
-            # Find the first available driver
-            driver = None
-            import pyodbc
-            for driver_name in drivers:
-                if driver_name in [d for d in pyodbc.drivers()]:
-                    driver = driver_name
-                    break
-                    
-            if not driver:
-                raise Exception("No SQL Server driver found. Please install an ODBC driver for SQL Server.")
-            
-            # Create connection string with the found driver
-            driver_str = f"driver={driver}"
-            if auth_type == 'windows':
-                return f'mssql+pyodbc://{server}/{database}?{driver_str}&trusted_connection=yes'
-            else:
-                return f'mssql+pyodbc://{username}:{password}@{server}/{database}?{driver_str}'
-        
-        elif db_type == 'mysql':
-            # MySQL connection string
-            if username and password:
-                return f'mysql+pymysql://{username}:{password}@{server}/{database}'
-            return f'mysql+pymysql://{server}/{database}'
-            
-        elif db_type == 'postgresql':
-            # PostgreSQL connection string
-            if username and password:
-                return f'postgresql://{username}:{password}@{server}/{database}'
-            return f'postgresql://{server}/{database}'
-            
-        elif db_type == 'azure_sql':
-            # Azure SQL connection string (using newer ODBC drivers)
-            driver = 'ODBC Driver 17 for SQL Server'  # Azure SQL typically uses this driver
-            driver_str = f"driver={driver}"
-            return f'mssql+pyodbc://{username}:{password}@{server}/{database}?{driver_str}'
-            
-        elif db_type == 'aws_rds':
-            # AWS RDS connection string
-            if 'rds.amazonaws.com' in server.lower():
-                if '.postgres.' in server.lower():
-                    return f'postgresql://{username}:{password}@{server}/{database}'
-                else:
-                    return f'mysql+pymysql://{username}:{password}@{server}/{database}'
-                    
-        elif db_type == 'google_sql':
-            # Google Cloud SQL connection string
-            return f'mysql+pymysql://{username}:{password}@{server}/{database}'
-            
-        raise ValueError(f"Unsupported database type: {db_type}")
-        
-    except Exception as e:
-        logger.error(f"Error creating connection string: {str(e)}")
-        raise Exception(f"Failed to create connection string: {str(e)}")
+    import urllib.parse
+    if db_type == 'mssql':
+        # List of preferred SQL Server drivers
+        import pyodbc
+        drivers = [
+            'ODBC Driver 18 for SQL Server',
+            'ODBC Driver 17 for SQL Server',
+            'SQL Server Native Client 11.0',
+            'SQL Server'
+        ]
+
+        # Find the first available driver
+        driver = None
+        for driver_name in drivers:
+            if driver_name in pyodbc.drivers():
+                driver = driver_name
+                break
+
+        if not driver:
+            raise Exception("No SQL Server driver found. Please install an ODBC driver for SQL Server.")
+
+        if auth_type == 'windows':
+            params = urllib.parse.quote_plus(
+                f"DRIVER={{{driver}}};"
+                f"SERVER={server};"
+                f"DATABASE={database};"
+                "Trusted_Connection=yes;"
+            )
+        else:
+            params = urllib.parse.quote_plus(
+                f"DRIVER={{{driver}}};"
+                f"SERVER={server};"
+                f"DATABASE={database};"
+                f"UID={username};"
+                f"PWD={password};"
+                "Timeout=60;"
+            )
+        return f"mssql+pyodbc:///?odbc_connect={params}"
+
+    elif db_type == 'mysql':
+        if username and password:
+            return f"mysql+pymysql://{username}:{password}@{server}/{database}"
+        return f"mysql+pymysql://{server}/{database}"
+
+    elif db_type == 'postgresql':
+        if username and password:
+            return f"postgresql://{username}:{password}@{server}/{database}"
+        return f"postgresql://{server}/{database}"
+
+    elif db_type == 'azure_sql':
+        # For Azure SQL, we use the same logic as for mssql.
+        # You might need to adjust the port and extra parameters as needed.
+        params = urllib.parse.quote_plus(
+            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+            f"SERVER={server};"
+            f"DATABASE={database};"
+            f"UID={username};"
+            f"PWD={password};"
+        )
+        return f"mssql+pyodbc:///?odbc_connect={params}"
+
+    elif db_type == 'aws_rds':
+        # Example for AWS RDS using Postgres; adjust as needed.
+        return f"postgresql://{username}:{password}@{server}:5432/{database}"
+
+    elif db_type == 'google_sql':
+        return f"mysql+pymysql://{username}:{password}@{server}/{database}"
+
+    raise ValueError(f"Unsupported database type: {db_type}")
