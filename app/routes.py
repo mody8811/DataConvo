@@ -1792,7 +1792,15 @@ def create_connection_string(db_type, server, database, auth_type, username=None
         return f"postgresql://{server}/{database}"
 
     elif db_type == 'azure_sql':
-        # For Azure SQL, use the same dynamic driver selection
+        # Reuse the same driver detection logic as MSSQL
+        driver = None
+        for driver_name in drivers:  # drivers is defined in the MSSQL section
+            if driver_name in pyodbc.drivers():
+                driver = driver_name
+                break
+        if not driver:
+            raise Exception("No SQL Server driver found for Azure SQL")
+            
         params = urllib.parse.quote_plus(
             f"DRIVER={{{driver}}};"
             f"SERVER={server};"
