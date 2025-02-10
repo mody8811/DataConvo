@@ -515,7 +515,7 @@ def set_connection():
     elif db_type == "postgresql":
         connection_string = f"postgresql://{username}:{password}@{server}/{database}"
     elif db_type == "azure_sql":
-        connection_string = f"mssql+pyodbc://{username}:{password}@{server}:1433/{database}?driver=ODBC+Driver+17+for+SQL+Server"
+        connection_string = create_connection_string(db_type, server, database, auth_type, username, password)
     elif db_type == "aws_rds":
         connection_string = f"postgresql://{username}:{password}@{server}:5432/{database}"
     elif db_type == "google_sql":
