@@ -1792,10 +1792,9 @@ def create_connection_string(db_type, server, database, auth_type, username=None
         return f"postgresql://{server}/{database}"
 
     elif db_type == 'azure_sql':
-        # For Azure SQL, we use the same logic as for mssql.
-        # You might need to adjust the port and extra parameters as needed.
+        # For Azure SQL, use the same dynamic driver selection
         params = urllib.parse.quote_plus(
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+            f"DRIVER={{{driver}}};"
             f"SERVER={server};"
             f"DATABASE={database};"
             f"UID={username};"
