@@ -17,9 +17,8 @@ RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
 RUN apt-get update && \
     ACCEPT_EULA=Y apt-get install -y msodbcsql18
 
-# Verify installation and set environment variables
-RUN odbcinst -q -d && \
-    echo "export LD_LIBRARY_PATH=/opt/microsoft/msodbcsql18/lib64:$LD_LIBRARY_PATH" >> ~/.bashrc
+# Set LD_LIBRARY_PATH so the system can find the driver libraries
+ENV LD_LIBRARY_PATH=/opt/microsoft/msodbcsql18/lib64:$LD_LIBRARY_PATH
 
 WORKDIR /app
 COPY requirements.txt .
