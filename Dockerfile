@@ -7,19 +7,23 @@ RUN apt-get update && apt-get install -y \
     unixodbc \
     unixodbc-dev \
     libgssapi-krb5-2 \
-    openssl \
-    tdsodbc
+    openssl
 
 # Microsoft ODBC driver for Debian 12
 RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
     curl https://packages.microsoft.com/config/debian/12/prod.list > /etc/apt/sources.list.d/mssql-release.list
 
-# Install driver
+# Install ODBC Driver 18
 RUN apt-get update && \
     ACCEPT_EULA=Y apt-get install -y msodbcsql18
+
+# Verify installation and set environment variables
+RUN odbcinst -q -d && \
+    echo "export LD_LIBRARY_PATH=/opt/microsoft/msodbcsql18/lib64:$LD_LIBRARY_PATH" >> ~/.bashrc
 
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
+
 CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "app:create_app()"]
