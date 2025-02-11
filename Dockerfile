@@ -1,20 +1,23 @@
-# 1. Base image
 FROM python:3.11-slim
 
-# 2. NEW ODBC DRIVER INSTALLATION (Add these lines)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     gnupg2 \
     curl \
     unixodbc \
-    unixodbc-dev
+    unixodbc-dev \
+    libgssapi-krb5-2 \
+    openssl \
+    tdsodbc
 
+# Microsoft ODBC driver for Debian 12
 RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
-    curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list
+    curl https://packages.microsoft.com/config/debian/12/prod.list > /etc/apt/sources.list.d/mssql-release.list
 
+# Install driver
 RUN apt-get update && \
-    ACCEPT_EULA=Y apt-get install -y msodbcsql17
+    ACCEPT_EULA=Y apt-get install -y msodbcsql18
 
-# 3. YOUR EXISTING DOCKERFILE CONTINUES HERE
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
