@@ -27,8 +27,15 @@ def create_app():
     app.config.update(
         UPLOAD_FOLDER=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads'),
         MAX_CONTENT_LENGTH=16 * 1024 * 1024,
-        SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL') or 'sqlite:///' + os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app.db'),
+        SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL'),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
+        SQLALCHEMY_ENGINE_OPTIONS={
+            'pool_pre_ping': True,
+            'pool_recycle': 300,
+            'connect_args': {
+                'connect_timeout': 30
+            }
+        },
         SESSION_TYPE='filesystem',
         SESSION_PERMANENT=False,
         PERMANENT_SESSION_LIFETIME=1800  # 30 minutes

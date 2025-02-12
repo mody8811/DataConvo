@@ -52,7 +52,8 @@ stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 print(f"Stripe API Key: {stripe.api_key}")  # Debugging
 
 # Set up SQLAlchemy logging
-logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
+logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+logging.getLogger('stripe').setLevel(logging.WARNING)
 
 # Initialize OAuth client
 oauth = OAuth()
@@ -76,11 +77,23 @@ microsoft = oauth.register(
     client_kwargs={'scope': 'openid profile email'},
 )
 
+# Configure logging
+logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+logging.getLogger('stripe').setLevel(logging.WARNING)
 
+# Never log sensitive keys
+def sanitize_log_message(message):
+    if isinstance(message, str):
+        # Hide API keys
+        message = re.sub(r'sk_live_[0-9a-zA-Z]*', '[REDACTED]', message)
+        message = re.sub(r'sk_test_[0-9a-zA-Z]*', '[REDACTED]', message)
+    return message
 
+class SanitizedFormatter(logging.Formatter):
+    def format(self, record):
+        record.msg = sanitize_log_message(record.msg)
+        return super().format(record)
 
-
- 
 # Flask-Login user loader
 @login_manager.user_loader  # Correct usage of the decorator
 def load_user(user_id):
@@ -178,6 +191,7 @@ def signup():
     except Exception as e:
         logger.error(f"Error creating Stripe Checkout session: {e}")
         return jsonify({'error': 'Failed to create payment session.'}), 500
+
 def is_trial_over(user):
     if user.plan == 'free' and user.trial_end_date:
         return datetime.utcnow() > user.trial_end_date
@@ -216,6 +230,7 @@ def create_customer_portal():
         # Handle other unexpected errors
         logger.error(f"Unexpected Error: {str(e)}")
         return jsonify({'error': f"An unexpected error occurred: {str(e)}"}), 500
+
 def create_checkout_session(plan):
     try:
         # Map the plan to a Stripe price ID
@@ -393,10 +408,12 @@ def logout():
     session.clear()
     flash("You have been logged out.", 'info')
     return redirect(url_for('main.index'))
-main.route('/protected')
+
+@main.route('/protected')
 @login_required
 def protected():
     return f"Welcome, {current_user.email}! You are on the {current_user.plan} plan."
+
 # Helper function to send upgrade email
 def send_upgrade_email(email):
     # Implement your email sending logic here
@@ -407,6 +424,7 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Create database tables
     app.run(debug=True)
+
 # Google login callback
 @main.route('/login/google')
 def google_login():
@@ -457,6 +475,7 @@ def google_authorize():
         logger.error(f"Google OAuth authorization failed: {e}")
         flash("Google login failed. Please try again.")
         return redirect(url_for('main.login'))
+
 # Microsoft login callback
 @main.route('/login/microsoft')
 def microsoft_login():
@@ -499,7 +518,7 @@ def set_connection():
     server = request.form['server']
     auth_type = request.form['auth_type']
     database = request.form['database']
-    schema = request.form['schema']  # Schema name from the form
+    schema = request.form['schema']  # From connection form input
     username = request.form['username']
     password = request.form['password']
 
@@ -514,12 +533,6 @@ def set_connection():
         connection_string = f"mysql+pymysql://{username}:{password}@{server}/{database}"
     elif db_type == "postgresql":
         connection_string = f"postgresql://{username}:{password}@{server}/{database}"
-    elif db_type == "azure_sql":
-        connection_string = create_connection_string(db_type, server, database, auth_type, username, password)
-    elif db_type == "aws_rds":
-        connection_string = f"postgresql://{username}:{password}@{server}:5432/{database}"
-    elif db_type == "google_sql":
-        connection_string = f"mysql+pymysql://{username}:{password}@{server}/{database}"
 
     # Set connection details in the session
     session['connection_string'] = connection_string
@@ -530,7 +543,6 @@ def set_connection():
     print("Session Data After Login:", session)
 
     return redirect(url_for('main.chat'))
-
 
 @main.route('/chat')
 def chat():
@@ -551,7 +563,6 @@ def chat():
     logger.info(f"Database chat session initialized: {session}")
     schema_info = get_schema_info()
     return render_template('chat.html', schema_info=schema_info)
-
 
 @main.route('/export_csv')
 def export_csv():
@@ -600,16 +611,18 @@ def get_schema_info():
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_NAME = '{}'
         """
-        query_foreign_keys = """
+        query_foreign_keys = f"""
         SELECT 
             fk.TABLE_NAME AS foreign_table,
             fk.COLUMN_NAME AS foreign_column,
             pk.TABLE_NAME AS primary_table,
             pk.COLUMN_NAME AS primary_column
         FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
-        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE fk ON rc.CONSTRAINT_NAME = fk.CONSTRAINT_NAME
-        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE pk ON rc.UNIQUE_CONSTRAINT_NAME = pk.CONSTRAINT_NAME
-        WHERE fk.TABLE_SCHEMA = '{}'
+        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE fk 
+            ON rc.CONSTRAINT_NAME = fk.CONSTRAINT_NAME
+        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE pk 
+            ON rc.UNIQUE_CONSTRAINT_NAME = pk.CONSTRAINT_NAME
+        WHERE fk.TABLE_SCHEMA = '{schema}'
         """
     elif db_type == "mysql":
         query_tables = f"""
@@ -617,19 +630,20 @@ def get_schema_info():
         FROM INFORMATION_SCHEMA.TABLES
         WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = '{schema}'
         """
-        query_columns = """
+        query_columns = f"""
         SELECT COLUMN_NAME
         FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_NAME = '{}'
+        WHERE TABLE_NAME = '{{}}' AND TABLE_SCHEMA = '{schema}'
         """
-        query_foreign_keys = """
+        query_foreign_keys = f"""
         SELECT 
             TABLE_NAME,
             COLUMN_NAME,
             REFERENCED_TABLE_NAME,
             REFERENCED_COLUMN_NAME
         FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-        WHERE TABLE_SCHEMA = '{}' AND REFERENCED_TABLE_NAME IS NOT NULL
+        WHERE TABLE_SCHEMA = '{schema}'
+        AND REFERENCED_TABLE_NAME IS NOT NULL
         """
     elif db_type == "postgresql":
         query_tables = f"""
@@ -671,9 +685,11 @@ def get_schema_info():
             pk.TABLE_NAME AS primary_table,
             pk.COLUMN_NAME AS primary_column
         FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
-        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE fk ON rc.CONSTRAINT_NAME = fk.CONSTRAINT_NAME
-        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE pk ON rc.UNIQUE_CONSTRAINT_NAME = pk.CONSTRAINT_NAME
-        WHERE fk.TABLE_SCHEMA = '{}'
+        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE fk 
+            ON rc.CONSTRAINT_NAME = fk.CONSTRAINT_NAME
+        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE pk 
+            ON rc.UNIQUE_CONSTRAINT_NAME = pk.CONSTRAINT_NAME
+        WHERE fk.TABLE_SCHEMA = '{schema}'
         """
 
     with engine.connect() as connection:
@@ -908,6 +924,7 @@ def handle_join_request(user_message, schema_info, table_name):
             return jsonify({'response': "AI: No fact tables available for joining."})
     else:
         return jsonify({'response': "AI: Could not determine the tables to join. Please specify the tables clearly."})
+
 def understand_user_intent(user_message):
     """
     Determine the user's intent from the message, specifically whether they want to view data in a table
@@ -924,7 +941,6 @@ def understand_user_intent(user_message):
     
     # If unclear, ask the user to clarify their intent
     return "unclear"
-
 
 def handle_user_query(user_message):
     """
@@ -1739,84 +1755,30 @@ def test_connection():
             "success": False,
             "error": f"Connection failed: {error_message}"
         }), 400
-
 def create_connection_string(db_type, server, database, auth_type, username=None, password=None):
     """Create database connection string based on database type and authentication."""
     import urllib.parse
     if db_type == 'mssql':
-        # List of preferred SQL Server drivers
-        drivers = [
-            'ODBC Driver 18 for SQL Server',
-            'ODBC Driver 17 for SQL Server',
-            'SQL Server Native Client 11.0',
-            'SQL Server'
-        ]
-
-        # Find the first available driver
-        driver = None
-        for driver_name in drivers:
-            if driver_name in pyodbc.drivers():
-                driver = driver_name
-                break
-
-        if not driver:
-            raise Exception("No SQL Server driver found. Please install an ODBC driver for SQL Server.")
-
-        if auth_type == 'windows':
-            params = urllib.parse.quote_plus(
-                f"DRIVER={{{driver}}};"
-                f"SERVER={server};"
-                f"DATABASE={database};"
-                "Trusted_Connection=yes;"
-            )
-        else:
-            params = urllib.parse.quote_plus(
-                f"DRIVER={{{driver}}};"
-                f"SERVER={server};"
-                f"DATABASE={database};"
-                f"UID={username};"
-                f"PWD={password};"
-                "Timeout=60;"
-            )
-        return f"mssql+pyodbc:///?odbc_connect={params}"
-
-    elif db_type == 'mysql':
-        if username and password:
-            return f"mysql+pymysql://{username}:{password}@{server}/{database}"
-        return f"mysql+pymysql://{server}/{database}"
-
-    elif db_type == 'postgresql':
-        if username and password:
-            return f"postgresql://{username}:{password}@{server}/{database}"
-        return f"postgresql://{server}/{database}"
-
-    elif db_type == 'azure_sql':
-        # Reuse the same driver detection logic as MSSQL
-        import pyodbc
-        drivers = [
-            'ODBC Driver 18 for SQL Server',
-            'ODBC Driver 17 for SQL Server', 
-            'SQL Server Native Client 11.0',
-            'SQL Server'
-        ]
-        driver = next((d for d in drivers if d in pyodbc.drivers()), None)
-        if not driver:
-            raise Exception("No SQL Server driver found for Azure SQL")
-            
+        driver = 'ODBC Driver 18 for SQL Server'  # Force Driver 18
         params = urllib.parse.quote_plus(
             f"DRIVER={{{driver}}};"
             f"SERVER={server};"
             f"DATABASE={database};"
             f"UID={username};"
             f"PWD={password};"
+            "Encrypt=yes;TrustServerCertificate=yes;Connection Timeout=30;"
         )
         return f"mssql+pyodbc:///?odbc_connect={params}"
-
-    elif db_type == 'aws_rds':
-        # Example for AWS RDS using Postgres; adjust as needed.
-        return f"postgresql://{username}:{password}@{server}:5432/{database}"
-
-    elif db_type == 'google_sql':
-        return f"mysql+pymysql://{username}:{password}@{server}/{database}"
-
+    
+    elif db_type == 'mysql':
+        if username and password:
+            return f"mysql+pymysql://{username}:{password}@{server}/{database}"
+        return f"mysql+pymysql://{server}/{database}"
+    
+    elif db_type == 'postgresql':
+        if username and password:
+            return f"postgresql://{username}:{password}@{server}/{database}"
+        return f"postgresql://{server}/{database}"
+    
     raise ValueError(f"Unsupported database type: {db_type}")
+

@@ -1,2 +1,0 @@
-msodbcsql18
-unixodbc-dev 
