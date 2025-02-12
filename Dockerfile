@@ -21,8 +21,13 @@ RUN apt-get update && \
 ENV LD_LIBRARY_PATH=/opt/microsoft/msodbcsql18/lib64:$LD_LIBRARY_PATH
 
 WORKDIR /app
+
+# Copy and install requirements first (for better caching)
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt && \
+    pip install gunicorn  # Explicitly install gunicorn
+
+# Copy the rest of the application
 COPY . .
 
 # Set default port
@@ -31,5 +36,5 @@ ENV PORT=10000
 # Expose the port
 EXPOSE ${PORT}
 
-# Use gunicorn
-CMD gunicorn --bind 0.0.0.0:${PORT} "app:create_app()"
+# Make sure we're using the full path to gunicorn
+CMD ["/usr/local/bin/gunicorn", "--bind", "0.0.0.0:10000", "app:create_app()"]
