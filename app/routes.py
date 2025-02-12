@@ -1755,11 +1755,13 @@ def test_connection():
             "success": False,
             "error": f"Connection failed: {error_message}"
         }), 400
+
 def create_connection_string(db_type, server, database, auth_type, username=None, password=None):
     """Create database connection string based on database type and authentication."""
     import urllib.parse
     if db_type == 'mssql':
-        driver = 'ODBC Driver 18 for SQL Server'  # Force Driver 18
+        # Use Driver 18 (since that's what is installed in the container)
+        driver = 'ODBC Driver 18 for SQL Server'
         params = urllib.parse.quote_plus(
             f"DRIVER={{{driver}}};"
             f"SERVER={server};"
