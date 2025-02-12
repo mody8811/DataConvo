@@ -9,9 +9,9 @@ RUN apt-get update && apt-get install -y \
     libgssapi-krb5-2 \
     openssl
 
-# Microsoft ODBC driver for Debian 12
-RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
-    curl https://packages.microsoft.com/config/debian/12/prod.list > /etc/apt/sources.list.d/mssql-release.list
+# Add Microsoft repository and keys properly
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/microsoft-archive-keyring.gpg && \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list
 
 # Install ODBC Driver 18
 RUN apt-get update && \
