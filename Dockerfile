@@ -25,4 +25,11 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
 
-CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "app:create_app()"]
+# Set default port
+ENV PORT=10000
+
+# Expose the port
+EXPOSE ${PORT}
+
+# Use gunicorn
+CMD gunicorn --bind 0.0.0.0:${PORT} "app:create_app()"

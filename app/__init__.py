@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_session import Session
@@ -60,5 +60,9 @@ def create_app():
     # Create database tables
     with app.app_context():
         db.create_all()
+    
+    @app.route('/healthz')
+    def healthz():
+        return jsonify({"status": "healthy"}), 200
     
     return app
