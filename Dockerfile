@@ -26,7 +26,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
-    pip install gunicorn
+    pip install gunicorn  # Explicitly install gunicorn
 
 # Copy the rest of the application
 COPY . .
@@ -37,5 +37,5 @@ ENV PORT=10000
 # Expose the port
 EXPOSE ${PORT}
 
-# Run the application using gunicorn with the full path
+# Make sure we're using the full path to gunicorn
 CMD ["/usr/local/bin/gunicorn", "--bind", "0.0.0.0:10000", "app:create_app()"]
