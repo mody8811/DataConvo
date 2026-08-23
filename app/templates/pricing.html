@@ -151,10 +151,8 @@
                 </ul>
                 {% if current_user.is_authenticated and current_tier == 'team' %}
                     <a class="cta pro" href="{{ url_for('main.index') }}">✓ Active</a>
-                {% elif team_payment_link %}
-                    <a class="cta pro" href="{{ team_payment_link }}" target="_blank" rel="noopener">💳 Buy Team</a>
                 {% else %}
-                    <a class="cta pro" href="mailto:sales@dataconvo.app?subject=Team%20License%20Inquiry">Contact Us</a>
+                    <a class="cta pro" href="{{ team_payment_link or 'https://buy.stripe.com/dRmfZh1ti2lF8oCgnK0x200' }}" target="_blank" rel="noopener">Upgrade to Pro</a>
                 {% endif %}
             </div>
 

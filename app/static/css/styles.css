@@ -429,3 +429,15 @@ pre {
     background: var(--accent);
     color: white;
 }
+/* ========= Mobile responsiveness (added) ========= */
+@media (max-width: 768px) {
+  .pricing-grid, .dashboard-grid, .stats-grid, .grid-3, .grid-2 { grid-template-columns: 1fr !important; }
+  .pricing-card, .dashboard-card, .stat-card, .card { width: 100% !important; max-width: 100% !important; }
+  .pricing-nav, .nav-links, .navbar, nav { flex-direction: column; align-items: stretch; gap: 10px; }
+  .container, .pricing-page, .main-container, .main-content, .content { padding-left: 16px; padding-right: 16px; }
+  table { display: block; overflow-x: auto; white-space: nowrap; }
+  .flex-row, .row, .btn-group, .toolbar { flex-direction: column; align-items: stretch; }
+  input, select, textarea, button { max-width: 100%; }
+  h1 { font-size: 1.6rem !important; } h2 { font-size: 1.25rem !important; }
+  .auth-shell, .auth-card { max-width: 100%; padding: 24px 18px; }
+};
