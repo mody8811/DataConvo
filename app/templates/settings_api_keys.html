@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Keys — Data Convo</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        body { display:flex; align-items:center; justify-content:center; min-height:100vh; background: radial-gradient(ellipse at 0% 0%, rgba(245,158,11,0.12), transparent 50%), var(--bg-primary); }
+        .card { max-width: 480px; width:100%; padding:32px; background:var(--surface); border:1px solid rgba(245,158,11,0.3); border-radius:16px; box-shadow:0 24px 80px rgba(0,0,0,0.45); }
+        .card h1 { font-size:1.35rem; margin-bottom:6px; }
+        .card .sub { color:var(--text-muted); font-size:0.9rem; margin-bottom:20px; }
+        label { display:block; margin:14px 0 6px; font-weight:600; font-size:0.85rem; color:var(--text-secondary); }
+        select, input[type=password], input[type=text] { width:100%; padding:11px 13px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; color:var(--text-primary); outline:none; }
+        select:focus, input:focus { border-color:var(--amber,brown); border-color:#f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,0.25); }
+        .btn { padding:12px 18px; border:none; border-radius:10px; font-weight:700; cursor:pointer; margin:8px 6px 0 0; }
+        .btn.primary { background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; }
+        .btn.secondary { background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-primary); }
+        .status { margin-top:14px; font-size:0.85rem; min-height:20px; }
+        .status.ok { color:#34d399; }
+        .status.err { color:#ef4444; }
+        .masked { display:block; font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); margin-top:4px; }
+        .toggles { margin-top:16px; }
+        .toggles label { display:flex; align-items:center; gap:8px; margin:8px 0; font-weight:500; }
+        .back { display:inline-block; margin-top:16px; color:var(--text-muted); font-size:0.8rem; text-decoration:none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        {% if user.role == 'admin' %}
+        <h1>🔑 Bring Your Own Key (BYOK)</h1>
+        <p class="sub">Plug in your own LLM API key to power the agent swarm with zero sponsorship-token cost. Keys are Fernet-encrypted at rest and never exposed.</p>
+
+        <label for="provider">Provider</label>
+        <select id="provider">
+            <option value="openai">OpenAI (gpt-4o-mini)</option>
+            <option value="anthropic">Anthropic (Claude)</option>
+        </select>
+
+        <label for="apiKey">API Key</label>
+        <input type="password" id="apiKey" placeholder="sk-…" autocomplete="off">
+        <span class="masked" id="maskedHint">No key stored</span>
+
+        <div class="toggles">
+            <label><input type="checkbox" id="byokEnabled"> Enable BYOK (use my key for all agent calls)</label>
+        </div>
+
+        <button class="btn secondary" id="testBtn">🧪 Test Key</button>
+        <button class="btn primary" id="saveBtn">💾 Save & Enable</button>
+        <div class="status" id="status"></div>
+        <a class="back" href="/account">← Back to Account</a>
+        {% else %}
+        <h1>🔑 Bring Your Own Key (BYOK)</h1>
+        <p class="sub">LLM provider configuration is managed securely by your workspace admin and inherited automatically.</p>
+        <div class="toggles">
+            <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;color:#34d399;font-weight:600;">
+                ⚙️ Workspace-Managed — inherited from Admin
+            </label>
+        </div>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-top:12px;">
+            Members cannot configure LLM providers. Contact your workspace admin to change the provider configuration.
+        </p>
+        <a class="back" href="/account">← Back to Account</a>
+        {% endif %}
+    </div>
+
+    <script>
+        const $ = id => document.getElementById(id);
+        // Only bind BYOK controls when the admin form is rendered.
+        if (!$('byokEnabled') || !$('provider') || !$('saveBtn')) {
+            // Member/read-only view — skip all BYOK management wiring.
+            window.__byokReadonly = true;
+            var $ro = window.__byokReadonly;
+            document.dispatchEvent(new CustomEvent('byok:readonly'));
+            if (false) { /* no-op so linters don't flag $ro */ }
+        } else {
+        let current = { byok_enabled:false, active_provider:'openai', openai_masked:'', anthropic_masked:'' };
+
+        async function loadStatus() {
+            try {
+                const r = await fetch('/api/settings/byok/status', { credentials:'include' });
+                current = await r.json();
+                $('byokEnabled').checked = !!current.byok_enabled;
+                $('provider').value = current.active_provider || 'openai';
+                const masked = current.active_provider === 'anthropic' ? current.anthropic_masked : current.openai_masked;
+                $('maskedHint').textContent = masked ? 'Stored: ' + masked : 'No key stored';
+            } catch(e) { $('status').textContent = 'Failed to load status: ' + e.message; $('status').className = 'status err'; }
+        }
+
+        $('provider').addEventListener('change', () => {
+            const p = $('provider').value;
+            const masked = p === 'anthropic' ? current.anthropic_masked : current.openai_masked;
+            $('maskedHint').textContent = masked ? 'Stored: ' + masked : 'No key stored';
+            $('apiKey').placeholder = p === 'anthropic' ? 'sk-ant-…' : 'sk-…';
+        });
+
+        $('testBtn').addEventListener('click', async () => {
+            const apiKey = $('apiKey').value.trim();
+            if (!apiKey) { $('status').textContent = 'Enter a key to test.'; $('status').className='status err'; return; }
+            $('status').textContent = 'Testing…'; $('status').className='status';
+            try {
+                const r = await fetch('/api/settings/byok/test', {
+                    method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
+                    body: JSON.stringify({ provider: $('provider').value, api_key: apiKey })
+                });
+                const d = await r.json();
+                $('status').textContent = d.message || (d.valid ? 'Valid' : 'Invalid');
+                $('status').className = d.valid ? 'status ok' : 'status err';
+            } catch(e) { $('status').textContent = 'Network error: ' + e.message; $('status').className='status err'; }
+        });
+
+        $('saveBtn').addEventListener('click', async () => {
+            const apiKey = $('apiKey').value.trim();
+            const body = { provider: $('provider').value, byok_enabled: $('byokEnabled').checked };
+            if (apiKey) body.api_key = apiKey;
+            $('status').textContent = 'Saving…'; $('status').className='status';
+            try {
+                const r = await fetch('/api/settings/byok', {
+                    method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
+                    body: JSON.stringify(body)
+                });
+                const d = await r.json();
+                if (d.error) { $('status').textContent = d.error; $('status').className='status err'; }
+                else {
+                    $('status').textContent = 'Saved — BYOK ' + (d.byok_enabled ? 'enabled' : 'disabled') + ' (' + d.active_provider + '). ' + (d.note||'');
+                    $('status').className = 'status ok';
+                    $('apiKey').value = '';
+                    loadStatus();
+                }
+            } catch(e) { $('status').textContent = 'Network error: ' + e.message; $('status').className='status err'; }
+        });
+
+        loadStatus();
+        }
+    </script>
+<script src="/static/ux.js"></script>
+</body>
+</html>

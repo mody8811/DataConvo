@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Convo — Enterprise Semantic Layer for AI-Ready Databases</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/static/brand/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/brand/favicon-32x32.png">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        :root {
+            --hero-bg: #030305;
+            --accent-glow-strong: rgba(99, 102, 241, 0.45);
+            --enterprise-card-bg: #111827;
+            --enterprise-border: #1e293b;
+            --slate-pill: #1e293b;
+            --warning-card-bg: #111827;
+            --warning-border: #1e293b;
+        }
+
+        .home-page {
+            background: var(--hero-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient animated background */
+        .ambient-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.22) 0%, transparent 40%),
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.18) 0%, transparent 35%),
+                radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.14) 0%, transparent 40%),
+                var(--hero-bg);
+            animation: ambientShift 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes ambientShift {
+            0% { filter: hue-rotate(0deg) brightness(1); }
+            100% { filter: hue-rotate(25deg) brightness(1.08); }
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.5;
+            animation: floatOrb 18s ease-in-out infinite;
+        }
+
+        .orb-1 { width: 500px; height: 500px; background: rgba(99, 102, 241, 0.35); top: -10%; left: -5%; animation-delay: 0s; }
+        .orb-2 { width: 400px; height: 400px; background: rgba(139, 92, 246, 0.3); top: 40%; right: -8%; animation-delay: -6s; }
+        .orb-3 { width: 300px; height: 300px; background: rgba(59, 130, 246, 0.28); bottom: 10%; left: 30%; animation-delay: -12s; }
+
+        @keyframes floatOrb {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(40px, -30px) scale(1.05); }
+            66% { transform: translate(-30px, 20px) scale(0.95); }
+        }
+
+        #particleCanvas {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* Navigation */
+        .home-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(3, 3, 5, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .home-logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; letter-spacing: -0.02em; text-decoration: none; color: var(--text-primary); }
+        .home-logo:hover { text-decoration: none; }
+        .home-logo-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .home-logo-icon img { width: 100%; height: 100%; object-fit: contain; }
+        .home-nav-links { display: flex; align-items: center; gap: 12px; }
+        .home-nav-links a { padding: 8px 16px; border-radius: var(--radius-md); color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; transition: all var(--transition-fast); }
+        .home-nav-links a:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.04); text-decoration: none; }
+        .home-nav-links .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-secondary)); color: white; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25); }
+        .home-nav-links .btn-primary:hover { box-shadow: 0 6px 20px var(--accent-glow); filter: brightness(1.1); }
+
+        /* ===== Electric Amber Hero + Studios + Agents ===== */
+        :root {
+            --amber: #f59e0b;
+            --amber-bright: #fbbf24;
+            --amber-dark: #d97706;
+            --amber-glow: rgba(245, 158, 11, 0.35);
+        }
+        .hero-headline .text-gradient-amber {
+            background: linear-gradient(135deg, #ffffff 0%, #fde68a 45%, #f59e0b 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .hero-badge.amber {
+            background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); color: var(--amber-bright);
+        }
+        .hero-badge.amber .pulse { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+
+        /* Interactive preview card */
+        .preview-card {
+            position: relative; z-index: 2; max-width: 880px; width: 100%; margin: 0 auto;
+            background: rgba(7, 10, 17, 0.85); border: 1px solid rgba(245, 158, 11, 0.35);
+            border-radius: 18px; overflow: hidden; text-align: left;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 40px var(--amber-glow);
+            backdrop-filter: blur(12px); animation: slideUp 0.8s ease-out 0.5s both;
+        }
+        .preview-bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); }
+        .preview-dots { display: flex; gap: 6px; }
+        .preview-dot { width: 11px; height: 11px; border-radius: 50%; }
+        .preview-dot.r { background: #ef4444; } .preview-dot.y { background: var(--amber); } .preview-dot.g { background: #10b981; }
+        .preview-title { margin-left: 10px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); }
+        .preview-body { padding: 18px; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.7; }
+        .preview-line { margin-bottom: 6px; }
+        .preview-prompt { color: var(--amber-bright); }
+        .preview-sql { color: #a5f3fc; display: block; padding-left: 18px; }
+        .preview-row { color: var(--text-secondary); display: block; padding-left: 18px; }
+        .preview-details { margin-top: 12px; border: 1px solid rgba(245,158,11,0.25); border-radius: 8px; background: rgba(245,158,11,0.05); }
+        .preview-details summary { cursor: pointer; padding: 8px 12px; color: var(--amber-bright); font-size: 0.72rem; user-select: none; }
+        .preview-details .trace { padding: 4px 12px 10px; color: var(--text-secondary); font-size: 0.72rem; }
+        .preview-details .trace div { padding: 2px 0; }
+
+        /* Self-Hosted & Enterprise-Grade pillars */
+        .selfhost-pillars {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+        @media (max-width: 900px) { .selfhost-pillars { grid-template-columns: 1fr; } }
+
+        .selfhost-pillar {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(17, 24, 39, 0.85));
+            border: 1px solid var(--enterprise-border);
+            border-radius: var(--radius-lg);
+            padding: 34px 30px;
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-base);
+        }
+        .selfhost-pillar:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 16px 40px rgba(99, 102, 241, 0.15);
+        }
+        .selfhost-pillar::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0;
+            transition: opacity var(--transition-base);
+        }
+        .selfhost-pillar:hover::before { opacity: 1; }
+        .selfhost-pillar .pillar-icon {
+            width: 56px; height: 56px;
+            border-radius: 14px;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem;
+            margin-bottom: 18px;
+        }
+        .selfhost-pillar h3 { font: var(--font-h3); margin-bottom: 10px; color: var(--text-primary); }
+        .selfhost-pillar p { color: var(--text-secondary); font: var(--font-body); margin: 0; line-height: 1.6; }
+
+        /* Studios showcase */
+        .studios-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        @media (max-width: 900px) { .studios-grid { grid-template-columns: 1fr; } }
+        .studio-card {
+            background: rgba(17, 24, 39, 0.6); border: 1px solid var(--border);
+            border-radius: 16px; padding: 28px; position: relative; overflow: hidden;
+            transition: all var(--transition-base);
+        }
+        .studio-card:hover { border-color: var(--amber); transform: translateY(-4px); box-shadow: 0 0 28px var(--amber-glow); }
+        .studio-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, transparent, var(--amber), transparent); opacity:0; transition: opacity .3s; }
+        .studio-card:hover::before { opacity:1; }
+        .studio-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); display:flex; align-items:center; justify-content:center; font-size: 1.5rem; margin-bottom: 16px; }
+        .studio-card h3 { font-size: 1.2rem; margin-bottom: 8px; }
+        .studio-card p { color: var(--text-secondary); font-size: 0.92rem; margin: 0; }
+
+        /* Semantic bits animation */
+        .bits { height: 90px; position: relative; margin-top: 18px; }
+        .bit { position: absolute; padding: 6px 12px; border-radius: 8px; font-size: 0.7rem; font-family: var(--font-mono); background: rgba(17,24,39,0.95); border: 1px solid rgba(245,158,11,0.35); color: var(--text-primary); animation: floatBit 5s ease-in-out infinite; }
+        @keyframes floatBit { 0%,100% { transform: translateY(0); opacity:.7; } 50% { transform: translateY(-12px); opacity:1; } }
+
+        /* Dashboard pulse + bars */
+        .viz-bars { display:flex; align-items:flex-end; gap:6px; height:70px; margin-top:18px; }
+        .viz-bars span { flex:1; background: linear-gradient(180deg, var(--amber), var(--amber-dark)); border-radius:4px; animation: vizGrow 2s ease-in-out infinite; opacity:.75; }
+        @keyframes vizGrow { 0%,100% { height:20%; } 50% { height:100%; } }
+
+        /* Anomaly pulse */
+        .anomaly-pulse { display:flex; align-items:center; gap:10px; margin-top:18px; font-size:0.78rem; color: var(--text-secondary); }
+        .pulse-dot { width:12px; height:12px; border-radius:50%; background: var(--amber); box-shadow:0 0 12px var(--amber); animation: statusPulse 1.4s ease-in-out infinite; }
+        @keyframes statusPulse { 0%,100% { opacity:.35; transform:scale(.8); } 50% { opacity:1; transform:scale(1.15); } }
+
+        /* Agent ticker */
+        .agent-ticker { max-width: 720px; margin: 0 auto; background: rgba(7,10,17,0.8); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+        .ticker-viewport { height: 150px; overflow: hidden; position: relative; }
+        .ticker-item { position: absolute; inset: 0 auto auto 0; width: 100%; padding: 24px; display: flex; gap: 14px; align-items: flex-start; font-size: 0.9rem; color: var(--text-primary); opacity: 0; transform: translateY(24px); transition: opacity .5s, transform .5s; }
+        .ticker-item.active { opacity: 1; transform: translateY(0); }
+        .ticker-avatar { width: 44px; height: 44px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); flex-shrink: 0; }
+        .ticker-avatar img { width:100%; height:100%; object-fit: cover; }
+        .ticker-msg { color: var(--text-secondary); line-height: 1.6; }
+        .ticker-msg strong { color: var(--amber-bright); }
+        .ticker-dots { display:flex; justify-content:center; gap:8px; padding:12px; border-top: 1px solid var(--border); }
+        .ticker-dot { width:8px; height:8px; border-radius:50%; background: var(--border-strong); transition: background .3s; }
+        .ticker-dot.active { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+
+        /* Trust bar */
+        .trust-bar { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+        @media (max-width: 900px) { .trust-bar { grid-template-columns: 1fr; } }
+        .trust-badge { background: rgba(17,24,39,0.6); border: 1px solid var(--border); border-radius: 14px; padding: 22px; text-align: center; }
+        .trust-badge .icon { font-size: 1.6rem; margin-bottom: 10px; }
+        .trust-badge h4 { font-size: 1rem; margin-bottom: 6px; color: var(--amber-bright); }
+        .trust-badge p { color: var(--text-muted); font-size: 0.82rem; margin: 0; }
+
+        /* Agentic Core */
+        .agentic-core-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 900px) { .agentic-core-grid { grid-template-columns: 1fr; } }
+        .agentic-card { background: rgba(17,24,39,0.6); border: 1px solid rgba(245,158,11,0.25); border-radius: 14px; padding: 22px; display: flex; gap: 16px; }
+        .agentic-card .agent-avatar { width: 56px; height: 56px; min-width: 56px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(245,158,11,0.4); background: rgba(245,158,11,0.08); display:flex; align-items:center; justify-content:center; }
+        .agentic-card .agent-avatar img { width:100%; height:100%; object-fit: cover; }
+        .agentic-card h3 { font-size: 1.1rem; margin-bottom: 6px; color: var(--amber-bright); }
+        .agentic-card p { color: var(--text-secondary); font-size: 0.85rem; margin: 0; line-height: 1.5; }
+        .guardrail-tag { display: inline-block; padding: 3px 10px; border-radius: 999px; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: var(--amber-bright); font-size: 0.7rem; margin: 8px 4px 0 0; }
+
+        /* Live agentic terminal */
+        .agentic-terminal { max-width: 760px; margin: 0 auto; background: rgba(7,10,17,0.9); border: 1px solid rgba(245,158,11,0.35); border-radius: 16px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 40px var(--amber-glow); }
+        .agentic-term-body { padding: 18px; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.7; min-height: 230px; }
+        .agentic-line { margin-bottom: 8px; opacity: 0; transform: translateY(8px); transition: opacity .4s, transform .4s; }
+        .agentic-line.show { opacity: 1; transform: translateY(0); }
+        .agentic-line .a-avatar { width: 18px; height: 18px; border-radius: 5px; vertical-align: middle; margin-right: 4px; }
+        .agentic-line .user-p { color: var(--text-primary); }
+        .agentic-line .qb { color: #34d399; }
+        .agentic-line .db { color: #a78bfa; }
+        .agentic-line .wb { color: var(--amber-bright); }
+        .agentic-line .synth { color: #7dd3fc; }
+        .agentic-details { margin-top: 10px; border: 1px solid rgba(245,158,11,0.25); border-radius: 8px; background: rgba(245,158,11,0.05); }
+        .agentic-details summary { cursor: pointer; padding: 8px 12px; color: var(--amber-bright); font-size: 0.75rem; user-select: none; }
+        .agentic-details .trace { padding: 6px 12px 10px; font-size: 0.72rem; color: var(--text-secondary); }
+        .agentic-details .trace div { padding: 2px 0; }
+
+        /* Hero */
+        .hero {
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 120px 24px 80px;
+            text-align: center;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 999px;
+            color: var(--accent-hover);
+            font: var(--font-badge);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 28px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .hero-badge .pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .hero h1 {
+            font-size: clamp(48px, 6vw, 60px);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.04em;
+            max-width: 900px;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 .text-gradient {
+            background: linear-gradient(135deg, #ffffff 0%, #c7c7ff 50%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font: var(--font-body);
+            color: var(--text-secondary);
+            max-width: 720px;
+            margin: 0 auto 40px;
+        }
+
+        .hero-ctas { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 60px; animation: slideUp 0.8s ease-out 0.3s both; }
+        .hero-ctas .btn-giant { padding: 16px 32px; font-size: 1.05rem; border-radius: var(--radius-lg); }
+        .hero-ctas .btn-secondary-giant {
+            padding: 16px 32px;
+            font-size: 1.05rem;
+            border-radius: var(--radius-lg);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            font-weight: 600;
+            transition: all var(--transition-fast);
+        }
+        .hero-ctas .btn-secondary-giant:hover { background: rgba(255, 255, 255, 0.08); border-color: var(--border-strong); text-decoration: none; }
+
+        /* Demo video (replaces animated terminal) */
+        .demo-terminal {
+            position: relative;
+            z-index: 2;
+            max-width: 850px;
+            width: 100%;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(99, 102, 241, 0.1);
+            backdrop-filter: blur(12px);
+            animation: slideUp 0.8s ease-out 0.5s both;
+        }
+
+        .demo-terminal video {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 520px;
+            object-fit: cover;
+        }
+
+        .terminal-header { display: flex; align-items: center; gap: 8px; padding: 14px 18px; background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid var(--border); }
+        .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .terminal-dot.red { background: #ef4444; }
+        .terminal-dot.yellow { background: #f59e0b; }
+        .terminal-dot.green { background: #10b981; }
+        .terminal-title { margin-left: 12px; font: var(--font-badge); color: var(--text-muted); font-family: var(--font-mono); }
+        .terminal-body { padding: 24px; font: var(--font-code); min-height: 220px; }
+        .terminal-line { margin-bottom: 8px; opacity: 0; animation: fadeIn 0.3s ease forwards; }
+        .terminal-prompt { color: var(--success); }
+        .terminal-query { color: var(--text-primary); }
+        .terminal-sql { color: var(--accent-hover); margin-left: 20px; display: block; }
+        .terminal-result { color: var(--text-secondary); margin-left: 20px; display: block; }
+
+        /* Sections */
+        .section { position: relative; z-index: 2; padding: 100px 24px; max-width: 1200px; margin: 0 auto; }
+        .section-eyebrow {
+            display: block;
+            text-align: center;
+            font: var(--font-badge);
+            color: var(--accent-hover);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 12px;
+        }
+        .section-title { font: var(--font-h2); text-align: center; margin-bottom: 16px; letter-spacing: -0.02em; }
+        .section-subtitle { text-align: center; color: var(--text-muted); font: var(--font-body); max-width: 680px; margin: 0 auto 60px; }
+
+        /* Enterprise fear cards */
+        .fear-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        @media (max-width: 900px) { .fear-grid { grid-template-columns: 1fr; } }
+
+        .fear-card {
+            background: var(--enterprise-card-bg);
+            border: 1px solid var(--enterprise-border);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            transition: all var(--transition-base);
+            position: relative;
+            overflow: hidden;
+        }
+        .fear-card:hover { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 12px 32px rgba(239, 68, 68, 0.1); transform: translateY(-4px); }
+        .fear-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.5), transparent); opacity: 0; transition: opacity var(--transition-base); }
+        .fear-card:hover::before { opacity: 1; }
+        .fear-icon { font-size: 2rem; margin-bottom: 16px; }
+        .fear-card h3 { font: var(--font-h3); margin-bottom: 10px; color: var(--text-primary); }
+        .fear-card p { color: var(--text-secondary); font: var(--font-body); margin: 0; }
+
+        /* RAG illusion section */
+        .warning-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 999px;
+            color: var(--warning);
+            font: var(--font-badge);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 16px;
+        }
+
+        .warning-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+        @media (max-width: 900px) { .warning-grid { grid-template-columns: 1fr; } }
+
+        .warning-card {
+            background: var(--warning-card-bg);
+            border: 1px solid var(--warning-border);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            transition: all var(--transition-base);
+            position: relative;
+            overflow: hidden;
+        }
+        .warning-card:hover { border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 12px 32px rgba(245, 158, 11, 0.1); transform: translateY(-4px); }
+        .warning-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.5), transparent); opacity: 0; transition: opacity var(--transition-base); }
+        .warning-card:hover::before { opacity: 1; }
+        .warning-icon { font-size: 2rem; margin-bottom: 16px; }
+        .warning-card h3 { font: var(--font-h3); margin-bottom: 10px; color: var(--text-primary); }
+        .warning-card p { color: var(--text-secondary); font: var(--font-body); margin: 0; }
+        .warning-card p strong { color: var(--text-primary); }
+
+        /* Governance section */
+        .governance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        @media (max-width: 900px) { .governance-grid { grid-template-columns: 1fr; } }
+
+        .governance-card {
+            background: var(--enterprise-card-bg);
+            border: 1px solid var(--enterprise-border);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            transition: all var(--transition-base);
+            position: relative;
+            overflow: hidden;
+        }
+        .governance-card:hover { border-color: rgba(99, 102, 241, 0.5); box-shadow: 0 12px 32px rgba(99, 102, 241, 0.12); transform: translateY(-4px); }
+        .governance-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.5), transparent); opacity: 0; transition: opacity var(--transition-base); }
+        .governance-card:hover::before { opacity: 1; }
+        .governance-icon { font-size: 2rem; margin-bottom: 16px; }
+        .governance-card h3 { font: var(--font-h3); margin-bottom: 10px; color: var(--text-primary); }
+        .governance-card p { color: var(--text-secondary); font: var(--font-body); margin: 0; }
+
+        /* Differentiator / moat section */
+        .moat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        @media (max-width: 1100px) { .moat-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 700px) { .moat-grid { grid-template-columns: 1fr; } }
+
+        .moat-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(17, 24, 39, 0.8));
+            border: 1px solid var(--enterprise-border);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            display: flex;
+            gap: 18px;
+            transition: all var(--transition-base);
+        }
+        .moat-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 16px 40px rgba(99, 102, 241, 0.15); }
+        .moat-icon { width: 52px; height: 52px; min-width: 52px; border-radius: 14px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.25); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .moat-card h3 { font: var(--font-h3); margin-bottom: 6px; }
+        .moat-card p { color: var(--text-secondary); font: var(--font-body); margin: 0; }
+
+        /* Comparison table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 1px solid var(--enterprise-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: var(--enterprise-card-bg);
+        }
+        .comparison-table th,
+        .comparison-table td { padding: 16px 18px; text-align: left; border-bottom: 1px solid var(--enterprise-border); }
+        .comparison-table th { background: rgba(255, 255, 255, 0.03); color: var(--text-primary); font: var(--font-label); font-weight: 600; }
+        .comparison-table td { color: var(--text-secondary); font: var(--font-body); }
+        .comparison-table tr:last-child td { border-bottom: none; }
+        .comparison-table .check { color: var(--success); font-weight: 700; font-size: 1.1rem; }
+        .comparison-table .cross { color: var(--error); font-weight: 700; font-size: 1.1rem; }
+        .comparison-table .pill { display: inline-block; padding: 4px 12px; border-radius: 999px; background: var(--slate-pill); color: var(--text-muted); font: var(--font-badge); }
+        .comparison-table .highlight-col { background: rgba(99, 102, 241, 0.06); }
+
+        /* Visual feature demos */
+        .visual-demos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+        @media (max-width: 900px) { .visual-demos { grid-template-columns: 1fr; } }
+        .visual-demo-card { background: var(--enterprise-card-bg); border: 1px solid var(--enterprise-border); border-radius: var(--radius-lg); padding: 28px; overflow: hidden; }
+        .visual-demo-card h3 { font: var(--font-h3); margin-bottom: 8px; }
+        .visual-demo-card p { color: var(--text-secondary); font: var(--font-body); margin-bottom: 20px; }
+
+        .demo-video {
+            width: 100%;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--enterprise-border);
+            background: rgba(0, 0, 0, 0.35);
+            aspect-ratio: 16 / 10;
+            object-fit: cover;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Animated ERD demo */
+        .mini-erd { position: relative; height: 240px; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--enterprise-border); border-radius: var(--radius-md); overflow: hidden; }
+        .mini-table { position: absolute; width: 120px; background: rgba(17, 24, 39, 0.95); border: 1px solid var(--enterprise-border); border-radius: 8px; font: var(--font-code); font-size: 0.7rem; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+        .mini-table-header { padding: 8px; background: linear-gradient(135deg, #1e293b, #0f172a); font-weight: 700; color: var(--text-primary); border-bottom: 1px solid var(--enterprise-border); }
+        .mini-table-row { padding: 6px 8px; color: var(--text-secondary); border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+        .mini-table-row:last-child { border-bottom: none; }
+        .mini-table-row.pk { color: var(--warning); }
+        .mini-table-row.fk { color: var(--erd-fk); }
+        .mini-line { position: absolute; height: 2px; background: linear-gradient(90deg, var(--erd-fk), var(--accent)); transform-origin: left center; border-radius: 1px; box-shadow: 0 0 8px var(--erd-fk); animation: drawLine 2.5s ease-in-out infinite alternate; }
+        @keyframes drawLine { 0% { opacity: 0.3; width: 0; } 100% { opacity: 1; width: var(--line-length); } }
+
+        /* Alias typing demo */
+        .alias-demo { height: 240px; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--enterprise-border); border-radius: var(--radius-md); padding: 20px; font: var(--font-code); overflow: hidden; }
+        .alias-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); opacity: 0; animation: aliasReveal 0.5s ease forwards; }
+        .alias-row:last-child { border-bottom: none; }
+        .alias-col { color: var(--text-secondary); min-width: 130px; }
+        .alias-arrow { color: var(--text-muted); }
+        .alias-value { color: var(--accent-hover); position: relative; }
+        .typing-cursor { display: inline-block; width: 2px; height: 1em; background: var(--accent-hover); margin-left: 2px; animation: blink 1s step-end infinite; vertical-align: middle; }
+        @keyframes aliasReveal { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* Steps */
+        .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+        @media (max-width: 900px) { .steps { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .steps { grid-template-columns: 1fr; } }
+        .step { text-align: center; padding: 24px; position: relative; }
+        .step-number { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-secondary)); display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto 16px; box-shadow: 0 4px 16px var(--accent-glow); }
+        .step h3 { font: var(--font-h3); margin-bottom: 8px; }
+        .step p { color: var(--text-secondary); font: var(--font-body); margin: 0; }
+
+        /* CTA section */
+        .cta-section { position: relative; z-index: 2; padding: 80px 24px; text-align: center; }
+        .cta-box { max-width: 900px; margin: 0 auto; padding: 60px 40px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08)); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: var(--radius-xl); position: relative; overflow: hidden; }
+        .cta-box::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 60%); animation: rotate 20s linear infinite; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .cta-content { position: relative; z-index: 1; }
+        .cta-logo { width: 64px; height: 64px; margin: 0 auto 24px; }
+        .cta-logo img { width: 100%; height: 100%; object-fit: contain; }
+        .cta-box h2 { font: var(--font-h2); margin-bottom: 16px; }
+        .cta-box p { color: var(--text-secondary); font: var(--font-body); margin-bottom: 32px; }
+
+        /* Footer */
+        .home-footer { position: relative; z-index: 2; padding: 40px 24px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font: var(--font-body); }
+
+        /* Scroll reveal */
+        .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.6s ease, transform 0.6s ease; }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .glow-text { text-shadow: 0 0 30px var(--accent-glow-strong); }
+    </style>
+</head>
+<body class="home-page">
+    <div class="ambient-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+    <canvas id="particleCanvas"></canvas>
+
+    <nav class="home-nav">
+        <a href="/" class="home-logo" title="Go to Home">
+            <div class="home-logo-icon">
+                <img src="/static/brand/logo-mark.png" alt="Data Convo">
+            </div>
+            <span>Data Convo</span>
+        </a>
+        <div class="home-nav-links">
+            <a href="#studios">Studios</a>
+            <a href="#agents">Agents</a>
+            <a href="#trust">Trust</a>
+            <a href="/pricing">Pricing</a>
+            {% if current_user.is_authenticated %}
+                <a href="/account">Account</a>
+                <a href="/connect" class="btn-primary">Connect Database</a>
+            {% else %}
+                <a href="/login">Login</a>
+                <a href="/signup" class="btn-primary">Get Started</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- SECTION 1: HERO -->
+    <section class="hero">
+        <div class="hero-badge amber">
+            <span class="pulse"></span>
+            ⚡ AUTONOMOUS AGENTIC BI · MULTI-AGENT AGI WORKFLOWS
+        </div>
+        <div class="hero-headline">
+            <h1>
+                The Agentic AI Data Analytics Platform You Can Run Anywhere.
+            </h1>
+        </div>
+        <p class="hero-subtitle">
+            Autonomous data intelligence meets absolute data sovereignty. Deploy our agentic workspace securely on your own infrastructure via Docker with zero data retention and Bring Your Own Key (BYOK) control.
+        </p>
+        <div class="hero-ctas">
+            {% if current_user.is_authenticated %}
+                <a href="/chat" class="btn btn-giant">🚀 Deploy AI Workspace</a>
+            {% else %}
+                <a href="/login" class="btn btn-giant">🚀 Deploy AI Workspace</a>
+            {% endif %}
+            <a href="#studios" class="btn-secondary-giant">📊 Explore Studios</a>
+        </div>
+
+        <div class="preview-card" id="demo">
+            <div class="preview-bar">
+                <span class="preview-dots"><span class="preview-dot r"></span><span class="preview-dot y"></span><span class="preview-dot g"></span></span>
+                <span class="preview-title">Data Convo — Live Preview</span>
+            </div>
+            <div class="preview-body">
+                <div class="preview-line preview-prompt">> User: "Show me monthly revenue by region with web context"</div>
+                <div class="preview-line"><span style="color:#10b981">> QueryBot:</span> Translating intent into secure SQL...</div>
+                <span class="preview-sql">SELECT region, DATE_TRUNC('month', order_date) m, SUM(revenue) r FROM orders GROUP BY 1,2;</span>
+                <div class="preview-line"><span style="color:#a78bfa">> DeepBot:</span> Running Pandas data science (`numeric_only=True`)...</div>
+                <div class="preview-line"><span style="color:#f59e0b">> InternetBot:</span> Fetching real-time market context via web search...</div>
+                <div class="preview-details">
+                    <summary>👁️ View Agent Execution Steps</summary>
+                    <div class="trace">
+                        <div>🤖 QueryBot — Queried internal SQL metrics</div>
+                        <div>🐍 DeepBot — Executed Python trend analysis</div>
+                        <div>🌐 Web Search — Searched external market reports</div>
+                    </div>
+                </div>
+                <div class="preview-line preview-row">✓ 12,408 rows returned · 1.2s · Revenue +18.4% vs last quarter</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 1A: SELF-HOSTED & ENTERPRISE-GRADE -->
+    <section class="section" id="selfhost">
+        <span class="section-eyebrow reveal">🔐 SELF-HOSTED & ENTERPRISE-GRADE</span>
+        <h2 class="section-title reveal">Built for Data Privacy. Deployed on Your Terms.</h2>
+        <p class="section-subtitle reveal">
+            Run the full agentic workspace on your own infrastructure — your data, your keys, your uptime.
+        </p>
+        <div class="selfhost-pillars">
+            <div class="selfhost-pillar reveal">
+                <div class="pillar-icon">🔒</div>
+                <h3>100% Self-Hosted via Docker</h3>
+                <p>Drop Data Convo straight into your own AWS, Azure, or private server in under 2 minutes. Your database credentials and queries never leave your VPC.</p>
+            </div>
+            <div class="selfhost-pillar reveal">
+                <div class="pillar-icon">🤖</div>
+                <h3>True Agentic AI Analytics</h3>
+                <p>Beyond basic text-to-SQL. Our intelligent agents handle multi-table joins, live schema introspection, autonomous anomaly detection, and instant alerting.</p>
+            </div>
+            <div class="selfhost-pillar reveal">
+                <div class="pillar-icon">🔑</div>
+                <h3>Complete BYOK Sovereignty</h3>
+                <p>Plug in your own OpenAI, Anthropic, or OpenRouter API keys. Total control over your LLM usage with zero platform markup or token fallback.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 1B: CORE STUDIOS SHOWCASE -->
+    <section class="section" id="studios">
+        <span class="section-eyebrow reveal">⚡ THE CORE STUDIOS</span>
+        <h2 class="section-title reveal">Three Studios. One Self-Driving Platform.</h2>
+        <p class="section-subtitle reveal">
+            Model your data with a visual semantic layer, generate dashboards automatically, and detect anomalies before they cost you.
+        </p>
+        <div class="studios-grid">
+            <div class="studio-card reveal">
+                <div class="studio-icon">🗺️</div>
+                <h3>Semantic Layer Studio</h3>
+                <p>Connect, profile, and visually link your database tables with drag-and-drop relationships, aliases, business logic, and role-based toggles. Bits pop and snap into place as your schema becomes a governed AI-ready model.</p>
+                <div class="bits">
+                    <div class="bit" style="top:0; left:8%;">orders</div>
+                    <div class="bit" style="top:22px; left:38%; animation-delay:1s;">↔ FK</div>
+                    <div class="bit" style="top:8px; left:62%; animation-delay:2s;">customers</div>
+                    <div class="bit" style="top:32px; left:82%; animation-delay:3s;">revenue</div>
+                </div>
+            </div>
+            <div class="studio-card reveal">
+                <div class="studio-icon">📈</div>
+                <h3>Dashboard Studio</h3>
+                <p>Ask a question and watch the AI assemble live charts, pivots, and KPI cards from your verified semantic layer. Every widget is re-executable and always reflects current data.</p>
+                <div class="viz-bars">
+                    <span style="animation-delay:0s"></span><span style="animation-delay:.15s"></span>
+                    <span style="animation-delay:.3s"></span><span style="animation-delay:.45s"></span>
+                    <span style="animation-delay:.6s"></span><span style="animation-delay:.75s"></span>
+                    <span style="animation-delay:.9s"></span><span style="animation-delay:1.05s"></span>
+                </div>
+            </div>
+            <div class="studio-card reveal">
+                <div class="studio-icon">🚨</div>
+                <h3>Anomaly Studio</h3>
+                <p>Continuous automated monitoring for nulls, volume spikes, and type mismatches. Live pulse indicators flag metric shifts the moment they deviate from the historical baseline.</p>
+                <div class="anomaly-pulse">
+                    <span class="pulse-dot"></span>
+                    <span>Monitoring 4 tables · 2 metrics shifted ±3σ · next scan in 12s</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 1C: AUTONOMOUS AGENT TICKER -->
+    <section class="section" id="agents">
+        <span class="section-eyebrow reveal">⚡ THE AUTONOMOUS AGENTS</span>
+        <h2 class="section-title reveal">A Fleet of Bots. Zero Prompting Required.</h2>
+        <p class="section-subtitle reveal">
+            Specialized agents orchestrate your analytics workflow — from secure SQL to data science to live market research.
+        </p>
+        <div class="agent-ticker reveal">
+            <div class="ticker-viewport">
+                <div class="ticker-item active">
+                    <div class="ticker-avatar"><img src="/static/brand/querybot.png" alt="QueryBot"></div>
+                    <div class="ticker-msg"><strong>QueryBot</strong> — Translating intent into secure SQL...</div>
+                </div>
+                <div class="ticker-item">
+                    <div class="ticker-avatar"><img src="/static/brand/deepbot.png" alt="DeepBot"></div>
+                    <div class="ticker-msg"><strong>DeepBot</strong> — Running Pandas data science operations (<code>numeric_only=True</code>)...</div>
+                </div>
+                <div class="ticker-item">
+                    <div class="ticker-avatar"><img src="/static/brand/internetbot.png" alt="InternetBot"></div>
+                    <div class="ticker-msg"><strong>InternetBot</strong> — Fetching real-time market context via multi-step web search...</div>
+                </div>
+            </div>
+            <div class="ticker-dots">
+                <span class="ticker-dot active"></span><span class="ticker-dot"></span><span class="ticker-dot"></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 1D: ENTERPRISE TRUST & COMPLIANCE -->
+    <section class="section" id="trust">
+        <span class="section-eyebrow reveal">🛡️ TRUST & COMPLIANCE</span>
+        <h2 class="section-title reveal">Enterprise-Grade by Default</h2>
+        <p class="section-subtitle reveal">
+            Built for ISO 27001-aligned deployments — privacy, authentication, and authorization are first-class citizens.
+        </p>
+        <div class="trust-bar">
+            <div class="trust-badge reveal">
+                <div class="icon">🔒</div>
+                <h4>Session-Based Privacy</h4>
+                <p>Zero permanent data retention. Your schema and query results stay in your session and die with it.</p>
+            </div>
+            <div class="trust-badge reveal">
+                <div class="icon">🗝️</div>
+                <h4>Multi-Factor Authentication</h4>
+                <p>TOTP 2FA via Authenticator apps for every account — protecting access even if credentials leak.</p>
+            </div>
+            <div class="trust-badge reveal">
+                <div class="icon">🛂</div>
+                <h4>Role-Based Control</h4>
+                <p>Admin-invited tenant isolation with granular per-table access for every workspace member.</p>
+            </div>
+            <div class="trust-badge reveal">
+                <div class="icon">🔑</div>
+                <h4>Bring Your Own Key (BYOK)</h4>
+                <p>Complete sovereignty over your LLM usage. Plug in your own OpenAI, Anthropic, or custom API keys with zero platform markup.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 1E: AUTONOMOUS MULTI-AGENT INTELLIGENCE -->
+    <section class="section" id="agentic">
+        <span class="section-eyebrow reveal">🧠 AUTONOMOUS MULTI-AGENT INTELLIGENCE</span>
+        <h2 class="section-title reveal">One Prompt. Three Collaborating Specialists.</h2>
+        <p class="section-subtitle reveal">A self-orchestrating team - each specialist hands its output to the next for a complete, reliable answer.</p>
+        <div class="agentic-core-grid">
+            <div class="agentic-card reveal">
+                <div class="agent-avatar"><img src="/static/brand/querybot.png" alt="QueryBot"></div>
+                <div><h3>🤖 QueryBot - The SQL Specialist</h3>
+                <p>Automatically translates natural-language intent into secure, optimized database queries with strict syntax guardrails and schema awareness.</p></div>
+            </div>
+            <div class="agentic-card reveal">
+                <div class="agent-avatar"><img src="/static/brand/deepbot.png" alt="DeepBot"></div>
+                <div><h3>🐍 DeepBot - The Autonomous Data Scientist</h3>
+                <p>Independently executes statistical analysis and data-science routines using safe Python sandboxing (<code>numeric_only=True</code>).</p></div>
+            </div>
+            <div class="agentic-card reveal">
+                <div class="agent-avatar"><img src="/static/brand/internetbot.png" alt="InternetBot"></div>
+                <div><h3>🌐 InternetBot - The Web Researcher</h3>
+                <p>Dynamically triggers real-time web search to enrich internal data queries with external market context and live public data.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 1F: LIVE AGENTIC TERMINAL (ReAct loop simulation) -->
+    <section class="section" id="terminal">
+        <span class="section-eyebrow reveal">⚡ WATCH THE AGENTS COLLABORATE</span>
+        <h2 class="section-title reveal">A ReAct Loop in Real Time</h2>
+        <p class="section-subtitle reveal">Context passes seamlessly between specialists - no human in the loop.</p>
+        <div class="agentic-terminal reveal">
+            <div class="preview-bar">
+                <span class="preview-dots"><span class="preview-dot r"></span><span class="preview-dot y"></span><span class="preview-dot g"></span></span>
+                <span class="preview-title">agentic - multi-agent hand-off</span>
+            </div>
+            <div class="agentic-term-body" id="agenticTermBody"></div>
+        </div>
+    </section>
+
+    <!-- SECTION 3: THE RAG & VECTOR EMBEDDING ILLUSION -->
+    <section class="section" id="rag-illusion">
+        <div class="reveal" style="text-align: center;">
+            <span class="warning-badge">⚠️ THE RAG ILLUSION</span>
+        </div>
+        <h2 class="section-title reveal">RAG is Built for PDFs. Not Relational Databases.</h2>
+        <p class="section-subtitle reveal">
+            Vector embeddings rely on fuzzy matching and struggle with aggregations, real-time syncs, and multi-hop joins. Stop trying to force document-search tech onto structured data.
+        </p>
+        <div class="warning-grid">
+            <div class="warning-card reveal">
+                <div class="warning-icon">🧮</div>
+                <h3>Fuzzy Math vs. Database Engine Execution</h3>
+                <p>RAG forces LLMs to do math on retrieved text chunks (causing hallucinated numbers). <strong>Data Convo generates exact SQL</strong>, letting your database engine compute 100% accurate aggregations.</p>
+            </div>
+            <div class="warning-card reveal">
+                <div class="warning-icon">⏱️</div>
+                <h3>Stale Vector Syncs vs. Live Real-Time Queries</h3>
+                <p>Vector DBs require constant, expensive data pipelines. <strong>Data Convo queries your live schema directly</strong> — meaning your insights are never out of date.</p>
+            </div>
+            <div class="warning-card reveal">
+                <div class="warning-icon">📦</div>
+                <h3>Token Window Stuffing vs. Infinite Scale</h3>
+                <p>RAG crashes when trying to stuff thousands of database rows into an LLM context window. <strong>We only pass schema metadata</strong>, allowing you to query billions of rows safely.</p>
+            </div>
+            <div class="warning-card reveal">
+                <div class="warning-icon">🔗</div>
+                <h3>Relational Blindness vs. Hard FK Constraints</h3>
+                <p>Embeddings have zero concept of foreign keys. <strong>Our engine respects physical FK constraints</strong> so multi-hop joins never break.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 4: ENTERPRISE GOVERNANCE & RBAC -->
+    <section class="section" id="governance">
+        <div class="reveal" style="text-align: center;">
+            <span class="warning-badge" style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.2); color: var(--accent-hover);">🛡️ ENTERPRISE GOVERNANCE & RBAC</span>
+        </div>
+        <h2 class="section-title reveal">Granular Data Control. Absolute Trust.</h2>
+        <p class="section-subtitle reveal">
+            Empower marketing, sales, and operations teams with self-serve data — while keeping confidential finance, HR, and admin schemas strictly protected.
+        </p>
+        <div class="governance-grid">
+            <div class="governance-card reveal">
+                <div class="governance-icon">🔐</div>
+                <h3>Role-Based Table Toggles</h3>
+                <p>Turn tables and columns ON or OFF per user role. Ensure marketing queries campaign tables while finance keeps payment and revenue schemas isolated.</p>
+            </div>
+            <div class="governance-card reveal">
+                <div class="governance-icon">🎯</div>
+                <h3>Admin Prompt Guardrails</h3>
+                <p>Lock in pre-approved business metrics, custom aliases, and formula definitions so non-technical teams always get standardized, trusted answers.</p>
+            </div>
+            <div class="governance-card reveal">
+                <div class="governance-icon">⚡</div>
+                <h3>Safe Team Empowerment</h3>
+                <p>Eliminate data engineering tickets. Give teams exploratory access to approved data streams with full confidence that security boundaries cannot be crossed.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 5: THE DATA CONVO ARCHITECTURE MOAT -->
+    <section class="section" id="moat">
+        <span class="section-eyebrow reveal">DETERMINISTIC BY DESIGN</span>
+        <h2 class="section-title reveal">The Data Convo Architecture Moat</h2>
+        <p class="section-subtitle reveal">
+            We don't prompt harder. We structure smarter. Six enterprise-grade differentiators separate Data Convo from generic AI wrappers.
+        </p>
+        <div class="moat-grid">
+            <div class="moat-card reveal">
+                <div class="moat-icon">🔑</div>
+                <div>
+                    <h3>Physical FK Introspection</h3>
+                    <p>We read actual database constraints (<code>sys.foreign_keys</code>) — not guess them. Primary keys, foreign keys, and column types become ground-truth guardrails.</p>
+                </div>
+            </div>
+            <div class="moat-card reveal">
+                <div class="moat-icon">🛡️</div>
+                <div>
+                    <h3>Namespace Isolation</h3>
+                    <p>Prefix-based table grouping keeps domains separate. Query <code>olist_orders</code> without ever polluting from <code>blinkit_orders</code>.</p>
+                </div>
+            </div>
+            <div class="moat-card reveal">
+                <div class="moat-icon">🗺️</div>
+                <div>
+                    <h3>Visual ERD Studio</h3>
+                    <p>Interactive drag-and-drop relationship editor. Zoom, pan, draw joins between columns, and export a validated join graph the AI can trust.</p>
+                </div>
+            </div>
+            <div class="moat-card reveal">
+                <div class="moat-icon">🔐</div>
+                <div>
+                    <h3>BYOM / GDPR Sovereignty</h3>
+                    <p>Bring Your Own Model. Connect Ollama, Azure OpenAI, AWS Bedrock, or local vLLM. Your schema and data never touch our servers — zero retention.</p>
+                </div>
+            </div>
+            <div class="moat-card reveal">
+                <div class="moat-icon">📏</div>
+                <div>
+                    <h3>Centralized Business Logic</h3>
+                    <p>Admins define canonical metrics once so no two teams get different answers. <code>Active Users</code> = users with status = 'active' and last_login > 30 days. <code>Revenue</code> = SUM(quantity × unit_price) minus refunds.</p>
+                </div>
+            </div>
+            <div class="moat-card reveal">
+                <div class="moat-icon">📊</div>
+                <div>
+                    <h3>Certified Semantic Layer & Column-Level RBAC</h3>
+                    <p>Eliminate ad-hoc query chaos. Define your business logic once, apply granular column-level permissions (e.g., hiding HR data from Marketing), and ensure every team gets consistent, trusted results.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 6: UPDATED ENGINE COMPARISON MATRIX -->
+    <section class="section" id="comparison">
+        <span class="section-eyebrow reveal">HOW WE STACK UP</span>
+        <h2 class="section-title reveal">Engine Comparison Matrix</h2>
+        <p class="section-subtitle reveal">
+            See how Data Convo compares against raw LLM prompts, RAG/vector databases, and legacy YAML semantic layers.
+        </p>
+        <div class="reveal">
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Capability</th>
+                        <th>Raw LLM Prompts</th>
+                        <th>RAG / Vector DBs</th>
+                        <th>Legacy YAML (dbt)</th>
+                        <th class="highlight-col">Data Convo Engine</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Join & Aggregation Accuracy</td>
+                        <td><span class="cross">✕ (~45%)</span></td>
+                        <td><span class="cross">✕ Fuzzy Math</span></td>
+                        <td><span class="check">✓ High</span></td>
+                        <td class="highlight-col"><span class="check">⚡ 100% Deterministic</span></td>
+                    </tr>
+                    <tr>
+                        <td>Setup Time to First Insight</td>
+                        <td><span class="check">✓ Instant</span></td>
+                        <td><span class="cross">✕ Weeks of Syncs</span></td>
+                        <td><span class="cross">✕ Months of YAML</span></td>
+                        <td class="highlight-col"><span class="check">⚡ < 5 Minutes</span></td>
+                    </tr>
+                    <tr>
+                        <td>Multi-Hop Foreign Key Routing</td>
+                        <td><span class="cross">✕ Hallucinates</span></td>
+                        <td><span class="cross">✕ Relational Blind</span></td>
+                        <td><span class="pill">⚠️ Manual Config</span></td>
+                        <td class="highlight-col"><span class="check">⚡ Auto Physical Introspection</span></td>
+                    </tr>
+                    <tr>
+                        <td>Prefix / Namespace Isolation</td>
+                        <td><span class="cross">✕</span></td>
+                        <td><span class="cross">✕</span></td>
+                        <td><span class="pill">⚠️ Partial</span></td>
+                        <td class="highlight-col"><span class="check">⚡ Prefix-Aware Router</span></td>
+                    </tr>
+                    <tr>
+                        <td>Role-Based Table & Column Masking</td>
+                        <td><span class="cross">✕</span></td>
+                        <td><span class="cross">✕</span></td>
+                        <td><span class="pill">⚠️ Complex Config</span></td>
+                        <td class="highlight-col"><span class="check">⚡ Granular Admin Toggles</span></td>
+                    </tr>
+                    <tr>
+                        <td>BYOM / Data Sovereignty (GDPR)</td>
+                        <td><span class="cross">✕ Public API</span></td>
+                        <td><span class="cross">✕ Vendor Lock</span></td>
+                        <td><span class="pill">⚠️ Vendor Lock</span></td>
+                        <td class="highlight-col"><span class="check">⚡ Complete BYOM Support</span></td>
+                    </tr>
+                    <tr>
+                        <td>Visual ERD Relationship Editor</td>
+                        <td><span class="cross">✕</span></td>
+                        <td><span class="cross">✕</span></td>
+                        <td><span class="cross">✕ Code Only</span></td>
+                        <td class="highlight-col"><span class="check">⚡ Interactive Drag & Drop</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- SECTION 7: VISUAL ERD CANVAS PROOF & 4-STEP PIPELINE -->
+    <section class="section" id="visual-demos">
+        <span class="section-eyebrow reveal">SEE IT IN ACTION</span>
+        <h2 class="section-title reveal">Visual ERD Canvas Proof</h2>
+        <p class="section-subtitle reveal">
+            No screenshots needed. Watch the full product in action — from the semantic studio canvas to anomaly monitoring and interactive dashboards.
+        </p>
+        <div class="visual-demos">
+            <div class="visual-demo-card reveal">
+                <h3>🔗 Drag columns to link tables</h3>
+                <p>Power BI-style relationship building. Drag a column onto another table's column and the join line appears instantly.</p>
+                <video class="demo-video" autoplay muted loop playsinline>
+                    <source src="/static/videos/drag-drop.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="visual-demo-card reveal">
+                <h3>✨ Enrich columns with aliases & toggles</h3>
+                <p>Give business-friendly names and synonyms, then toggle tables on/off per role so the AI only sees approved data.</p>
+                <video class="demo-video" autoplay muted loop playsinline>
+                    <source src="/static/videos/aliases-toggle.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="visual-demo-card reveal">
+                <h3>🚨 Detect Anomalies & Automate Alerts</h3>
+                <p>Spot unusual data patterns instantly and trigger automated notifications straight to Email or Slack.</p>
+                <video class="demo-video" controls playsinline preload="metadata">
+                    <source src="/static/videos/anomaly-studio-demo.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="visual-demo-card reveal">
+                <h3>📊 From Query to Visual Dashboard in Minutes</h3>
+                <p>Experience seamless translation from natural language to live, interactive data visualizations and executive dashboards.</p>
+                <video class="demo-video" controls playsinline preload="metadata">
+                    <source src="/static/videos/query-to-dashboard-demo.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="pipeline">
+        <span class="section-eyebrow reveal">FROM DATABASE TO ANSWER</span>
+        <h2 class="section-title reveal">From Connection to Insight in 4 Steps</h2>
+        <p class="section-subtitle reveal">
+            A fully automated pipeline that turns your raw database into an AI-ready semantic model.
+        </p>
+        <div class="steps">
+            <div class="step reveal">
+                <div class="step-number">1</div>
+                <h3>Connect</h3>
+                <p>Enter your database credentials. We support SQL Server, MySQL, and PostgreSQL.</p>
+            </div>
+            <div class="step reveal">
+                <div class="step-number">2</div>
+                <h3>Profile</h3>
+                <p>We introspect tables, columns, and PK/FK constraints automatically.</p>
+            </div>
+            <div class="step reveal">
+                <div class="step-number">3</div>
+                <h3>Relate & Define in Semantic Studio</h3>
+                <p>Confirm joins in the visual ERD canvas — drag columns to link tables, toggle table access per role, and define your business logic so every metric is trusted.</p>
+            </div>
+            <div class="step reveal">
+                <div class="step-number">4</div>
+                <h3>Ask</h3>
+                <p>Chat with your data. Get validated SQL and live results in seconds.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 8: FINAL CTA & FOOTER -->
+    <section class="cta-section">
+        <div class="cta-box reveal">
+            <div class="cta-content">
+                <div class="cta-logo">
+                    <img src="/static/brand/logo-mark.png" alt="Data Convo">
+                </div>
+                <h2>Finally, AI that can understand your business without sacrifices.</h2>
+                <a href="/connect" class="btn btn-giant">🚀 Connect Database Now</a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="home-footer">
+        <p>© {{ current_year }} Data Convo. Built for the enterprise AI era.</p>
+    </footer>
+
+    <script>
+        // Particle network
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animationId;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.size = Math.random() * 2 + 1;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(99, 102, 241, 0.5)';
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            const count = Math.min(window.innerWidth / 12, 90);
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function drawConnections() {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 130) {
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = `rgba(99, 102, 241, ${0.15 * (1 - dist / 130)})`;
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            drawConnections();
+            animationId = requestAnimationFrame(animateParticles);
+        }
+
+        resizeCanvas();
+        initParticles();
+        animateParticles();
+        window.addEventListener('resize', () => { resizeCanvas(); initParticles(); });
+
+        // Scroll reveal
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // Agent ticker cycling
+        (function () {
+            const items = document.querySelectorAll('.ticker-item');
+            const dots = document.querySelectorAll('.ticker-dot');
+            if (items.length === 0) return;
+            let idx = 0;
+            setInterval(() => {
+                items[idx].classList.remove('active');
+                dots[idx].classList.remove('active');
+                idx = (idx + 1) % items.length;
+                items[idx].classList.add('active');
+                dots[idx].classList.add('active');
+            }, 3200);
+        })();
+
+        // Live agentic ReAct-loop simulation
+        (function () {
+            const body = document.getElementById('agenticTermBody');
+            if (!body) return;
+            const steps = [
+                { html: '<span class="qb">🤖 QueryBot:</span> Pulling internal Q2 revenue rows...', delay: 700 },
+                { html: '<span class="db">🐍 DeepBot:</span> Computing variance & % growth (numeric_only=True)...', delay: 1200 },
+                { html: '<span class="wb">🌐 InternetBot:</span> Fetching current retail benchmark data...', delay: 1200 },
+                { html: '<span class="synth">🧠 Synthesis:</span> Regional growth = 18.4% vs benchmark 12.1% → outperforming.', delay: 900 }
+            ];
+            let i = 0;
+            const tick = () => {
+                if (i >= steps.length) { setTimeout(() => { body.innerHTML = ''; i = 0; tick(); }, 5000); return; }
+                const line = document.createElement('div');
+                line.className = 'agentic-line';
+                line.innerHTML = steps[i].html;
+                body.appendChild(line);
+                requestAnimationFrame(() => line.classList.add('show'));
+                setTimeout(tick, steps[i].delay);
+                i++;
+            };
+            tick();
+        })();
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
+</html>

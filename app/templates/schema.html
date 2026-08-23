@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Schema Information</h2>
+<ul>
+{% for table, columns in schema_info.items() %}
+<li><strong>{{ table }}</strong>: {{ columns | join(', ') }}</li>
+{% endfor %}
+</ul>
+{% endblock %}

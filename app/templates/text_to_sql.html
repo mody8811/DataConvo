@@ -1,0 +1,3443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Convo — AI Data Terminal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/static/brand/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/brand/favicon-32x32.png">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --terminal-bg: #070a11;
+            --terminal-surface: #0d111d;
+            --terminal-border: #1e293b;
+            --terminal-sidebar: #0b0f1a;
+            --terminal-accent-glow: rgba(99, 102, 241, 0.35);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--terminal-bg);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        .terminal-app {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Sidebar */
+        .terminal-sidebar {
+            width: 280px;
+            background: var(--terminal-sidebar);
+            border-right: 1px solid var(--terminal-border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--terminal-border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-header a.sidebar-logo {
+            display: block;
+            text-decoration: none;
+        }
+        .sidebar-header a.sidebar-logo:hover { opacity: 0.85; }
+
+        .sidebar-logo {
+            width: 150px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .sidebar-logo img { width: 100%; height: 100%; object-fit: contain; }
+
+        .sidebar-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            letter-spacing: -0.02em;
+        }
+
+        .connection-status {
+            margin: 16px 20px 8px;
+            padding: 10px 12px;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .sidebar-section {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--terminal-border);
+        }
+
+        .sidebar-section h3 {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin: 0 0 12px;
+        }
+
+        .history-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid transparent;
+            margin-bottom: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--terminal-border);
+            color: var(--text-primary);
+        }
+
+        .saved-query {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .saved-query:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .saved-query .badge {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-hover);
+        }
+
+        .sidebar-actions {
+            margin-top: auto;
+            padding: 16px 20px;
+            border-top: 1px solid var(--terminal-border);
+        }
+
+        .sidebar-actions a {
+            display: block;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--terminal-border);
+            color: var(--text-secondary);
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .sidebar-actions a:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--border-strong);
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        /* Main canvas */
+        .terminal-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: var(--terminal-bg);
+        }
+
+        .terminal-header {
+            height: 64px;
+            border-bottom: 1px solid var(--terminal-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: rgba(7, 10, 17, 0.8);
+            backdrop-filter: blur(12px);
+        }
+
+        .terminal-header-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        .terminal-header-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .terminal-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 24px 120px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            animation: messageIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes messageIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-user {
+            align-self: flex-end;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message-user-bubble {
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            color: white;
+            padding: 12px 18px;
+            border-radius: 18px 18px 4px 18px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            max-width: 70%;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+        }
+
+        .message-assistant {
+            display: flex;
+            gap: 14px;
+        }
+
+        .assistant-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .assistant-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .assistant-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .assistant-name {
+            display: none;
+        }
+
+        /* Execution trace */
+        .thinking-card {
+            background: var(--terminal-surface);
+            border: 1px solid var(--terminal-border);
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+        }
+
+        .thinking-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .thinking-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .thinking-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--terminal-border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .thinking-chevron {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            transition: transform 0.2s;
+        }
+
+        .thinking-card.open .thinking-chevron {
+            transform: rotate(180deg);
+        }
+
+        .thinking-steps {
+            margin-top: 14px;
+            padding-left: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .thinking-card.collapsed .thinking-steps {
+            display: none;
+        }
+
+        .thinking-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .step-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--terminal-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        .thinking-step.active .step-icon {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+            box-shadow: 0 0 12px var(--terminal-accent-glow);
+        }
+
+        .thinking-step.done .step-icon {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .step-label {
+            padding-top: 2px;
+        }
+
+        .step-time {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        /* SQL block */
+        .sql-block {
+            background: var(--terminal-surface);
+            border: 1px solid var(--terminal-border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .sql-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--terminal-border);
+        }
+
+        .sql-header-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .sql-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .sql-action-btn {
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--terminal-border);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sql-action-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--border-strong);
+            color: var(--text-primary);
+        }
+
+        .sql-body {
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        .sql-body pre {
+            margin: 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+        }
+
+        .sql-edit-area {
+            width: 100%;
+            min-height: 120px;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+            display: none;
+        }
+
+        .sql-edit-area.visible {
+            display: block;
+        }
+
+        /* Data grid */
+        .data-grid-container {
+            background: var(--terminal-surface);
+            border: 1px solid var(--terminal-border);
+            border-radius: 12px;
+            /* overflow: clip (not hidden) so the outer container clips rounded
+               corners WITHOUT creating an intermediate scroll container that
+               would break position: sticky on the <th> inside. */
+            overflow: clip;
+            margin-bottom: 16px;
+        }
+
+        .data-grid-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--terminal-border);
+        }
+
+        .data-grid-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .data-grid-scroll {
+            max-height: 360px;
+            overflow: auto;
+        }
+
+        .data-grid-scroll-wrap {
+            max-height: 500px;
+            overflow-y: auto;
+            overflow-x: auto;
+            position: relative;
+            border-radius: 0 0 10px 10px;
+        }
+        .data-grid {
+            width: 100%;
+            /* border-collapse: separate + spacing:0 keeps the tight, seamless
+               grid BORDERS-TO-BORDERS without the collapsed-mode quirk that
+               breaks position:sticky on <th> in several browsers. */
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.85rem;
+        }
+
+        .data-grid thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #121829;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--terminal-border);
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        /* Pagination bar */
+        .grid-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 16px;
+            border-top: 1px solid var(--terminal-border);
+            background: rgba(255, 255, 255, 0.02);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+        .grid-pagination .pg-page-info {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .grid-pagination .pg-btns {
+            display: flex;
+            gap: 6px;
+        }
+        .grid-pagination .pg-btn {
+            padding: 6px 14px;
+            border-radius: 8px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: 'Inter', sans-serif;
+        }
+        .grid-pagination .pg-btn:hover:not(:disabled) {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--text-primary);
+        }
+        .grid-pagination .pg-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .data-grid thead th:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .data-grid thead th .sort-icon {
+            margin-left: 6px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .data-grid thead th.sorted-asc .sort-icon::after { content: '▲'; color: var(--accent-hover); }
+        .data-grid thead th.sorted-desc .sort-icon::after { content: '▼'; color: var(--accent-hover); }
+
+        .data-grid tbody td {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        .data-grid tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-grid tbody tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .data-grid-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-top: 1px solid var(--terminal-border);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .export-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: var(--success);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .export-btn:hover {
+            background: rgba(16, 185, 129, 0.18);
+        }
+
+        /* View toggle & PII controls */
+        .grid-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--terminal-border);
+            flex-wrap: wrap;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--terminal-border);
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .view-toggle button {
+            padding: 6px 12px;
+            border-radius: 6px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-toggle button.active {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--text-primary);
+        }
+
+        .pii-toggle {
+            padding: 6px 12px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--terminal-border);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pii-toggle.active {
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+
+        .pin-dashboard-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: var(--accent-hover);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pin-dashboard-btn:hover {
+            background: rgba(99, 102, 241, 0.18);
+            border-color: rgba(99, 102, 241, 0.5);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--terminal-accent-glow);
+        }
+
+        .pin-dashboard-btn.pinned {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.35);
+            color: var(--success);
+            pointer-events: none;
+        }
+
+        .pin-dashboard-btn .pin-spinner {
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(99, 102, 241, 0.3);
+            border-top-color: var(--accent-hover);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+
+        .pin-dashboard-btn.loading .pin-spinner {
+            display: inline-block;
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            min-width: 260px;
+            max-width: 380px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: var(--terminal-surface);
+            border: 1px solid var(--terminal-border);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: toastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: auto;
+        }
+
+        .toast.success {
+            border-left: 3px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 3px solid var(--error);
+        }
+
+        .toast a {
+            color: var(--accent-hover);
+            font-weight: 600;
+            text-decoration: none;
+            margin-left: auto;
+        }
+
+        .toast a:hover {
+            text-decoration: underline;
+        }
+
+        .toast.hiding {
+            animation: toastOut 0.3s ease forwards;
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(20px); }
+        }
+
+        .stat-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: var(--success);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            display: none;
+            padding: 16px;
+            background: var(--terminal-surface);
+            border: 1px solid var(--terminal-border);
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .chart-container.visible {
+            display: block;
+        }
+
+        .chart-container canvas {
+            max-height: 320px;
+        }
+
+        /* Summary */
+        .summary-card {
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .summary-card strong {
+            color: var(--text-primary);
+        }
+
+        /* Empty state */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px;
+        }
+
+        .empty-state-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h2 {
+            font: var(--font-h3);
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .suggestion-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 24px;
+            max-width: 500px;
+        }
+
+        .suggestion-chip {
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--terminal-border);
+            border-radius: 999px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .suggestion-chip:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+            background: rgba(99, 102, 241, 0.08);
+        }
+
+        /* Input bar */
+        .input-bar-container {
+            position: fixed;
+            bottom: 24px;
+            left: 304px;
+            right: 24px;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        @media (max-width: 900px) {
+            .input-bar-container { left: 24px; }
+            .terminal-sidebar { display: none; }
+        }
+
+        /* DeepBot active — emerald/cyan glow on the input bar */
+        .input-bar.deepbot-active {
+            border-color: rgba(16, 185, 129, 0.6);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 3px rgba(16, 185, 129, 0.25), 0 0 24px rgba(16, 185, 129, 0.15);
+        }
+        .input-bar.deepbot-active:focus-within {
+            border-color: rgba(16, 185, 129, 0.8);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 3px rgba(16, 185, 129, 0.35), 0 0 36px rgba(16, 185, 129, 0.25);
+        }
+        .input-send.deepbot-active {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+        }
+        .terminal-header-meta .deepbot-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 12px; border-radius: 999px;
+            background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399; font-size: 0.72rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+
+        /* DeepBot response card */
+        .deepbot-card {
+            background: rgba(16, 185, 129, 0.04);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+        }
+        .deepbot-card .deepbot-explanation {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+        }
+        .deepbot-card .deepbot-explanation strong { color: var(--text-primary); }
+        .deepbot-code-toggle {
+            display: inline-flex; align-items: center; gap: 6px;
+            margin-top: 10px; padding: 6px 12px;
+            border-radius: 8px;
+            background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25);
+            color: #34d399; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+            transition: all 0.15s;
+        }
+        .deepbot-code-toggle:hover { background: rgba(16, 185, 129, 0.14); }
+        .deepbot-code {
+            display: none;
+            margin-top: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 10px;
+            padding: 14px;
+            overflow-x: auto;
+        }
+        .deepbot-code.open { display: block; }
+        .deepbot-code pre {
+            margin: 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            line-height: 1.6;
+            color: #a5f3fc;
+            white-space: pre;
+        }
+        .deepbot-code-label {
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+            color: var(--text-muted); margin-bottom: 8px; font-weight: 700;
+        }
+        .deepbot-plot {
+            margin-top: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--terminal-border);
+            border-radius: 10px;
+            padding: 8px;
+            text-align: center;
+        }
+        .deepbot-plot img {
+            max-width: 100%;
+            max-height: 380px;
+            border-radius: 6px;
+        }
+        .deepbot-output {
+            margin-top: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--terminal-border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .deepbot-error {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: var(--error);
+        }
+        /* DeepBot styled DataFrame tables (rendered from server-side HTML) */
+        .deepbot-html {
+            margin-top: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--terminal-border);
+            border-radius: 10px;
+            padding: 10px;
+            overflow-x: auto;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        .deepbot-html table.dc-df {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 4px 0;
+            font-family: 'Inter', -apple-system, sans-serif;
+            font-size: 0.78rem;
+            color: var(--dash-text, #e2e8f0);
+        }
+        .deepbot-html table.dc-df th {
+            background: #121829;
+            color: #94a3b8;
+            font-weight: 600;
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 1px solid #1e293b;
+            white-space: nowrap;
+            /* Lock table headers while scrolling DeepBot DataFrames */
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .deepbot-html table.dc-df td {
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            border-left: 1px solid rgba(255, 255, 255, 0.04);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--dash-text, #e2e8f0);
+        }
+        .deepbot-html table.dc-df tbody tr:nth-child(odd) { background: rgba(255, 255, 255, 0.02); }
+        .deepbot-html table.dc-df tbody tr:hover { background: rgba(99, 102, 241, 0.06); }
+        .deepbot-html table.dc-df tr:first-child td { border-left: none; }
+        .deepbot-html table.dc-df td:first-child { border-left: none; color: var(--text-muted); }
+        .deepbot-html table.dc-df caption {
+            padding: 6px 0;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+        }
+        .deepbot-html table.dc-df thead tr th:first-child { border-left: none; }
+
+        .input-bar {
+            width: 100%;
+            max-width: none;
+            margin: 0 auto;
+            background: rgba(13, 17, 29, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--terminal-border);
+            border-radius: 18px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(99, 102, 241, 0.1);
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+
+        .input-bar:focus-within {
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 3px var(--terminal-accent-glow);
+        }
+
+        
+
+        .input-wrapper {
+            flex: 1;
+            min-width: 0;
+            position: relative;
+            padding-left: 4px;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            padding: 14px 12px;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            outline: none;
+        }
+
+        .input-wrapper input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-hint {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            pointer-events: none;
+        }
+
+        .input-send {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+            transition: all 0.2s;
+        }
+
+        .input-send:hover {
+            box-shadow: 0 6px 20px var(--accent-glow);
+            filter: brightness(1.1);
+        }
+
+        /* ===== UX ENHANCEMENTS ===== */
+        /* Thin dark scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Sidebar scrollable middle section */
+        .sidebar-scrollable {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        /* Saved query items */
+        .saved-query {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        .saved-query:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+        .saved-query .badge {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-hover);
+        }
+        .saved-query .star {
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            transition: color 0.2s;
+            margin-left: 6px;
+        }
+        .saved-query .star:hover {
+            color: var(--warning);
+        }
+        .saved-query .star.favorited {
+            color: var(--warning);
+        }
+        .saved-query .delete-btn {
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            transition: color 0.2s;
+            margin-left: 4px;
+        }
+        .saved-query .delete-btn:hover {
+            color: var(--error);
+        }
+
+        /* Empty state in sidebar */
+        .sidebar-empty {
+            padding: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: center;
+            border: 1px dashed var(--terminal-border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        /* Favorites sub-section */
+        .favorites-section {
+            margin-bottom: 8px;
+        }
+        .favorites-section h4 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--warning);
+            margin: 8px 0 6px;
+        }
+
+        /* Star button on SQL results */
+        .star-result-btn {
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--terminal-border);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .star-result-btn:hover {
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+        .star-result-btn.saved {
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+
+        /* Chat area flex layout */
+        .terminal-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .terminal-messages {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+    
+
+        /* Persona trigger + popup menu */
+        .persona-trigger-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .persona-plus-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--terminal-border);
+            color: var(--text-secondary);
+            font-size: 1.3rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+        .persona-plus-btn:hover {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: rgba(99, 102, 241, 0.4);
+            color: var(--accent-hover);
+        }
+        .persona-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--terminal-border);
+            background: rgba(255, 255, 255, 0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .persona-badge img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .persona-menu {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            left: 0;
+            z-index: 100;
+            min-width: 220px;
+            background: var(--terminal-surface);
+            border: 1px solid var(--terminal-border);
+            border-radius: 12px;
+            padding: 8px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(8px);
+            transition: all 0.2s ease;
+        }
+        .persona-menu.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .persona-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.15s;
+            width: 100%;
+            background: transparent;
+            border: none;
+            text-align: left;
+            font-family: 'Inter', sans-serif;
+        }
+        .persona-menu-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-primary);
+        }
+        .persona-menu-item.active {
+            background: rgba(99, 102, 241, 0.12);
+            color: var(--accent-hover);
+        }
+        .persona-menu-item img {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .persona-menu-item .persona-check {
+            margin-left: auto;
+            font-size: 0.9rem;
+            color: var(--accent-hover);
+            opacity: 0;
+        }
+        .persona-menu-item.active .persona-check {
+            opacity: 1;
+        }
+
+
+        
+                /* InternetBot active - Electric Amber / Golden Glow (distinct from Emerald DeepBot / Blue QueryBot) */
+        .input-bar.internetbot-active {
+            border-color: #f59e0b !important;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.35) !important;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.08)) !important;
+        }
+        .input-bar.internetbot-active:focus-within {
+            border-color: #fbbf24 !important;
+            box-shadow: 0 0 22px rgba(245, 158, 11, 0.55) !important;
+        }
+        .input-send.internetbot-active {
+            background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4) !important;
+        }
+        .terminal-header-meta .internetbot-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 12px; border-radius: 999px;
+            background: rgba(245, 158, 11, 0.12) !important;
+            border: 1px solid rgba(245, 158, 11, 0.45) !important;
+            color: #fbbf24 !important;
+            font-size: 0.72rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        /* InternetBot response card (amber glow) */
+        .internetbot-card {
+            background: rgba(245, 158, 11, 0.05) !important;
+            border: 1px solid rgba(245, 158, 11, 0.35) !important;
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.08) !important;
+        }
+        .internetbot-card .internetbot-explanation {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--dash-text, #e2e8f0);
+            white-space: pre-wrap;
+        }
+        .internetbot-card .internetbot-explanation strong { color: #fbbf24 !important; }
+        .internetbot-sources {
+            margin-top: 14px;
+            padding: 12px;
+            background: rgba(245, 158, 11, 0.06) !important;
+            border: 1px solid rgba(245, 158, 11, 0.3) !important;
+            border-radius: 10px;
+        }
+        .internetbot-sources h4 {
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+            color: #fbbf24 !important; margin: 0 0 8px; font-weight: 700;
+        }
+        .internetbot-sources ul { margin: 0; padding: 0; list-style: none; }
+        .internetbot-sources li { margin-bottom: 8px; font-size: 0.8rem; }
+        .internetbot-sources a { color: #fbbf24 !important; text-decoration: none; }
+        .internetbot-sources a:hover { text-decoration: underline; }
+        .internetbot-sources .src-snippet { color: var(--text-muted); font-size: 0.72rem; display: block; }
+        .ib-reasoning-log {
+            margin-top: 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: rgba(0,0,0,0.25);
+            overflow: hidden;
+        }
+        .ib-reasoning-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            background: rgba(255,255,255,0.04);
+            border-bottom: 1px solid var(--border);
+        }
+        .ib-clear-log {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            border-radius: 6px;
+            font-size: 0.68rem;
+            padding: 3px 10px;
+            cursor: pointer;
+        }
+        .ib-clear-log:hover { color: var(--text-primary); border-color: var(--border-strong); }
+        .ib-reasoning-lines {
+            max-height: 180px;
+            overflow-y: auto;
+            padding: 8px 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            line-height: 1.6;
+        }
+        .ib-reasoning-line {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .ib-reasoning-line:last-child { border-bottom: none; }
+        .ib-line-prefix { flex-shrink: 0; }
+        .ib-line-thought { color: var(--text-muted); }
+        .ib-line-tool { color: #fbbf24; }
+        .ib-line-synthesis { color: #34d399; }
+
+        .internetbot-tools {
+            margin-top: 10px;
+            display: flex; flex-wrap: wrap; gap: 6px;
+        }
+        .internetbot-tool-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px; border-radius: 999px;
+            background: rgba(245, 158, 11, 0.1) !important;
+            border: 1px solid rgba(245, 158, 11, 0.35) !important;
+            color: #fbbf24 !important;
+            font-size: 0.7rem; font-weight: 600;
+        }
+
+        /* InternetBot dynamic thinking card */
+        #internetbotThinkingCard {
+            background: var(--terminal-surface);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.10);
+        }
+        #internetbotThinkingCard .ib-thinking-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+        #internetbotThinkingCard .ib-orb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #f59e0b;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.8);
+            animation: ibPulse 1.2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        @keyframes ibPulse {
+            0%, 100% { opacity: 0.35; transform: scale(0.85); }
+            50% { opacity: 1; transform: scale(1.15); }
+        }
+        #internetbotThinkingCard .ib-live-status {
+            margin-top: 10px;
+            font-size: 0.82rem;
+            color: var(--dash-text, #e2e8f0);
+            font-family: var(--font-mono);
+            min-height: 20px;
+        }
+        #internetbotThinkingCard .ib-live-status .ib-count {
+            color: #fbbf24;
+            font-weight: 700;
+        }
+        #internetbotThinkingCard .ib-steps {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        #internetbotThinkingCard .ib-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px solid rgba(245, 158, 11, 0.18);
+            font-size: 0.8rem;
+            color: var(--dash-text, #e2e8f0);
+        }
+        #internetbotThinkingCard .ib-step .ib-step-icon { font-size: 1rem; flex-shrink: 0; }
+        #internetbotThinkingCard .ib-step .ib-step-name { font-weight: 700; color: #fbbf24; }
+        #internetbotThinkingCard .ib-step .ib-step-query {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            margin-top: 2px;
+            font-style: italic;
+        }
+
+        /* BYOK status badge */
+        .byok-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 10px; border-radius: 999px;
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+            border: 1px solid var(--border); color: var(--text-muted); background: rgba(255,255,255,0.03);
+        }
+        .byok-badge.active { color: #fbbf24; border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.1); }
+        .byok-badge.sponsored { color: #94a3b8; border-color: rgba(148,163,184,0.3); }
+
+        /* BYOK error toast */
+        #byokToast {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+            max-width: 360px; padding: 14px 16px; border-radius: 12px;
+            background: rgba(17,24,39,0.95); border: 1px solid rgba(239,68,68,0.4);
+            color: #fca5a5; font-size: 0.85rem; line-height: 1.5;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5); display: none;
+        }
+        #byokToast a { color: #fbbf24; text-decoration: underline; }
+
+                /* BYOK status badge */
+        .byok-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 10px; border-radius: 999px;
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+            border: 1px solid var(--border); color: var(--text-muted); background: rgba(255,255,255,0.03);
+        }
+        .byok-badge.active { color: #fbbf24; border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.1); }
+        .byok-badge.sponsored { color: #94a3b8; border-color: rgba(148,163,184,0.3); }
+
+        /* BYOK error toast */
+        #byokToast {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+            max-width: 360px; padding: 14px 16px; border-radius: 12px;
+            background: rgba(17,24,39,0.95); border: 1px solid rgba(239,68,68,0.4);
+            color: #fca5a5; font-size: 0.85rem; line-height: 1.5;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5); display: none;
+        }
+        #byokToast a { color: #fbbf24; text-decoration: underline; }
+
+        /* Agent hand-off card */
+        .handoff-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 16px;
+            margin: 12px 0;
+            border-radius: 14px;
+            background: rgba(30, 41, 59, 0.45);
+            border: 1px solid rgba(99, 102, 241, 0.18);
+            border-left: 3px solid var(--accent);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+        .handoff-card .handoff-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(99, 102, 241, 0.08);
+        }
+        .handoff-card .handoff-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .handoff-card .handoff-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .handoff-card .handoff-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--accent-hover);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+        .handoff-card .handoff-body {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+        .handoff-card .handoff-body strong {
+            color: var(--text-primary);
+        }
+
+</style>
+</head>
+<body>
+    <div class="terminal-app">
+        <aside class="terminal-sidebar">
+            <div class="sidebar-header">
+                <a href="/" class="sidebar-logo" title="Go to Home">
+                    <img src="/static/brand/logo-horizontal.png" alt="Data Convo">
+                </a>
+            </div>
+
+            <div class="connection-status">
+                <div class="status-dot"></div>
+                <span>Connected — Active Semantic Layer</span>
+            </div>
+
+            <div class="sidebar-scrollable">
+                <div class="sidebar-section">
+                    <h3>Recent Questions</h3>
+                    <div id="historyList">
+                        <div class="history-item" onclick="sendSuggestion('What are the total sales?')">What are the total sales?</div>
+                        <div class="history-item" onclick="sendSuggestion('Show me top 10 customers')">Show me top 10 customers</div>
+                        <div class="history-item" onclick="sendSuggestion('Count orders by status')">Count orders by status</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Saved Queries</h3>
+                    <div id="savedQueriesList">
+                        <div class="sidebar-empty">No saved queries yet. Click the star on any result to save it!</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-actions">
+                <a href="/semantic-studio">Edit Semantic Layer</a>
+            </div>
+        </aside>
+
+        <main class="terminal-main">
+            <header class="terminal-header">
+                <div class="terminal-header-title">AI Data Terminal</div>
+                <div class="terminal-header-meta" style="display:flex;align-items:center;gap:14px;">
+                    <span>Semantic Layer Active</span>
+                    <a href="/dashboard" class="dash-quick-link" style="padding:7px 14px;border-radius:9px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:0.8rem;font-weight:600;text-decoration:none;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(99,102,241,0.25);">📊 View Dashboard</a>
+                </div>
+            </header>
+
+            <div id="chatMessages" class="terminal-messages">
+                <div id="welcomeMessage" class="message message-assistant">
+                    <div class="assistant-avatar"><img src="/static/brand/logo-mark.png" alt="Data Convo"></div>
+                    <div class="assistant-content">
+                        <div class="assistant-name">Data Convo Assistant</div>
+                        <div class="assistant-body">
+                            <div class="summary-card">👋 Welcome! I'm ready to query your database. Click a table below to get started:</div>
+                            <div id="tableBubbles" class="suggestion-chips" style="justify-content: flex-start; margin-top: -8px; margin-bottom: 8px;">
+                                <!-- Table bubbles will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-bar-container">
+                <form id="chatForm" class="input-bar">
+                    <div class="persona-trigger-wrap" id="personaTriggerWrap">
+                        <button type="button" class="persona-plus-btn" onclick="togglePersonaMenu()" title="Select agent">+</button>
+                        <div class="persona-badge" id="personaBadge" title="Active agent"><img id="personaBadgeImg" src="/static/brand/querybot.png" alt="Agent"></div>
+                        <div class="persona-menu" id="personaMenu">
+                            <button type="button" class="persona-menu-item active" data-persona="querybot" onclick="setPersona('querybot')"><img src="/static/brand/querybot.png" alt=""> QueryBot<span class="persona-check">✓</span></button>
+                            <button type="button" class="persona-menu-item" data-persona="deepbot" onclick="setPersona('deepbot')"><img src="/static/brand/deepbot.png" alt=""> DeepBot<span class="persona-check">✓</span></button>
+                            <button type="button" class="persona-menu-item" data-persona="internetbot" onclick="setPersona('internetbot')"><img src="/static/brand/internetbot.png" alt=""> InternetBot<span class="persona-check">✓</span></button>
+                        </div>
+                    </div>
+                    
+                    <div class="input-wrapper">
+                        <input type="text" id="userInput" placeholder="Ask a business question...">
+                        <span class="input-hint">⌘ + Enter to submit</span>
+                    </div>
+                    <button type="submit" class="input-send">➤</button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script>
+        window.availableTables = [];  // Will be populated by loadAvailableTables()
+        window.DC_WORKSPACE_NAME = {{ (workspace_name or '')|tojson }};
+        let _availableTablesTimer = null;  // RBAC live-refresh polling timer
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+
+        function handleKeyDown(e) {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                sendQuery();
+            } else if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendQuery();
+            }
+        }
+
+        // Wire up chat form submission + Enter key handling
+        const chatForm = document.getElementById('chatForm');
+        if (chatForm) {
+            chatForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                sendQuery();
+            });
+        }
+        if (userInput) {
+            userInput.addEventListener('keydown', handleKeyDown);
+        }
+
+        function sendSuggestion(text) {
+            userInput.value = text;
+            sendQuery();
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, '&')
+                .replace(/</g, '<')
+                .replace(/>/g, '>')
+                .replace(/"/g, '"')
+                .replace(/'/g, '&#039;');
+        }
+
+        // ===== Payload normalizer: prevents raw JSON leaking into chat bubbles =====
+        function safeParseJson(text) {
+            if (!text || typeof text !== 'string') return null;
+            const trimmed = text.trim();
+            if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return null;
+            try { return JSON.parse(trimmed); } catch (e) { return null; }
+        }
+
+        function extractNarrative(payload) {
+            // Given a parsed object/array, pull out the human-readable narrative text.
+            if (!payload) return '';
+            if (Array.isArray(payload)) {
+                const parts = [];
+                for (const item of payload) {
+                    if (item && typeof item === 'object') {
+                        const t = extractNarrative(item);
+                        if (t) parts.push(t);
+                    } else if (typeof item === 'string' && item.trim()) {
+                        parts.push(item.trim());
+                    }
+                }
+                return parts.join('\n\n');
+            }
+            if (typeof payload === 'object') {
+                if (payload.explanation) return String(payload.explanation).trim();
+                if (payload.content || payload.answer || payload.response || payload.text) {
+                    return String(payload.content || payload.answer || payload.response || payload.text).trim();
+                }
+                const skip = ['tool_calls', 'sources', 'data', 'error'];
+                const parts = [];
+                for (const [k, v] of Object.entries(payload)) {
+                    if (skip.includes(k)) continue;
+                    if (typeof v === 'string' && v.trim()) parts.push(v.trim());
+                    else if (v && typeof v === 'object') {
+                        const t = extractNarrative(v);
+                        if (t) parts.push(t);
+                    }
+                }
+                return parts.join('\n\n');
+            }
+            return String(payload).trim();
+        }
+
+        function normalizeAssistantPayload(res) {
+            // If `res` is a string, try parsing it as JSON
+            if (typeof res === 'string') {
+                const parsed = safeParseJson(res);
+                if (parsed) res = parsed;
+            }
+            if (!res || typeof res !== 'object') {
+                return { explanation: typeof res === 'string' ? res : String(res || ''), sources: [], tool_calls: [] };
+            }
+            // If explanation itself is a JSON string, parse it and extract narrative
+            let explanation = res.explanation;
+            if (typeof explanation === 'string') {
+                const parsedExpl = safeParseJson(explanation);
+                if (parsedExpl) {
+                    const narr = extractNarrative(parsedExpl);
+                    if (narr) explanation = narr;
+                }
+            }
+            if (typeof explanation !== 'string') {
+                explanation = extractNarrative(explanation);
+            }
+            // Normalize sources array
+            let sources = res.sources || [];
+            if (!Array.isArray(sources)) {
+                try { sources = JSON.parse(sources); } catch(e) { sources = []; }
+            }
+            if (Array.isArray(sources)) {
+                sources = sources.map(x => {
+                    if (typeof x === 'string') return { title: x, url: '#', snippet: '' };
+                    return { title: x.title || x.name || 'Untitled', url: x.url || x.link || '#', snippet: x.snippet || x.description || '' };
+                }).filter(x => x.title && x.title !== 'Untitled');
+            }
+            // Normalize tool_calls
+            let tool_calls = res.tool_calls || [];
+            if (!Array.isArray(tool_calls)) {
+                try { tool_calls = JSON.parse(tool_calls); } catch(e) { tool_calls = []; }
+            }
+            return {
+                explanation: String(explanation || '').trim(),
+                sources: sources,
+                tool_calls: Array.isArray(tool_calls) ? tool_calls : [],
+                data: res.data || null,
+                error: res.error || null,
+            };
+        }
+
+
+        function addUserMessage(text) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'message message-user';
+            wrapper.innerHTML = `<div class="message-user-bubble">${escapeHtml(text)}</div>`;
+            chatMessages.appendChild(wrapper);
+            scrollToBottom();
+        }
+
+        function createAssistantShell() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'message message-assistant';
+            wrapper.innerHTML = `
+                <div class="assistant-avatar"><img src="/static/brand/logo-mark.png" alt="Data Convo"></div>
+                <div class="assistant-content">
+                    <div class="assistant-name">Data Convo Assistant</div>
+                    <div class="assistant-body"></div>
+                </div>
+            `;
+            chatMessages.appendChild(wrapper);
+            scrollToBottom();
+            return wrapper.querySelector('.assistant-body');
+        }
+
+        function isDeepTask(q) {
+            // Detect deep analytical / ML / plotting style requests that should
+            // show the Python execution pipeline instead of the SQL pipeline.
+            const deepMarkers = [
+                'analy', 'stat', 'correlation', 'distribution', 'cluster', 'regress',
+                'predict', 'forecast', 'plot', 'chart', 'graph', 'histogram', 'scatter',
+                'pandas', 'python', 'ml', 'machine learn', 'model', 'outlier',
+                'trend', 'time series', 'seasonal', 'anomaly', 'clean', 'normalize',
+                'sklearn', 'corr', 'covariance', 'percentile', 'quartile', 'std',
+                'standard deviation', 'variance', 'mean', 'median', 'mode', 'pivot',
+                'visualiz', 'heatmap', 'pairplot', 'violin', 'box plot', 'boxplot'
+            ];
+            return deepMarkers.some(m => q.includes(m));
+        }
+
+        function buildThinkingCard(question = '', deep = false) {
+            const id = 'thinking-' + Date.now();
+            const q = question.toLowerCase().trim();
+            
+            // Determine steps based on question type
+            let steps = [];
+            
+            // Deep-agent Python pipeline (pandas / sklearn / plotting)
+            if (deep || isDeepTask(q)) {
+                steps = [
+                    'Analyzing data relationships...',
+                    'Executing Python analysis script...',
+                    'Generating visualization...'
+                ];
+            } else if (q.includes('hello') || q.includes('hi') || q.includes('hey') || 
+                q.includes('how are you') || q.includes('good morning') || 
+                q.includes('good afternoon') || q.includes('good evening') ||
+                q.length < 3) {
+                // Greetings or very short questions
+                steps = [
+                    'Understanding your message...',
+                    'Preparing response...',
+                    'Complete'
+                ];
+            } else if (q.includes('table') || q.includes('tables') || q.includes('schema') ||
+                      q.includes('what tables') || q.includes('show tables') || 
+                      q.includes('list tables') || q.includes('available tables')) {
+                // Discovery questions
+                steps = [
+                    'Finding available tables...',
+                    'Building simple query...',
+                    'Executing query...',
+                    'Complete'
+                ];
+            } else {
+                // Regular data questions
+                steps = [
+                    'Analyzing your question...',
+                    'Understanding data relationships...',
+                    'Generating SQL query...',
+                    'Executing query...',
+                    'Complete'
+                ];
+            }
+            
+            const stepsHtml = steps.map((label, index) => 
+                `<div class="thinking-step" data-step="${index}"><div class="step-icon">${index + 1}</div><div class="step-label">${label}</div><div class="step-time"></div></div>`
+            ).join('');
+            
+            return `
+                <div class="thinking-card open" id="${id}">
+                    <div class="thinking-header" onclick="toggleThinking('${id}')">
+                        <div class="thinking-title">
+                            <div class="thinking-spinner"></div>
+                            <span>Thinking</span>
+                        </div>
+                        <span class="thinking-chevron">▼</span>
+                    </div>
+                    <div class="thinking-steps">
+                        ${stepsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleThinking(id) {
+            const card = document.getElementById(id);
+            if (!card) return;
+            card.classList.toggle('collapsed');
+            card.classList.toggle('open');
+        }
+
+        function advanceStep(card, stepIndex, timeLabel) {
+            const steps = card.querySelectorAll('.thinking-step');
+            steps.forEach((step, idx) => {
+                step.classList.remove('active', 'done');
+                if (idx < stepIndex) step.classList.add('done');
+                else if (idx === stepIndex) step.classList.add('active');
+            });
+            if (steps[stepIndex]) {
+                const timeEl = steps[stepIndex].querySelector('.step-time');
+                if (timeEl) timeEl.textContent = timeLabel;
+            }
+        }
+
+        // ===== DASHBOARD PINNING =====
+        const dashboardPinnedSql = new Set();
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            const icon = type === 'success' ? '✅' : '❌';
+            toast.innerHTML = `<span>${icon}</span><span>${escapeHtml(message)}</span>${type === 'success' ? '<a href="/dashboard">View Dashboard →</a>' : ''}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        async function pinToDashboard(messageId) {
+            const sqlPre = document.getElementById('sql-pre-' + messageId);
+            const pinBtn = document.getElementById('pin-' + messageId);
+            if (!sqlPre) return;
+            const sqlText = sqlPre.textContent.trim();
+            if (!sqlText) {
+                showToast('No valid SQL to pin.', 'error');
+                return;
+            }
+            if (dashboardPinnedSql.has(sqlText)) {
+                showToast('This query is already pinned to your dashboard.', 'error');
+                return;
+            }
+            if (pinBtn) pinBtn.classList.add('loading');
+
+            let chartConfig = {};
+            const messageData = messageDataStore[messageId];
+            if (messageData && messageData.length > 0) {
+                const keys = Object.keys(messageData[0]);
+                const numericKeys = keys.filter(k => messageData.some(row => typeof row[k] === 'number' && !isNaN(row[k])));
+                chartConfig = {
+                    chart_type: numericKeys.length > 0 ? 'bar' : 'table',
+                    label_column: keys.find(k => !numericKeys.includes(k)) || keys[0],
+                    value_column: numericKeys[0] || keys[1] || keys[0],
+                    columns: keys
+                };
+            }
+            const resultMetadata = {
+                row_count: messageData ? messageData.length : 0,
+                question: 'Pinned from chat'
+            };
+
+            try {
+                const response = await fetch('/api/dashboard/pins', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        title: 'Pinned Query',
+                        sql_query: sqlText,
+                        chart_config: chartConfig,
+                        result_metadata: resultMetadata
+                    })
+                });
+                const res = await response.json();
+                if (!response.ok) {
+                    showToast('Failed to pin: ' + (res.error || 'Unknown error'), 'error');
+                    return;
+                }
+                dashboardPinnedSql.add(sqlText);
+                if (pinBtn) {
+                    pinBtn.classList.remove('loading');
+                    pinBtn.classList.add('pinned');
+                    const label = pinBtn.querySelector('.pin-label');
+                    if (label) label.textContent = 'Pinned ✓';
+                }
+                showToast('Widget pinned to dashboard!');
+            } catch (err) {
+                showToast('Network error while pinning: ' + err.message, 'error');
+            } finally {
+                if (pinBtn) pinBtn.classList.remove('loading');
+            }
+        }
+
+        function buildSqlBlock(sql, messageId) {
+            return `
+                <div class="sql-block" id="sql-${messageId}">
+                    <div class="sql-header">
+                        <span class="sql-header-label">Generated SQL</span>
+                        <div class="sql-actions">
+                            <button class="star-result-btn" id="star-${messageId}" onclick="saveQuery('${messageId}')">⭐ Save</button>
+                            <button class="pin-dashboard-btn" id="pin-${messageId}" onclick="pinToDashboard('${messageId}')"><span class="pin-spinner"></span><span class="pin-label">📌 Pin to Dashboard</span></button>
+                            <button class="sql-action-btn" onclick="copySql('${messageId}')">Copy SQL</button>
+                            <button class="sql-action-btn" onclick="editSql('${messageId}')">Edit & Re-run</button>
+                        </div>
+                    </div>
+                    <div class="sql-body">
+                        <pre id="sql-pre-${messageId}">${escapeHtml(sql)}</pre>
+                        <textarea class="sql-edit-area" id="sql-edit-${messageId}">${escapeHtml(sql)}</textarea>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ===== Paginated data grid state =====
+        const GRID_PAGE_SIZE = 100;
+        const gridPageState = {};   // messageId -> current page (1-based)
+        const gridSortState = {};   // messageId -> {column, dir}
+
+        function renderDataGridPage(messageId) {
+            const data = messageDataStore[messageId] || [];
+            const table = document.getElementById('grid-' + messageId);
+            if (!table) return;
+
+            const state = gridSortState[messageId];
+            const sorted = data.slice();
+            if (state && state.column) {
+                const col = state.column;
+                const dir = state.dir === 'asc' ? 1 : -1;
+                sorted.sort((a, b) => {
+                    const av = a[col], bv = b[col];
+                    const an = parseFloat(String(av).replace(/,/g, ''));
+                    const bn = parseFloat(String(bv).replace(/,/g, ''));
+                    let cmp = 0;
+                    if (!isNaN(an) && !isNaN(bn)) {
+                        cmp = an - bn;
+                    } else {
+                        cmp = String(av ?? '').localeCompare(String(bv ?? ''));
+                    }
+                    return cmp * dir;
+                });
+            }
+
+            const total = sorted.length;
+            const pages = Math.max(1, Math.ceil(total / GRID_PAGE_SIZE));
+            let page = gridPageState[messageId] || 1;
+            if (page < 1) page = 1;
+            if (page > pages) page = pages;
+            gridPageState[messageId] = page;
+
+            const keys = Object.keys(data[0] || {});
+            const start = (page - 1) * GRID_PAGE_SIZE;
+            const end = Math.min(start + GRID_PAGE_SIZE, total);
+            const pageRows = sorted.slice(start, end);
+
+            const tbody = table.querySelector('tbody');
+            tbody.innerHTML = pageRows.map(row =>
+                '<tr>' + keys.map(k =>
+                    `<td>${escapeHtml(String(row[k] !== null && row[k] !== undefined ? row[k] : ''))}</td>`
+                ).join('') + '</tr>'
+            ).join('');
+
+            // Re-apply PII masking if the toggle is active
+            const piiBtn = document.getElementById('pii-' + messageId);
+            if (piiBtn && piiBtn.classList.contains('active')) {
+                const cells = tbody.querySelectorAll('td');
+                cells.forEach(cell => cell.textContent = maskPii(cell.textContent));
+            }
+
+            // Pagination bar UI
+            const pageInfo = document.getElementById('pg-page-info-' + messageId);
+            const rangeInfo = document.getElementById('pg-range-' + messageId);
+            const prevBtn = document.getElementById('pg-prev-' + messageId);
+            const nextBtn = document.getElementById('pg-next-' + messageId);
+            if (pageInfo) pageInfo.textContent = `Page ${page} of ${pages}`;
+            if (rangeInfo) rangeInfo.textContent = `Showing ${total ? start + 1 : 0} to ${end} of ${total} entries`;
+            if (prevBtn) prevBtn.disabled = page <= 1;
+            if (nextBtn) nextBtn.disabled = page >= pages;
+        }
+
+        function buildDataGrid(data, messageId) {
+            if (!data || data.length === 0) return '';
+            const keys = Object.keys(data[0]);
+            // Inline sticky attrs on every <th> guarantee locked headers even if
+            // an external stylesheet/rule overrides .data-grid thead th.
+            const headerHtml = keys.map(k => `<th data-col="${escapeHtml(k)}" style="position:sticky; top:0; z-index:10; background:#121829;" onclick="sortTable('${messageId}', '${escapeHtml(k)}')">${escapeHtml(k)}<span class="sort-icon"></span></th>`).join('');
+            const csvName = `dataconvo_export_${messageId}.csv`;
+            const total = data.length;
+            const pages = Math.max(1, Math.ceil(total / GRID_PAGE_SIZE));
+            gridPageState[messageId] = 1;
+            gridSortState[messageId] = null;
+
+            const paginationHtml = total > GRID_PAGE_SIZE ? `
+                <div class="grid-pagination">
+                    <span id="pg-range-${messageId}">Showing 1 to ${Math.min(GRID_PAGE_SIZE, total)} of ${total} entries</span>
+                    <span class="pg-page-info" id="pg-page-info-${messageId}">Page 1 of ${pages}</span>
+                    <div class="pg-btns">
+                        <button class="pg-btn" id="pg-prev-${messageId}" onclick="gridPage(messageId='${messageId}', delta=-1)" disabled>← Previous</button>
+                        <button class="pg-btn" id="pg-next-${messageId}" onclick="gridPage(messageId='${messageId}', delta=1)">Next →</button>
+                    </div>
+                </div>
+            ` : '';
+
+            return `
+                <div class="data-grid-container" id="grid-container-${messageId}">
+                    <div class="grid-controls">
+                        <div class="view-toggle" role="tablist">
+                            <button type="button" class="active" data-view="table" onclick="setView('${messageId}', 'table')">📊 Table</button>
+                            <button type="button" data-view="line" onclick="setView('${messageId}', 'line')">📈 Line</button>
+                            <button type="button" data-view="bar" onclick="setView('${messageId}', 'bar')">📉 Bar</button>
+                        </div>
+                        <button type="button" class="pii-toggle" id="pii-${messageId}" onclick="togglePii('${messageId}')">👁️ Mask PII</button>
+                    </div>
+                    <div class="chart-container" id="chart-${messageId}"><canvas></canvas></div>
+                    <div class="data-grid-scroll-wrap" id="table-view-${messageId}">
+                        <table class="data-grid" id="grid-${messageId}">
+                            <thead><tr>${headerHtml}</tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    ${paginationHtml}
+                    <div class="data-grid-footer">
+                        <span class="stat-pill" id="stat-${messageId}">${total} row${total !== 1 ? 's' : ''} returned</span>
+                        <button class="export-btn" onclick="exportCsv('${messageId}', '${csvName}')">Export CSV</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function gridPage(messageId, delta) {
+            const pages = Math.max(1, Math.ceil((messageDataStore[messageId] || []).length / GRID_PAGE_SIZE));
+            const page = Math.min(Math.max((gridPageState[messageId] || 1) + delta, 1), pages);
+            gridPageState[messageId] = page;
+            renderDataGridPage(messageId);
+        }
+
+        function buildSummary(summary) {
+            return `<div class="summary-card"><strong>Summary:</strong> ${escapeHtml(summary)}</div>`;
+        }
+
+        function buildRelatedQuestions(questions) {
+            const chips = questions.map(q => `<span class="suggestion-chip" onclick="sendSuggestion('${escapeHtml(q).replace(/'/g, "\\'")}')">${escapeHtml(q)}</span>`).join('');
+            return `<div class="suggestion-chips" style="justify-content: flex-start; margin-top: 12px;">${chips}</div>`;
+        }
+
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendQuery(sqlOverride = null, originalQuestion = null) {
+            console.log('DEBUG: sendQuery called, question:', originalQuestion || userInput.value.trim());
+            const question = originalQuestion || userInput.value.trim();
+            if (!question && !sqlOverride) return;
+
+            const emptyState = chatMessages.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+
+            if (!sqlOverride) {
+                addUserMessage(question);
+                userInput.value = '';
+                addToHistory(question);
+            }
+
+            const messageId = 'msg-' + Date.now();
+            const assistantBody = createAssistantShell();
+            assistantBody.innerHTML = buildThinkingCard(question);
+            const thinkingCard = assistantBody.querySelector('.thinking-card');
+            
+            // Get the number of steps from the thinking card
+            const steps = thinkingCard.querySelectorAll('.thinking-step');
+            const stepCount = steps.length;
+            const lastStepIndex = stepCount - 1;
+
+            const startTime = performance.now();
+
+            // Create timers for each step except the last one
+            const stepTimers = [];
+            for (let i = 0; i < stepCount - 1; i++) {
+                const delay = 300 + (i * 300); // 300ms, 600ms, 900ms, etc.
+                stepTimers.push(setTimeout(() => advanceStep(thinkingCard, i, `${delay}ms`), delay));
+            }
+
+            try {
+                console.log('DEBUG: Sending fetch to /generate-sql');
+                const response = await fetch('/generate-sql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',  // Send session cookies
+                    mode: 'cors',  // Explicitly set CORS mode
+                    body: JSON.stringify({ question: question, sql_override: sqlOverride })
+                });
+
+                const res = await response.json();
+                console.log('DEBUG: /generate-sql response:', res);
+
+                stepTimers.forEach(t => clearTimeout(t));
+                const elapsed = Math.round(performance.now() - startTime);
+                advanceStep(thinkingCard, lastStepIndex, `${elapsed}ms`);
+
+                // Mark thinking complete
+                thinkingCard.querySelector('.thinking-spinner').style.display = 'none';
+                const title = thinkingCard.querySelector('.thinking-title');
+                title.innerHTML = '<span style="color:var(--success)">✓</span><span>Complete</span>';
+
+                if (res.error) {
+                    let errorHtml = `<div class="summary-card" style="border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.08);"><strong>Error:</strong> ${escapeHtml(res.error)}</div>`;
+                    if (res.self_healed && res.self_healed > 0) {
+                        errorHtml += `<div class="summary-card" style="border-color:rgba(245,158,11,0.3); background:rgba(245,158,11,0.08); margin-top: 8px;"><strong>🤖 Self-Correction:</strong> The AI automatically attempted ${res.self_healed} correction(s) but couldn't resolve the database error.</div>`;
+                    }
+                    if (res.hint) {
+                        errorHtml += `<div class="summary-card" style="border-color:rgba(99,102,241,0.3); background:rgba(99,102,241,0.08); margin-top: 8px;"><strong>💡 Tip:</strong> ${escapeHtml(res.hint)}</div>`;
+                    }
+                    assistantBody.innerHTML += errorHtml;
+                    scrollToBottom();
+                    return;
+                }
+
+                if (res.type === 'chat_message') {
+                    // Normalize: if response contains JSON payload, extract narrative.
+                    const clean = normalizeAssistantPayload(res.response);
+                    const chatText = (typeof res.response === 'string' && res.response.trim().startsWith('{'))
+                        ? (clean.explanation || res.response)
+                        : res.response;
+                    assistantBody.innerHTML += `<div class="summary-card">${escapeHtml(chatText)}</div>`;
+                    scrollToBottom();
+                    return;
+                }
+
+                // Handle clarification responses from the LLM (request_clarification tool)
+                if (res.type === 'clarification') {
+                    console.log('DEBUG: Clarification response received:', res.response);
+                    const clarClean = normalizeAssistantPayload(res.response);
+                    const clarText = (typeof res.response === 'string' && res.response.trim().startsWith('{'))
+                        ? (clarClean.explanation || res.response)
+                        : res.response;
+                    assistantBody.innerHTML += '<div class="summary-card" style="border-color:rgba(245,158,11,0.3); background:rgba(245,158,11,0.08);"><strong>Clarification needed:</strong> ' + escapeHtml(clarText) + '</div>';
+                    // Show suggested tables as clickable chips if provided
+                    if (res.suggested_tables && res.suggested_tables.length > 0) {
+                        const chips = res.suggested_tables.map(t => 
+                            '<span class="suggestion-chip" onclick="handleTableClick(\'' + escapeHtml(t) + '\')">' + escapeHtml(t) + '</span>'
+                        ).join('');
+                        assistantBody.innerHTML += '<div class="suggestion-chips" style="justify-content: flex-start; margin-top: 12px;">' + chips + '</div>';
+                    }
+                    scrollToBottom();
+                    return;
+                }
+
+                const sqlText = res.sql || res.generated_sql || '';
+                const resultsData = res.results || res.data || [];
+                const summaryText = res.summary || `The query returned ${resultsData.length} row${resultsData.length !== 1 ? 's' : ''}.`;
+
+                messageDataStore[messageId] = resultsData;
+
+                assistantBody.innerHTML += buildSqlBlock(sqlText, messageId);
+                assistantBody.innerHTML += buildDataGrid(resultsData, messageId);
+                // Populate the first page (tbody renders empty from buildDataGrid)
+                renderDataGridPage(messageId);
+                assistantBody.innerHTML += buildSummary(summaryText);
+
+                // ----- Dynamic result tiering UI -----
+                // Medium-tier results: warning only when the returned dataset truly
+                // hit the injected cap; info banner when the full dataset was delivered.
+                if (res.result_tier === 'medium' && res.tier_info) {
+                    if (res.tier_info.capped) {
+                        assistantBody.innerHTML += `<div class="summary-card" style="border-color:rgba(245,158,11,0.3); background:rgba(245,158,11,0.05);">
+                            <strong>⚠️ Capped result:</strong> Displaying the first 5,000 rows of a larger dataset.
+                        </div>`;
+                    } else {
+                        assistantBody.innerHTML += `<div class="summary-card" style="border-color:rgba(99,102,241,0.2); background:rgba(99,102,241,0.05);">
+                            <strong>ℹ️ Complete result:</strong> Delivered all ${res.tier_info.row_count} rows — paginated for performance.
+                        </div>`;
+                    }
+                }
+                if (res.result_tier === 'large' && res.pivot_suggestions && res.pivot_suggestions.length > 0) {
+                    const chips = res.pivot_suggestions.map(s =>
+                        `<span class="suggestion-chip" onclick="sendSuggestion(${JSON.stringify(s.prompt)})">${escapeHtml(s.label)}</span>`
+                    ).join('');
+                    assistantBody.innerHTML += `<div class="summary-card" style="border-color:rgba(99,102,241,0.3); background:rgba(99,102,241,0.05);">
+                        <strong>📊 Dataset too large for chat display.</strong> Consider pivoting:
+                        <div class="suggestion-chips" style="justify-content:flex-start; margin-top:10px;">${chips}</div>
+                    </div>`;
+                }
+
+                if (res.related_questions && res.related_questions.length > 0) {
+                    assistantBody.innerHTML += buildRelatedQuestions(res.related_questions);
+                }
+                updateStatPill(messageId, resultsData, elapsed);
+                scrollToBottom();
+
+            } catch (err) {
+                stepTimers.forEach(t => clearTimeout(t));
+                thinkingCard.querySelector('.thinking-spinner').style.display = 'none';
+                const title = thinkingCard.querySelector('.thinking-title');
+                title.innerHTML = '<span style="color:var(--error)">✕</span><span>Failed</span>';
+                assistantBody.innerHTML += `<div class="summary-card" style="border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.08);"><strong>Request Failed:</strong> ${escapeHtml(err.message)}</div>`;
+                scrollToBottom();
+            }
+        }
+
+        function addToHistory(question) {
+            const historyList = document.getElementById('historyList');
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.textContent = question;
+            item.onclick = () => sendSuggestion(question);
+            historyList.insertBefore(item, historyList.firstChild);
+        }
+
+        function copySql(messageId) {
+            const pre = document.getElementById('sql-pre-' + messageId);
+            const text = pre ? pre.textContent : '';
+            navigator.clipboard.writeText(text).then(() => {
+                alert('SQL copied to clipboard');
+            });
+        }
+
+        function editSql(messageId) {
+            const pre = document.getElementById('sql-pre-' + messageId);
+            const editArea = document.getElementById('sql-edit-' + messageId);
+            const isEditing = editArea.classList.contains('visible');
+
+            if (!isEditing) {
+                editArea.classList.add('visible');
+                pre.style.display = 'none';
+                editArea.focus();
+            } else {
+                const newSql = editArea.value.trim();
+                editArea.classList.remove('visible');
+                pre.style.display = 'block';
+                if (newSql && newSql !== pre.textContent) {
+                    sendQuery(newSql, 'Edited query');
+                }
+            }
+        }
+
+        function exportCsv(messageId, filename) {
+            // Export the FULL dataset (respecting current sort), not just the visible page.
+            const data = messageDataStore[messageId] || [];
+            if (!data.length) return;
+
+            const state = gridSortState[messageId];
+            const sorted = data.slice();
+            if (state && state.column) {
+                const col = state.column;
+                const dir = state.dir === 'asc' ? 1 : -1;
+                sorted.sort((a, b) => {
+                    const av = a[col], bv = b[col];
+                    const an = parseFloat(String(av).replace(/,/g, ''));
+                    const bn = parseFloat(String(bv).replace(/,/g, ''));
+                    let cmp = 0;
+                    if (!isNaN(an) && !isNaN(bn)) {
+                        cmp = an - bn;
+                    } else {
+                        cmp = String(av ?? '').localeCompare(String(bv ?? ''));
+                    }
+                    return cmp * dir;
+                });
+            }
+
+            const keys = Object.keys(data[0]);
+            const lines = [keys.map(k => `"${String(k).replace(/"/g, '""')}"`).join(',')];
+            sorted.forEach(row => {
+                lines.push(keys.map(k =>
+                    `"${String(row[k] !== null && row[k] !== undefined ? row[k] : '').replace(/"/g, '""')}"`
+                ).join(','));
+            });
+
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Client-side view toggle, PII masking, and chart rendering
+        const messageDataStore = {};
+        const chartInstances = {};
+
+        function setView(messageId, view) {
+            const container = document.getElementById('grid-container-' + messageId);
+            if (!container) return;
+            const buttons = container.querySelectorAll('.view-toggle button');
+            buttons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
+
+            const tableView = document.getElementById('table-view-' + messageId);
+            const chartView = document.getElementById('chart-' + messageId);
+
+            if (view === 'table') {
+                tableView.style.display = 'block';
+                chartView.classList.remove('visible');
+            } else {
+                tableView.style.display = 'none';
+                chartView.classList.add('visible');
+                renderChart(messageId, view);
+            }
+        }
+
+        function togglePii(messageId) {
+            const btn = document.getElementById('pii-' + messageId);
+            const table = document.getElementById('grid-' + messageId);
+            if (!btn || !table) return;
+            const isActive = btn.classList.toggle('active');
+            const cells = table.querySelectorAll('tbody td');
+            cells.forEach(cell => {
+                if (isActive) {
+                    cell.dataset.original = cell.textContent;
+                    cell.textContent = maskPii(cell.textContent);
+                } else {
+                    if (cell.dataset.original) cell.textContent = cell.dataset.original;
+                }
+            });
+        }
+
+        function maskPii(text) {
+            if (!text) return text;
+            let masked = String(text);
+            // Emails
+            masked = masked.replace(/([a-zA-Z0-9._%+-])[a-zA-Z0-9._%+-]*(@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '$1***$2');
+            // Phone numbers (simple patterns)
+            masked = masked.replace(/\b(\d{3})[-.\s]?(\d{3})[-.\s]?(\d{4})\b/g, '***-***-$3');
+            // Credit cards / SSNs (13-19 digits, allow spaces/dashes)
+            masked = masked.replace(/\b(?:\d[ -]*?){13,19}\b/g, match => {
+                const digits = match.replace(/\D/g, '');
+                return '•••• •••• •••• ' + digits.slice(-4);
+            });
+            return masked;
+        }
+
+        function renderChart(messageId, type) {
+            const data = messageDataStore[messageId];
+            if (!data || data.length === 0) return;
+            const canvas = document.querySelector('#chart-' + messageId + ' canvas');
+            if (!canvas) return;
+
+            const keys = Object.keys(data[0]);
+            const numericKeys = keys.filter(k => data.some(row => typeof row[k] === 'number' && !isNaN(row[k])));
+            const labelKey = keys.find(k => !numericKeys.includes(k)) || keys[0];
+            const valueKey = numericKeys[0] || keys[1] || keys[0];
+
+            const labels = data.map(row => String(row[labelKey]));
+            const values = data.map(row => Number(row[valueKey]) || 0);
+
+            if (chartInstances[messageId]) {
+                chartInstances[messageId].destroy();
+            }
+
+            chartInstances[messageId] = new Chart(canvas, {
+                type: type === 'line' ? 'line' : 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: valueKey,
+                        data: values,
+                        borderColor: '#00F2FE',
+                        backgroundColor: type === 'line' ? 'rgba(0, 242, 254, 0.15)' : 'rgba(139, 92, 246, 0.6)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: type === 'line'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#e2e8f0' } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } }
+                    }
+                }
+            });
+        }
+
+        function updateStatPill(messageId, data, elapsedMs) {
+            const pill = document.getElementById('stat-' + messageId);
+            if (!pill || !data || data.length === 0) return;
+            const keys = Object.keys(data[0]);
+            const numericKeys = keys.filter(k => data.some(row => typeof row[k] === 'number' && !isNaN(row[k])));
+            let total = 0;
+            numericKeys.forEach(k => {
+                data.forEach(row => { total += Number(row[k]) || 0; });
+            });
+            pill.textContent = `✓ ${data.length} row${data.length !== 1 ? 's' : ''} returned in ${elapsedMs}ms | Total: ${total.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+        }
+
+        function sortTable(messageId, column) {
+            const table = document.getElementById('grid-' + messageId);
+            if (!table) return;
+            // Sort the FULL dataset (not the visible page) so pagination stays
+            // consistent after clicking a column header.
+            const prevState = gridSortState[messageId];
+            const dir = prevState && prevState.column === column && prevState.dir === 'asc' ? 'desc' : 'asc';
+            gridSortState[messageId] = { column: column, dir: dir };
+            const headers = table.querySelectorAll('thead th');
+            headers.forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+                if (th.dataset.col === column) th.classList.add(dir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+            });
+            gridPageState[messageId] = 1;
+            renderDataGridPage(messageId);
+        }
+        // Load available tables on page load
+        async function loadAvailableTables() {
+            console.log('DEBUG: loadAvailableTables called');
+            try {
+                const response = await fetch('/get-available-tables');
+                console.log('DEBUG: /get-available-tables response status:', response.status);
+                const data = await response.json();
+                console.log('DEBUG: /get-available-tables data:', data);
+                
+                if (data.tables && data.tables.length > 0) {
+                    console.log('DEBUG: Found', data.tables.length, 'tables');
+                    // Store table names in a global variable for fast local checks
+                    window.availableTables = data.tables;
+                    console.log('DEBUG: window.availableTables updated to:', window.availableTables);
+                    // Null-safe: the welcome message container may have been removed
+                    const tableBubbles = document.getElementById('tableBubbles');
+                    if (tableBubbles) {
+                        tableBubbles.innerHTML = '';
+                        data.tables.forEach(tableName => {
+                            const bubble = document.createElement('span');
+                            bubble.className = 'suggestion-chip';
+                            bubble.textContent = tableName;
+                            bubble.onclick = () => handleTableClick(tableName);
+                            tableBubbles.appendChild(bubble);
+                        });
+                    } else {
+                        console.log('DEBUG: tableBubbles element not in DOM (welcome message removed) - skipping DOM update');
+                    }
+                } else {
+                    // Always refresh the global list, even if empty
+                    window.availableTables = [];
+                    console.log('DEBUG: No tables returned or error:', data.error);
+                }
+            } catch (err) {
+                console.error('DEBUG: Failed to load tables:', err);
+            }
+        }
+
+        // Handle table bubble click (no LLM call)
+        function handleTableClick(tableName) {
+            // Persist the selected table in session state so follow-up
+            // commands like "show me all rows" or "count rows" default to it.
+            fetch('/api/settings/active-table', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ table: tableName })
+            }).catch(function(e) {
+                console.warn('Failed to persist active table:', e);
+            });
+
+            // Remove welcome message if it exists
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            if (welcomeMessage) {
+                welcomeMessage.remove();
+            }
+            
+            // Create assistant response
+            const assistantBody = createAssistantShell();
+            assistantBody.innerHTML = `
+                <div class="summary-card">Great choice! What data do you want me to pull using the <strong>${escapeHtml(tableName)}</strong> table?</div>
+                <div class="suggestion-chips" style="justify-content: flex-start; margin-top: 12px;">
+                    <span class="suggestion-chip" onclick="sendSuggestion('Show me top 10 rows from ${escapeHtml(tableName)}')">Show me top 10 rows</span>
+                    <span class="suggestion-chip" onclick="sendSuggestion('Count rows in ${escapeHtml(tableName)}')">Count rows</span>
+                    <span class="suggestion-chip" onclick="sendSuggestion('Show all columns from ${escapeHtml(tableName)}')">Show all columns</span>
+                </div>
+            `;
+            scrollToBottom();
+        }
+
+        // ===== DeepBot: interactive data-science agent =====
+        function toggleDeepbotCode(btn) {
+            const code = btn.nextElementSibling;
+            if (code) code.classList.toggle('open');
+        }
+
+        function buildDeepBotCard(res, messageId) {
+            const codeBlock = (res.code || '')
+                ? `<div class="deepbot-code-toggle" onclick="toggleDeepbotCode(this)">🐍 View Python Code</div>
+                   <div class="deepbot-code"><div class="deepbot-code-label">Python · Pandas · Matplotlib</div><pre>${escapeHtml(res.code)}</pre></div>`
+                : '';
+            // Tabular output: if the script produced a DataFrame, render it as a
+            // paginated chat data grid ALONGSIDE the plot/HTML, not swallowed.
+            let dataGridHtml = '';
+            if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+                messageDataStore[messageId] = res.data;
+                dataGridHtml = buildDataGrid(res.data, messageId);
+                // Populate the first page immediately (tbody renders empty).
+                setTimeout(() => renderDataGridPage(messageId), 0);
+            }
+            const plotHtml = (res.image)
+                ? `<div class="deepbot-plot"><img src="data:image/png;base64,${res.image}" alt="DeepBot plot"></div>`
+                : '';
+            const outputHtml = (res.output && res.output.trim())
+                ? `<div class="deepbot-output">${escapeHtml(res.output)}</div>`
+                : '';
+            // If res.data produced a paginated data grid, suppress the styled
+            // HTML table (they would render the SAME captured frame twice).
+            // The styled HTML is only used as a fallback when no data grid exists.
+            const styledHtml = (res.html && res.html.trim() && !(res.data && Array.isArray(res.data) && res.data.length > 0))
+                ? `<div class="deepbot-html">${res.html}</div>`
+                : '';
+            const errorHtml = (res.error)
+                ? `<div class="deepbot-error">⚠️ ${escapeHtml(res.error)}</div>`
+                : '';
+            return `
+                <div class="deepbot-card" id="deepbot-${messageId}">
+                    ${res.explanation ? `<div class="deepbot-explanation">${escapeHtml(res.explanation)}</div>` : ''}
+                    ${codeBlock}
+                    ${styledHtml}
+                    ${dataGridHtml}
+                    ${plotHtml}
+                    ${outputHtml}
+                    ${errorHtml}
+                </div>
+            `;
+        }
+
+        async function deepbotQuery(messageId, assistantBody, thinkingCard, stepTimers, lastStepIndex, startTime, question) {
+            try {
+                const response = await fetch('/api/chat/deepbot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ prompt: question })
+                });
+                const res = await response.json();
+                stepTimers.forEach(t => clearTimeout(t));
+                const elapsed = Math.round(performance.now() - startTime);
+                advanceStep(thinkingCard, lastStepIndex, `${elapsed}ms`);
+                thinkingCard.querySelector('.thinking-spinner').style.display = 'none';
+                const title = thinkingCard.querySelector('.thinking-title');
+                title.innerHTML = '<span style="color:var(--success)">✓</span><span>Complete</span>';
+
+                if (!response.ok) {
+                    assistantBody.innerHTML += `<div class="deepbot-error">⚠️ ${escapeHtml(res.error || 'DeepBot request failed.')}</div>`;
+                    scrollToBottom();
+                    return;
+                }
+                assistantBody.innerHTML += buildDeepBotCard(res, messageId);
+                scrollToBottom();
+            } catch (err) {
+                stepTimers.forEach(t => clearTimeout(t));
+                thinkingCard.querySelector('.thinking-spinner').style.display = 'none';
+                const title = thinkingCard.querySelector('.thinking-title');
+                title.innerHTML = '<span style="color:var(--error)">✕</span><span>Failed</span>';
+                assistantBody.innerHTML += `<div class="deepbot-error">⚠️ ${escapeHtml(err.message)}</div>`;
+                scrollToBottom();
+            }
+        }
+
+        
+        // ===== InternetBot: multi-agent orchestrator (QueryBot + DeepBot + web) =====
+        function buildInternetBotCard(res, messageId) {
+            // Normalize incoming payload to prevent raw JSON leaking into bubbles.
+            res = normalizeAssistantPayload(res);
+            if (res.error) {
+                return `<div class="internetbot-card"><div class="internetbot-explanation">⚠️ ${escapeHtml(res.error)}</div></div>`;
+            }
+            const sourcesHtml = (res.sources && res.sources.length > 0)
+                ? `<div class="internetbot-sources">
+                     <h4>🌐 External Sources</h4>
+                     <ul>
+                       ${res.sources.map(s =>
+                          `<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title)}</a>
+                            ${s.snippet ? `<span class="src-snippet">${escapeHtml(s.snippet)}</span>` : ''}</li>`
+                       ).join('')}
+                     </ul>
+                   </div>`
+                : '';
+            const toolChips = ((res.tool_calls || []).length > 0)
+                ? `<div class="internetbot-tools">
+                     ${res.tool_calls.map(tc =>
+                        `<span class="internetbot-tool-chip">${escapeHtml((tc.tool || tc.name || 'tool'))}</span>`
+                     ).join('')}
+                   </div>`
+                : '';
+            const gridHtml = (res.data && Array.isArray(res.data) && res.data.length > 0)
+                ? (() => {
+                    messageDataStore[messageId] = res.data;
+                    const grid = buildDataGrid(res.data, messageId);
+                    setTimeout(() => renderDataGridPage(messageId), 0);
+                    return grid;
+                  })()
+                : '';
+            const explanation = res.explanation || '';
+            return `
+                <div class="internetbot-card" id="internetbot-${messageId}">
+                    <div class="internetbot-explanation">${escapeHtml(explanation)}</div>
+                    ${toolChips}
+                    ${sourcesHtml}
+                    ${gridHtml}
+                </div>
+            `;
+        }
+
+        // Tool labels for rendered InternetBot execution steps
+        const IB_TOOL_LABELS = {
+            'functions.ask_querybot': { icon: '🤖', name: 'QueryBot', action: 'Queried internal SQL metrics' },
+            'functions.ask_deepbot':  { icon: '🐍', name: 'DeepBot',  action: 'Executed Python trend analysis' },
+            'functions.web_search':   { icon: '🌐', name: 'Web Search', action: 'Searched external market reports' },
+            'ask_querybot': { icon: '🤖', name: 'QueryBot', action: 'Queried internal SQL metrics' },
+            'ask_deepbot':  { icon: '🐍', name: 'DeepBot',  action: 'Executed Python trend analysis' },
+            'web_search':   { icon: '🌐', name: 'Web Search', action: 'Searched external market reports' }
+        };
+
+        function buildInternetBotThinkingCard() {
+            const card = document.createElement('div');
+            card.id = 'internetbotThinkingCard';
+            card.innerHTML = `
+                <div class="ib-header">
+                    <div class="ib-thinking-header">
+                        <span class="ib-orb"></span>
+                        <span>🌐 InternetBot is orchestrating research...</span>
+                    </div>
+                    <span class="ib-status-text">In progress</span>
+                </div>
+                <div class="ib-live-status"><span class="ib-count">0</span> Initializing research pipeline...</div>
+                <details class="ib-steps-details" style="display:none;">
+                    <summary>👁️ View Agent Execution Steps</summary>
+                    <div class="ib-steps"></div>
+                </details>
+                <div class="ib-reasoning-log" id="ibReasoningLog" style="display:none;">
+                    <div class="ib-reasoning-header">
+                        <span>🧠 Agent Reasoning Stream</span>
+                        <button class="ib-clear-log" onclick="this.parentNode.parentNode.querySelector('.ib-reasoning-lines').innerHTML=''">Clear</button>
+                    </div>
+                    <div class="ib-reasoning-lines"></div>
+                </div>
+            `;
+            return card;
+        }
+
+        function appendAgentThought(card, text, kind) {
+            const log = card ? card.querySelector('.ib-reasoning-log') : null;
+            if (!log) return;
+            log.style.display = 'block';
+            const lines = log.querySelector('.ib-reasoning-lines');
+            if (!lines) return;
+            const line = document.createElement('div');
+            line.className = 'ib-reasoning-line ib-line-' + (kind || 'thought');
+            const prefix = kind === 'tool' ? '🔧' : kind === 'synthesis' ? '✦' : '→';
+            line.innerHTML = `<span class="ib-line-prefix">${prefix}</span><span>${escapeHtml(text)}</span>`;
+            lines.appendChild(line);
+            // Auto-scroll to newest line
+            lines.scrollTop = lines.scrollHeight;
+            // Mirrors the visible live-status line too
+            const statusEl = card.querySelector('.ib-live-status');
+            if (statusEl) {
+                statusEl.innerHTML = `<span class="ib-count">●</span> ${escapeHtml(text)}`;
+            }
+            // Bump step count: count existing lines
+            const count = lines.children.length;
+            const countEl = card.querySelector('.ib-live-status .ib-count');
+            if (countEl) countEl.textContent = String(count);
+        }
+
+        async function internetbotQuery(messageId, assistantBody, thinkingCard, question) {
+            // thinkingCard is the dynamic card node already appended by the caller.
+            // Guard against a missing/disconnected node — never throw on null.
+            if (!thinkingCard || !thinkingCard.isConnected) {
+                thinkingCard = buildInternetBotThinkingCard();
+                if (assistantBody) assistantBody.appendChild(thinkingCard);
+            }
+            const statusEl = thinkingCard.querySelector('.ib-live-status');
+            const stepsEl = thinkingCard.querySelector('.ib-steps');
+
+            // Live progress rotation while the network request is in flight
+            // (only if no SSE events arrive within the first 2 seconds).
+            const liveMsgs = [
+                '1/3 Querying internal database...',
+                '2/3 Fetching real-world web context...',
+                '3/3 Synthesizing intelligence briefing...'
+            ];
+            let liveIdx = 0;
+            let gotStream = false; // becomes true as soon as an SSE event is processed
+            const liveTimer = setInterval(() => {
+                if (gotStream) return; // SSE is active — don't rotate static messages
+                liveIdx = (liveIdx + 1) % liveMsgs.length;
+                if (statusEl) {
+                    const prefix = liveMsgs[liveIdx].split(' ')[0];
+                    statusEl.innerHTML = `<span class="ib-count">${prefix}</span> ${escapeHtml(liveMsgs[liveIdx].slice(4))}`;
+                }
+            }, 1400);
+
+            const startTime = performance.now();
+            let res = null;
+            try {
+                const response = await fetch('/api/chat/internetbot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ prompt: question, stream: true })
+                });
+
+                const contentType = response.headers.get('content-type') || '';
+                // ---- SSE STREAMING PATH ----
+                if (contentType.includes('text/event-stream') && response.body && response.body.getReader) {
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder('utf-8');
+                    let buffer = '';
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+
+                        // Split on SSE event boundaries: double newline
+                        const parts = buffer.split('\n\n');
+                        buffer = parts.pop(); // keep trailing partial
+
+                        for (const chunk of parts) {
+                            let eventType = 'message';
+                            let dataStr = '';
+                            for (const line of chunk.split('\n')) {
+                                if (line.startsWith('event:')) {
+                                    eventType = line.slice(6).trim();
+                                } else if (line.startsWith('data:')) {
+                                    dataStr += line.slice(5).trim();
+                                }
+                            }
+                            if (!dataStr) continue;
+                            let ev;
+                            try { ev = JSON.parse(dataStr); } catch (e) { continue; }
+
+                            // ---- IMPLEMENTATION ----
+                            if (eventType === 'done') {
+                                gotStream = true; // stop static rotation
+                                res = ev;
+                            } else if (eventType === 'thought') {
+                                gotStream = true;
+                                appendAgentThought(thinkingCard, ev.message || 'Thinking...', 'thought');
+                            } else if (eventType === 'tool_start') {
+                                gotStream = true;
+                                appendAgentThought(thinkingCard, (ev.message || 'Calling tool...') + (ev.tool ? ' [' + ev.tool + ']' : ''), 'tool');
+                            } else if (eventType === 'tool_end') {
+                                gotStream = true;
+                                const suffix = ev.error ? ' (error: ' + ev.error + ')' : ' ✓';
+                                appendAgentThought(thinkingCard, (ev.tool || 'Tool') + ' finished' + suffix, 'tool');
+                            } else if (eventType === 'synthesis') {
+                                gotStream = true;
+                                appendAgentThought(thinkingCard, ev.message || 'Synthesizing...', 'synthesis');
+                            } else {
+                                gotStream = true;
+                                if (ev.message) appendAgentThought(thinkingCard, ev.message, 'thought');
+                            }
+                        }
+                    }
+                } else {
+                    // ---- NON-STREAMING FALLBACK ----
+                    res = await response.json();
+                    gotStream = false; // no SSE events; static rotation stays
+                }
+
+                clearInterval(liveTimer);
+                const elapsed = Math.round(performance.now() - startTime);
+
+                // Apply tool calls to the steps panel (for both paths)
+                const toolCalls = (res && res.tool_calls) || [];
+                const detailsEl = thinkingCard.querySelector('.ib-steps-details');
+                if (stepsEl && toolCalls.length > 0) {
+                    stepsEl.innerHTML = toolCalls.map(tc => {
+                        const key = tc.tool || '';
+                        const label = IB_TOOL_LABELS[key] || { icon: '🔧', name: key || 'Tool', action: 'Executed tool call' };
+                        const q = tc.query || '';
+                        return `<div class="ib-step">
+                                    <span class="ib-step-icon">${label.icon}</span>
+                                    <div>
+                                        <span class="ib-step-name">${escapeHtml(label.name)}</span>
+                                        <span class="ib-step-query">${escapeHtml(q ? q : label.action)}</span>
+                                    </div>
+                                </div>`;
+                    }).join('');
+                    if (detailsEl) detailsEl.style.display = 'block';
+                } else if (stepsEl) {
+                    stepsEl.innerHTML = '';
+                    if (detailsEl) detailsEl.style.display = 'none';
+                }
+
+                if (statusEl) {
+                    if (gotStream) {
+                        statusEl.innerHTML = `<span class="ib-count">✓ ${elapsed}ms</span> Research complete`;
+                    } else {
+                        statusEl.innerHTML = `<span class="ib-count">✓ ${elapsed}ms</span> Research complete`;
+                    }
+                }
+
+                if (!response.ok) {
+                    assistantBody.innerHTML += `<div class="internetbot-card"><div class="internetbot-explanation">⚠️ ${escapeHtml((res && res.error) || 'InternetBot request failed.')}</div></div>`;
+                    scrollToBottom();
+                    return;
+                }
+                assistantBody.innerHTML += buildInternetBotCard(res, messageId);
+                scrollToBottom();
+            } catch (err) {
+                clearInterval(liveTimer);
+                if (statusEl) statusEl.innerHTML = `<span class="ib-count" style="color:var(--error)">✕</span> ${escapeHtml(err.message)}`;
+                assistantBody.innerHTML += `<div class="internetbot-card"><div class="internetbot-explanation">⚠️ ${escapeHtml(err.message)}</div></div>`;
+                scrollToBottom();
+            }
+        }
+
+
+// Interceptor for local fast-paths + LLM routing
+                async function sendQueryWithFallback(sqlOverride = null, originalQuestion = null) {
+            const question = originalQuestion || (userInput ? userInput.value.trim() : '');
+            if (!question && !sqlOverride) return;
+
+            // Remove welcome message if it exists
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            if (welcomeMessage) {
+                welcomeMessage.remove();
+            }
+
+            // ----- DeepBot MODE: route directly to the data-science agent -----
+            if (typeof currentPersona !== 'undefined' && currentPersona === 'deepbot' && !sqlOverride) {
+                addUserMessage(question);
+                userInput.value = '';
+                addToHistory(question);
+
+                const messageId = 'msg-' + Date.now();
+                const body = createAssistantShell();
+                // DeepBot mode always shows the Python execution pipeline steps.
+                body.innerHTML = buildThinkingCard(question, true);
+                const thinkingCard = body.querySelector('.thinking-card');
+                const steps = thinkingCard.querySelectorAll('.thinking-step');
+                const stepCount = steps.length;
+                const lastStepIndex = stepCount - 1;
+                const startTime = performance.now();
+                const stepTimers = [];
+                for (let i = 0; i < stepCount - 1; i++) {
+                    const delay = 300 + (i * 300);
+                    stepTimers.push(setTimeout(() => advanceStep(thinkingCard, i, `${delay}ms`), delay));
+                }
+                await deepbotQuery(messageId, body, thinkingCard, stepTimers, lastStepIndex, startTime, question);
+                return;
+            }
+
+            // ----- InternetBot MODE: multi-agent orchestrator with web research -----
+            if (typeof currentPersona !== 'undefined' && currentPersona === 'internetbot' && !sqlOverride) {
+                addUserMessage(question);
+                userInput.value = '';
+                addToHistory(question);
+
+                const messageId = 'msg-' + Date.now();
+                // createAssistantShell() already returns the .assistant-body element.
+                const body = createAssistantShell();
+                // InternetBot uses a DYNAMIC thinking card: animated orb +
+                // live progress + real tool-call steps when the response arrives.
+                const dynamicCard = buildInternetBotThinkingCard();
+                body.appendChild(dynamicCard);
+                await internetbotQuery(messageId, body, dynamicCard, question);
+                return;
+            }
+
+            // Local fast-path: block only clearly non-data requests
+            if (!sqlOverride) {
+                const q = question.toLowerCase().trim();
+                const nonDataPhrases = ['what is the weather', 'weather outside', 'weather today', 'weather forecast',
+                    'time is it', 'what day is it', 'date today',
+                    'tell me a joke', 'tell me something funny', 'who won the',
+                    'latest news', 'what news', 'stock price of', 'bitcoin price', 'crypto price',
+                    'recipe for', 'how to cook', 'what movie', 'what song is', 'write a poem',
+                    'tell me a story', 'translate this', 'translate the following'];
+                const dataSignalKeywords = ['top', 'highest', 'lowest', 'rank', 'count', 'sum', 'average', 'avg',
+                    'show', 'list', 'compare', 'sales', 'revenue', 'total', 'metrics',
+                    'metric', 'orders', 'customers', 'voyage', 'voyages', 'shipment',
+                    'weight', 'quantity', 'price', 'cost', 'efficiency', 'condition',
+                    'status', 'date', 'month', 'year', 'report', 'pivot',
+                    'rows', 'table', 'schema', 'column', 'data', 'database', 'query'];
+                const hasDataSignal = dataSignalKeywords.some(kw => q.includes(kw));
+                const containsNonData = !hasDataSignal && nonDataPhrases.some(kw => q.includes(kw));
+
+                if (containsNonData) {
+                    addUserMessage(question);
+                    userInput.value = '';
+                    addToHistory(question);
+                    const body = createAssistantShell();
+                    body.innerHTML = '<div class="summary-card">I can only answer questions about your connected database. Try asking about your tables, e.g. \'What are the total sales?\'.</div>';
+                    scrollToBottom();
+                    return;
+                }
+            }
+
+            // Forward to the real sendQuery (handles networking + thinking card)
+            return window.originalSendQuery(sqlOverride, question);
+        }
+
+// ===== SAVED QUERIES =====
+        async function loadSavedQueries() {
+            try {
+                const response = await fetch('/api/saved-queries');
+                const queries = await response.json();
+                const container = document.getElementById('savedQueriesList');
+                if (!container) return;
+                
+                if (!queries || queries.length === 0) {
+                    container.innerHTML = '<div class="sidebar-empty">No saved queries yet. Click the star on any result to save it!</div>';
+                    return;
+                }
+                
+                const favorites = queries.filter(q => q.is_favorite);
+                const others = queries.filter(q => !q.is_favorite);
+                
+                let html = '';
+                if (favorites.length > 0) {
+                    html += '<div class="favorites-section"><h4>⭐ Favorites</h4>';
+                    favorites.forEach(q => {
+                        html += '<div class="saved-query" onclick="runSavedQuery(' + q.id + ')">' +
+                            '<span>' + escapeHtml(q.title) + '</span>' +
+                            '<span style="display:flex;align-items:center;">' +
+                            '<span class="star favorited" onclick="event.stopPropagation();toggleFavorite(' + q.id + ')">★</span>' +
+                            '<span class="delete-btn" onclick="event.stopPropagation();deleteSavedQuery(' + q.id + ')">✕</span>' +
+                            '</span></div>';
+                    });
+                    html += '</div>';
+                }
+                
+                if (others.length > 0) {
+                    html += '<div class="favorites-section"><h4>All Queries</h4>';
+                    others.forEach(q => {
+                        html += '<div class="saved-query" onclick="runSavedQuery(' + q.id + ')">' +
+                            '<span>' + escapeHtml(q.title) + '</span>' +
+                            '<span style="display:flex;align-items:center;">' +
+                            '<span class="star" onclick="event.stopPropagation();toggleFavorite(' + q.id + ')">☆</span>' +
+                            '<span class="delete-btn" onclick="event.stopPropagation();deleteSavedQuery(' + q.id + ')">✕</span>' +
+                            '</span></div>';
+                    });
+                    html += '</div>';
+                }
+                
+                container.innerHTML = html;
+            } catch (err) {
+                console.error('Failed to load saved queries:', err);
+            }
+        }
+
+        async function saveQuery(messageId) {
+            const pre = document.getElementById('sql-pre-' + messageId);
+            if (!pre) return;
+            const sql = pre.textContent;
+            const title = prompt('Name this saved query:', 'Query ' + new Date().toLocaleDateString());
+            if (!title) return;
+            
+            try {
+                const response = await fetch('/api/saved-queries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ title: title, sql_query: sql })
+                });
+                if (response.ok) {
+                    const btn = document.getElementById('star-' + messageId);
+                    if (btn) {
+                        btn.textContent = '⭐ Saved';
+                        btn.classList.add('saved');
+                    }
+                    loadSavedQueries();
+                }
+            } catch (err) {
+                console.error('Failed to save query:', err);
+            }
+        }
+
+        async function toggleFavorite(queryId) {
+            try {
+                const response = await fetch('/api/saved-queries/' + queryId + '/favorite', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    loadSavedQueries();
+                }
+            } catch (err) {
+                console.error('Failed to toggle favorite:', err);
+            }
+        }
+
+        async function deleteSavedQuery(queryId) {
+            if (!confirm('Delete this saved query?')) return;
+            try {
+                const response = await fetch('/api/saved-queries/' + queryId, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    loadSavedQueries();
+                }
+            } catch (err) {
+                console.error('Failed to delete query:', err);
+            }
+        }
+
+        async function runSavedQuery(queryId) {
+            try {
+                const response = await fetch('/api/saved-queries');
+                const queries = await response.json();
+                const q = queries.find(item => item.id === queryId);
+                if (q) {
+                    // Rerun the saved SQL directly
+                    sendQuery(q.sql_query, q.title);
+                }
+            } catch (err) {
+                console.error('Failed to run saved query:', err);
+            }
+        }
+
+        // Load tables when page loads (runs before / after DOMContentLoaded safely)
+        function initChatPage() {
+            loadAvailableTables();
+            loadSavedQueries();
+            // Replace the original sendQuery with the enhanced version
+            window.originalSendQuery = sendQuery;
+            sendQuery = sendQueryWithFallback;
+
+            // RBAC LIVE-REFRESH: poll the available-table list every 5 seconds so
+            // admin permission changes reflect instantly on this open chat page.
+            // polling is cheap (lightweight JSON, no LLM). Also refresh when the
+            // tab regains focus (admin may have toggled tables in another tab).
+            if (_availableTablesTimer) clearInterval(_availableTablesTimer);
+            _availableTablesTimer = setInterval(loadAvailableTables, 5000);
+            window.addEventListener('focus', function () {
+                loadAvailableTables();
+            });
+        }
+
+        // Also refresh tables right before a query so the member's prompt always
+        // uses the freshest RBAC-filtered semantic layer, even if a permission
+        // change happened milliseconds ago.
+        const _origSendSubmit = sendSuggestion;
+        if (typeof sendSuggestion === 'function') {
+            window.sendSuggestion = function (text) {
+                loadAvailableTables();
+                return _origSendSubmit(text);
+            };
+        }
+
+        if (!window.__chatInitDone) {
+            window.__chatInitDone = true;
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initChatPage);
+            } else {
+                initChatPage();
+            }
+        }
+    </script>
+<script>
+    let currentPersona = 'querybot';
+    const PERSONA_ICONS = {
+        querybot: '/static/brand/querybot.png',
+        deepbot: '/static/brand/deepbot.png',
+        internetbot: '/static/brand/internetbot.png'
+    };
+
+    function togglePersonaMenu() {
+        document.getElementById('personaMenu').classList.toggle('open');
+    }
+
+    // Agent hand-off introduction messages
+    const AGENT_INTROS = {
+        querybot: 'Switching to <strong>QueryBot</strong>. I\'m your SQL execution engine. Tell me what data you want to explore, aggregate, or filter, and I\'ll write and run the queries instantly.',
+        deepbot: 'Switching to <strong>DeepBot</strong>. I\'m your statistical analyst. I\'ll take your data frames and run deep analytical breakdowns, distributions, and trend correlations.',
+        internetbot: 'Switching to <strong>InternetBot</strong>. I\'m your external research bridge. I can pull live web data, market benchmarks, and industry trends to contextualize your internal metrics.'
+    };
+
+    function addAgentHandoff(key) {
+        const chatMessages = document.getElementById('chatMessages') || document.querySelector('.messages-container') || document.querySelector('[id*="message"], [class*="message-container"]');
+        if (!chatMessages) return;
+
+        const intro = AGENT_INTROS[key] || AGENT_INTROS.querybot;
+        const icon = PERSONA_ICONS[key] || PERSONA_ICONS.querybot;
+        const title = (key.charAt(0).toUpperCase() + key.slice(1));
+
+        const card = document.createElement('div');
+        card.className = 'message message-assistant handoff-container';
+        card.innerHTML = `
+            <div class="handoff-card">
+                <div class="handoff-avatar"><img src="${icon}" alt="${title}"></div>
+                <div class="handoff-content">
+                    <div class="handoff-title">🤖 ${title} · Agent Hand-off</div>
+                    <div class="handoff-body">${intro}</div>
+                </div>
+            </div>
+        `;
+        chatMessages.appendChild(card);
+
+        // Auto-scroll to bottom
+        if (typeof scrollToBottom === 'function') {
+            scrollToBottom();
+        } else {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
+
+    function setPersona(key) {
+        const prevPersona = currentPersona;
+        currentPersona = key;
+        document.getElementById('personaBadgeImg').src = PERSONA_ICONS[key] || PERSONA_ICONS.querybot;
+        document.querySelectorAll('.persona-menu-item').forEach(i => i.classList.toggle('active', i.dataset.persona === key));
+        document.getElementById('personaMenu').classList.remove('open');
+
+        // ----- DeepBot accent: emerald/cyan glow on the input experience -----
+        const inputBar = document.getElementById('chatForm');
+        const sendBtn = document.querySelector('.input-send');
+        const headerMeta = document.querySelector('.terminal-header-meta');
+        if (key === 'internetbot') {
+            if (inputBar) inputBar.classList.add('internetbot-active');
+            if (sendBtn) sendBtn.classList.add('internetbot-active');
+            if (headerMeta) {
+                if (!document.getElementById('internetbotChip')) {
+                    const chip = document.createElement('span');
+                    chip.id = 'internetbotChip';
+                    chip.className = 'internetbot-chip';
+                    chip.textContent = '🌐 InternetBot · External Research';
+                    headerMeta.appendChild(chip);
+                }
+            }
+        } else {
+            if (inputBar) inputBar.classList.remove('internetbot-active');
+            if (sendBtn) sendBtn.classList.remove('internetbot-active');
+            const chip = document.getElementById('internetbotChip');
+            if (chip) chip.remove();
+        }
+
+        if (key === 'deepbot') {
+            if (inputBar) inputBar.classList.add('deepbot-active');
+            if (sendBtn) sendBtn.classList.add('deepbot-active');
+            if (headerMeta) {
+                // Show a deepbot chip next to the active-state label
+                if (!document.getElementById('deepbotChip')) {
+                    const chip = document.createElement('span');
+                    chip.id = 'deepbotChip';
+                    chip.className = 'deepbot-chip';
+                    chip.textContent = '🧪 DeepBot · Data Science Mode';
+                    headerMeta.appendChild(chip);
+                }
+            }
+        } else {
+            if (inputBar) inputBar.classList.remove('deepbot-active');
+            if (sendBtn) sendBtn.classList.remove('deepbot-active');
+            const chip = document.getElementById('deepbotChip');
+            if (chip) chip.remove();
+        }
+
+        // Show hand-off welcome card when switching (not on initial load)
+        if (prevPersona !== key) {
+            addAgentHandoff(key);
+        }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const wrap = document.getElementById('personaTriggerWrap');
+        if (wrap && !wrap.contains(e.target)) {
+            document.getElementById('personaMenu').classList.remove('open');
+        }
+    });
+
+    // Intercept fetch to /generate-sql and include persona
+    const _f = window.fetch;
+    window.fetch = function(u, o) {
+        if (u === '/generate-sql' && o && o.body) {
+            try {
+                const b = JSON.parse(o.body);
+                b.persona = currentPersona;
+                o.body = JSON.stringify(b);
+            } catch (e) {}
+        }
+        return _f(u, o);
+    };
+</script>
+
+
+    <script>
+    // BYOK: live status badge + actionable error toast (injected at runtime)
+    (function () {
+      if (window.__byokInjected) return;
+      window.__byokInjected = true;
+      function injectBadge() {
+        var meta = document.querySelector('.terminal-header-meta');
+        if (!meta || document.getElementById('byokBadge')) return;
+        var b = document.createElement('span');
+        b.id = 'byokBadge';
+        b.className = 'byok-badge sponsored';
+        b.title = 'LLM provider status';
+        b.textContent = '⚡ Sponsored Trial';
+        meta.appendChild(b);
+        fetch('/api/settings/byok/status', { credentials: 'include' })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (d.byok_enabled) {
+              b.textContent = '🔑 BYOK Active';
+              b.classList.add('active');
+              b.classList.remove('sponsored');
+            }
+          }).catch(function () {});
+      }
+      function showToast() {
+        var t = document.getElementById('byokToast');
+        if (!t) {
+          t = document.createElement('div');
+          t.id = 'byokToast';
+          t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;max-width:360px;padding:14px 16px;border-radius:12px;background:rgba(17,24,39,.95);border:1px solid rgba(239,68,68,.4);color:#fca5a5;font-size:14px;line-height:1.5;box-shadow:0 12px 40px rgba(0,0,0,.5);display:none;';
+          {% if current_user.is_authenticated and current_user.role == 'admin' %}
+          t.innerHTML = 'Your custom API key validation failed. Please <a href="/settings/api-keys" style="color:#fbbf24;text-decoration:underline;">update your key in Settings</a> or switch back to the sponsored tier.';
+          {% else %}
+          t.innerHTML = 'The LLM provider key configured for this workspace could not be validated. Please contact your workspace admin to update the configuration.';
+          {% endif %}
+          document.body.appendChild(t);
+        }
+        t.style.display = 'block';
+        setTimeout(function () { t.style.display = 'none'; }, 8000);
+      }
+      // Intercept fetch to surface BYOK auth failures as a toast
+      var origFetch = window.fetch;
+      window.fetch = async function () {
+        var res = await origFetch.apply(this, arguments);
+        if (res.status === 401 || res.status === 403) {
+          try {
+            var body = await res.clone().json();
+            if (body && body.error && /key|api|auth|credential|rate|quota/i.test(body.error)) showToast();
+          } catch (e) {}
+        }
+        return res;
+      };
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', injectBadge);
+      } else {
+        injectBadge();
+      }
+    })();
+    </script>
+    <script src="/static/ux.js"></script>
+</body>
+</html>

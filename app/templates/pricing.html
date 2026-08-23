@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing — Data Convo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        body {
+            margin: 0;
+            background: radial-gradient(ellipse at 0% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
+                        radial-gradient(ellipse at 100% 100%, rgba(139, 92, 246, 0.10) 0%, transparent 50%),
+                        var(--bg-primary, #0a0a0f);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+        .pricing-page { max-width: 1100px; margin: 0 auto; padding: 60px 24px; }
+        .pricing-header { text-align: center; margin-bottom: 16px; }
+        .pricing-header h1 { font-size: 2.4rem; margin-bottom: 12px; }
+        .pricing-header p { color: var(--text-muted); font-size: 1.1rem; }
+        .selfhost-banner {
+            max-width: 780px; margin: 8px auto 40px; text-align: center;
+            padding: 16px 20px; border-radius: 14px;
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6;
+        }
+        .selfhost-banner strong { color: var(--accent-hover); }
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+        .pricing-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .pricing-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+        .pricing-card.pro { border: 2px solid var(--accent); position: relative; }
+        .pricing-card.pro .badge {
+            position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+            background: var(--accent); color: #fff; padding: 4px 16px; border-radius: 999px;
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .pricing-card h2 { font-size: 1.5rem; margin-bottom: 8px; }
+        .pricing-card .price { font-size: 2.5rem; font-weight: 700; margin-bottom: 4px; }
+        .pricing-card .price span { font-size: 1rem; color: var(--text-muted); font-weight: 400; }
+        .pricing-card .desc { color: var(--text-muted); margin-bottom: 24px; }
+        .pricing-card ul { list-style: none; padding: 0; margin: 0 0 24px; flex: 1; }
+        .pricing-card li { padding: 8px 0; display: flex; align-items: center; gap: 10px; color: var(--text-secondary); }
+        .pricing-card li::before { content: "✓"; color: var(--success); font-weight: 700; }
+        .pricing-card .cta {
+            width: 100%; padding: 14px; border-radius: 10px; border: none; cursor: pointer;
+            font-size: 1rem; font-weight: 600; text-align: center; text-decoration: none; display: block;
+        }
+        .pricing-card .cta.free { background: var(--surface-hover); color: var(--text-primary); border: 1px solid var(--border); }
+        .pricing-card .cta.pro { background: var(--accent); color: #fff; }
+        .pricing-card .cta:disabled { opacity: 0.5; cursor: not-allowed; }
+        .flash { max-width: 600px; margin: 0 auto 24px; padding: 12px 16px; border-radius: 8px; text-align: center; }
+        .flash.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
+        .flash.success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #10b981; }
+        .flash.info { background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3); color: #818cf8; }
+        .pricing-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        .pricing-nav .logo { font-weight: 700; font-size: 1.2rem; display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .pricing-nav .logo:hover { text-decoration: none; opacity: 0.85; }
+        .pricing-nav .logo img { width: 220px; height: auto; object-fit: contain; }
+        .pricing-nav .nav-links { display: flex; gap: 16px; align-items: center; }
+        .pricing-nav a { color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; }
+        .pricing-nav a:hover { color: var(--text-primary); }
+        .footnote { text-align: center; color: var(--text-muted); font-size: 0.82rem; margin-top: 40px; line-height: 1.6; }
+    </style>
+<body>
+    <div class="pricing-page">
+        <nav class="pricing-nav">
+            <a href="/" class="logo" title="Go to Home"><img src="/static/brand/logo-horizontal.png" alt="Data Convo"></a>
+            <div class="nav-links">
+                {% if current_user.is_authenticated %}
+                    {% if current_user.role == 'admin' %}
+                        <a href="/semantic-studio">Dashboard</a>
+                    {% else %}
+                        <a href="/chat">Dashboard</a>
+                    {% endif %}
+                    <a href="{{ url_for('auth.account') }}">Account</a>
+                    <a href="/pricing">Pricing</a>
+                    <a href="{{ url_for('auth.logout') }}">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}">Login</a>
+                    <a href="{{ url_for('auth.signup') }}">Sign Up</a>
+                {% endif %}
+            </div>
+        </nav>
+
+        <div class="pricing-header">
+            <h1>100% Self-Hosted, Docker-First Pricing</h1>
+            <p>Deploy securely on your own infrastructure. Zero data retention. Bring your own keys.</p>
+        </div>
+
+        <div class="selfhost-banner">
+            <strong>🐳 Deploy on your own infrastructure.</strong> Data Convo runs entirely on your servers via
+            Docker — your data never leaves your VPC, and your schema & queries are never sent to any
+            third-party platform. BYOK (Bring Your Own Key) powers every LLM call with <strong>zero platform
+            API key fallback</strong>.
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="pricing-grid">
+            <!-- COMMUNITY (Free Forever) -->
+            <div class="pricing-card">
+                <h2>Community</h2>
+                <div class="price">$0<span> / Free Forever</span></div>
+                <p class="desc">For individuals and small teams on your own infrastructure.</p>
+                <ul>
+                    <li>1 Admin / 1 Member</li>
+                    <li>100% features unlocked — Full AGI Chat-to-SQL&Python,Semantic Layer Studio, BI Dashboarding Studio & Anomaly Detection Studio.</li>
+                    <li>Self-hosted Docker deployment</li>
+                </ul>
+                {% if current_user.is_authenticated and current_tier in ('community', 'free') %}
+                    <a class="cta free" href="{{ url_for('auth.account') }}">Your Current Plan</a>
+                {% elif current_user.is_authenticated %}
+                    <a class="cta free" href="{{ url_for('auth.account') }}">View Plan</a>
+                {% else %}
+                    <a class="cta free" href="{{ url_for('auth.signup') }}">Get Started</a>
+                {% endif %}
+            </div>
+
+            <!-- TEAM / PRO ($399/mo) -->
+            <div class="pricing-card pro">
+                <div class="badge">Most Popular</div>
+                <h2>Team / Pro</h2>
+                <div class="price">$399<span> / month</span></div>
+                <p class="desc">For growing teams needing governance.</p>
+                <ul>
+                    <li>Up to 15 Team Members</li>
+                    <li>Advanced column-level RBAC</li>
+                    <li>Audit logs</li>
+                    <li>Multi-user workspace management</li>
+                    <li>Self-hosted Docker deployment</li>
+                </ul>
+                {% if current_user.is_authenticated and current_tier == 'team' %}
+                    <a class="cta pro" href="{{ url_for('main.index') }}">✓ Active</a>
+                {% elif team_payment_link %}
+                    <a class="cta pro" href="{{ team_payment_link }}" target="_blank" rel="noopener">💳 Buy Team</a>
+                {% else %}
+                    <a class="cta pro" href="mailto:sales@dataconvo.app?subject=Team%20License%20Inquiry">Contact Us</a>
+                {% endif %}
+            </div>
+
+            <!-- ENTERPRISE (Custom / $3,500/yr) -->
+            <div class="pricing-card enterprise">
+                <h2>Enterprise</h2>
+                <div class="price">Custom<span> / Starts at $3,500 / year</span></div>
+                <p class="desc">For organizations requiring scale and support.</p>
+                <ul>
+                    <li>Unlimited seats</li>
+                    <li>Dedicated SLA support</li>
+                    <li>Custom SSO / SAML</li>
+                    <li>White-glove VPC deployment assistance</li>
+                </ul>
+                {% if current_user.is_authenticated and current_tier == 'enterprise' %}
+                    <a class="cta free" href="{{ url_for('auth.account') }}">✓ Enterprise Plan</a>
+                {% else %}
+                    <a class="cta free" href="mailto:support@dataconvo.app?subject=Enterprise%20Inquiry">Talk to Sales</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <p class="footnote">
+            All plans are 100% self-hosted. No data leaves your infrastructure. License activation happens in
+            Account → <strong>License & Subscription</strong> using a signed license key tied to your admin email.
+        </p>
+    </div>
+</body>
+</html>

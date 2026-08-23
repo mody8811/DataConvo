@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Data-Convo{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+            <div class="container">
+                <a class="navbar-brand" href="{{ request.url_for('index') }}">
+                    <img src="{{ url_for('static', filename='temp_images/logo-no-background.png') }}" alt="Data-Convo Logo" style="height: 45px;">
+                </a>
+                <div class="collapse navbar-collapse">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item"><a class="nav-link" href="{{ request.url_for('login') }}">Log In</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ request.url_for('signup') }}">Sign Up</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ request.url_for('pricing') }}">Pricing</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <main class="py-4">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="bg-dark text-white text-center py-3">
+        <div class="container">&copy; 2024 Data-Convo. All rights reserved.</div>
+    </footer>
+    {% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% endblock %}
+</body>
+</html>

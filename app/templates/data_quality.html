@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anomaly Studio — Data Convo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/static/brand/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/brand/favicon-32x32.png">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        :root {
+            --dq-bg: #070a11;
+            --dq-surface: #0d111d;
+            --dq-card: #0f1524;
+            --dq-border: #1e293b;
+            --dq-border-strong: #334155;
+            --dq-accent: #6366f1;
+            --dq-accent-hover: #818cf8;
+            --dq-success: #10b981;
+            --dq-error: #ef4444;
+            --dq-warning: #f59e0b;
+            --dq-text: #e2e8f0;
+            --dq-text-secondary: #94a3b8;
+            --dq-text-muted: #64748b;
+            --dq-accent-glow: rgba(99, 102, 241, 0.35);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--dq-bg);
+            color: var(--dq-text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+
+        .dq-shell { display: flex; min-height: 100vh; }
+
+        .dq-sidebar {
+            width: 260px;
+            background: rgba(11, 15, 26, 0.98);
+            border-right: 1px solid var(--dq-border);
+            position: fixed;
+            top: 0; bottom: 0; left: 0;
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dq-main { flex: 1; margin-left: 260px; min-width: 0; }
+
+        @media (max-width: 900px) { .dq-sidebar { display: none; } .dq-main { margin-left: 0; } }
+
+        .dq-logo { padding: 22px 24px; border-bottom: 1px solid var(--dq-border); display: flex; align-items: center; gap: 10px; text-decoration: none; }
+        .dq-logo:hover { text-decoration: none; }
+        .dq-logo img { height: 44px; object-fit: contain; }
+        .dq-nav { padding: 16px 12px; flex: 1; overflow-y: auto; }
+        .dq-nav-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dq-text-muted); padding: 8px 12px; font-weight: 700; }
+        .dq-nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 11px 12px; border-radius: 10px;
+            color: var(--dq-text-secondary); font-size: 0.85rem; font-weight: 600;
+            text-decoration: none; transition: all 0.18s; margin-bottom: 4px;
+        }
+        .dq-nav-item:hover { background: rgba(255,255,255,0.04); color: var(--dq-text); }
+        .dq-nav-item.active { background: rgba(99,102,241,0.12); color: var(--dq-accent-hover); border: 1px solid rgba(99,102,241,0.25); }
+
+        /* Topbar */
+        .dq-topbar {
+            height: 68px; border-bottom: 1px solid var(--dq-border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 28px;
+            background: rgba(7,10,17,0.85); backdrop-filter: blur(14px);
+            position: sticky; top: 0; z-index: 30;
+        }
+        .dq-topbar-title { font-size: 1.1rem; font-weight: 700; }
+        .dq-topbar-sub { font-size: 0.75rem; color: var(--dq-text-muted); margin-top: 2px; }
+        .dq-btn {
+            padding: 9px 16px; border-radius: 10px;
+            border: 1px solid var(--dq-border);
+            background: rgba(255,255,255,0.03);
+            color: var(--dq-text-secondary); font-size: 0.8rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+            text-decoration: none; font-family: 'Inter', sans-serif;
+        }
+        .dq-btn:hover { background: rgba(255,255,255,0.06); color: var(--dq-text); border-color: var(--dq-border-strong); }
+        .dq-btn.primary { background: linear-gradient(135deg, var(--dq-accent), #8b5cf6); border: none; color: #fff; }
+        .dq-btn.primary:hover { filter: brightness(1.1); box-shadow: 0 4px 16px var(--dq-accent-glow); }
+        .dq-btn.danger { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--dq-error); }
+        .dq-btn.danger:hover { background: rgba(239,68,68,0.18); }
+
+        /* Content */
+        .dq-content { padding: 28px; max-width: 1600px; margin: 0 auto; }
+        .dq-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+        @media (max-width: 1100px) { .dq-layout { grid-template-columns: 1fr; } }
+
+        .dq-card {
+            background: var(--dq-card); border: 1px solid var(--dq-border);
+            border-radius: 16px; overflow: hidden;
+        }
+        .dq-card-header {
+            padding: 16px 18px; border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .dq-card-title { font-size: 0.9rem; font-weight: 700; }
+        .dq-card-count {
+            font-size: 0.7rem; font-weight: 700; color: var(--dq-text-muted);
+            padding: 3px 10px; border-radius: 999px;
+            background: rgba(255,255,255,0.04); border: 1px solid var(--dq-border);
+        }
+
+        /* Schema browser */
+        .schema-tree { padding: 8px; max-height: 70vh; overflow-y: auto; }
+        .schema-table-item {
+            padding: 10px 12px; border-radius: 10px; cursor: pointer;
+            display: flex; align-items: center; gap: 10px;
+            color: var(--dq-text-secondary); font-size: 0.82rem; font-weight: 600;
+            transition: all 0.15s; margin-bottom: 4px;
+        }
+        .schema-table-item:hover { background: rgba(255,255,255,0.04); color: var(--dq-text); }
+        .schema-table-item.active { background: rgba(99,102,241,0.12); color: var(--dq-accent-hover); border: 1px solid rgba(99,102,241,0.25); }
+        .schema-table-item .table-icon { font-size: 1rem; }
+        .schema-table-item .col-count { margin-left: auto; font-size: 0.68rem; color: var(--dq-text-muted); }
+        .schema-cols { padding: 0 12px 10px 30px; display: none; }
+        .schema-cols.open { display: block; }
+        .schema-col {
+            padding: 4px 10px; border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+            color: var(--dq-text-muted);
+        }
+        .schema-col:hover { background: rgba(255,255,255,0.03); color: var(--dq-text-secondary); }
+        .schema-search { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .schema-search input {
+            width: 100%; padding: 9px 12px; background: rgba(255,255,255,0.04);
+            border: 1px solid var(--dq-border); border-radius: 10px;
+            color: var(--dq-text); font-size: 0.78rem; outline: none; font-family: 'Inter', sans-serif;
+        }
+        .schema-search input:focus { border-color: rgba(99,102,241,0.5); box-shadow: 0 0 0 3px var(--dq-accent-glow); }
+
+        /* Monitors table */
+        .dq-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .dq-table thead th {
+            position: sticky; top: 0; background: #121829;
+            color: var(--dq-text-secondary); font-weight: 600;
+            text-align: left; padding: 12px 16px;
+            border-bottom: 1px solid var(--dq-border); white-space: nowrap;
+        }
+        .dq-table tbody td { padding: 11px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--dq-text); }
+        .dq-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 12px; border-radius: 999px; font-size: 0.7rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .status-badge.passing { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); color: var(--dq-success); }
+        .status-badge.failing { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: var(--dq-error); }
+        .status-badge.unknown { background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.25); color: var(--dq-text-muted); }
+        .severity-badge {
+            display: inline-flex; padding: 3px 10px; border-radius: 999px;
+            font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .severity-badge.critical { background: rgba(239,68,68,0.12); color: var(--dq-error); border: 1px solid rgba(239,68,68,0.3); }
+        .severity-badge.warning { background: rgba(245,158,11,0.12); color: var(--dq-warning); border: 1px solid rgba(245,158,11,0.3); }
+        .check-type-badge {
+            display: inline-flex; padding: 3px 10px; border-radius: 999px;
+            font-size: 0.68rem; font-weight: 600;
+            background: rgba(99,102,241,0.1); color: var(--dq-accent-hover); border: 1px solid rgba(99,102,241,0.25);
+        }
+        .dq-row-actions { display: flex; gap: 6px; }
+        .dq-row-btn {
+            padding: 6px 10px; border-radius: 8px; font-size: 0.72rem; font-weight: 600;
+            cursor: pointer; border: 1px solid var(--dq-border); background: rgba(255,255,255,0.03);
+            color: var(--dq-text-secondary); transition: all 0.15s; font-family: 'Inter', sans-serif;
+        }
+        .dq-row-btn:hover { color: var(--dq-text); border-color: var(--dq-border-strong); }
+
+        /* Incidents feed */
+        .dq-incidents { padding: 8px 12px; max-height: 360px; overflow-y: auto; }
+        .incident-item {
+            display: flex; gap: 12px; padding: 12px; border-radius: 12px;
+            background: rgba(255,255,255,0.02); border: 1px solid var(--dq-border); margin-bottom: 8px;
+        }
+        .incident-item.failing { border-left: 3px solid var(--dq-error); }
+        .incident-item.resolved { border-left: 3px solid var(--dq-success); }
+        .incident-avatar {
+            width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 1rem;
+            background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25);
+        }
+        .incident-body { flex: 1; min-width: 0; }
+        .incident-title { font-size: 0.78rem; font-weight: 700; color: var(--dq-text); word-break: break-word; }
+        .incident-msg { font-size: 0.72rem; color: var(--dq-text-muted); margin-top: 3px; word-break: break-word; }
+        .incident-meta { font-size: 0.66rem; color: var(--dq-text-muted); margin-top: 6px; display: flex; gap: 10px; flex-wrap: wrap; }
+
+        /* Modal */
+        .dq-modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            z-index: 200; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.2s ease;
+        }
+        .dq-modal-overlay.open { opacity: 1; visibility: visible; }
+        .dq-modal {
+            width: 92%; max-width: 560px; background: var(--dq-surface);
+            border: 1px solid var(--dq-border); border-radius: 18px; padding: 26px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+            transform: translateY(12px); transition: transform 0.25s ease; max-height: 90vh; overflow-y: auto;
+        }
+        .dq-modal-overlay.open .dq-modal { transform: translateY(0); }
+        .dq-modal-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 16px; }
+        .dq-field { margin-bottom: 14px; }
+        .dq-field label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--dq-text-secondary); margin-bottom: 6px; }
+        .dq-field select, .dq-field input, .dq-field textarea {
+            width: 100%; padding: 10px 12px;
+            background: rgba(255,255,255,0.03); border: 1px solid var(--dq-border); border-radius: 10px;
+            color: var(--dq-text); font-size: 0.82rem; outline: none; font-family: 'Inter', sans-serif;
+        }
+        .dq-field select:focus, .dq-field input:focus, .dq-field textarea:focus {
+            border-color: rgba(99,102,241,0.5); box-shadow: 0 0 0 3px var(--dq-accent-glow);
+        }
+        .dq-field textarea { min-height: 90px; resize: vertical; font-family: 'JetBrains Mono', monospace; }
+        .dq-severity-row { display: flex; gap: 10px; }
+        .dq-severity-option {
+            flex: 1; padding: 10px; border-radius: 10px; cursor: pointer;
+            text-align: center; font-size: 0.78rem; font-weight: 600;
+            border: 1px solid var(--dq-border); color: var(--dq-text-secondary); transition: all 0.15s;
+            background: rgba(255,255,255,0.03); font-family: 'Inter', sans-serif;
+        }
+        .dq-severity-option.warning.active { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.4); color: var(--dq-warning); }
+        .dq-severity-option.critical.active { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.4); color: var(--dq-error); }
+        .dq-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+        .dq-param-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* Toast */
+        .dq-toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .dq-toast {
+            min-width: 260px; max-width: 400px; padding: 13px 16px; border-radius: 12px;
+            background: var(--dq-surface); border: 1px solid var(--dq-border);
+            box-shadow: 0 14px 44px rgba(0,0,0,0.55); color: var(--dq-text);
+            font-size: 0.84rem; display: flex; align-items: center; gap: 10px;
+            animation: dqIn 0.3s cubic-bezier(0.4,0,0.2,1); pointer-events: auto;
+        }
+        .dq-toast.success { border-left: 3px solid var(--dq-success); }
+        .dq-toast.error { border-left: 3px solid var(--dq-error); }
+        .dq-toast.warning { border-left: 3px solid var(--dq-warning); }
+        .dq-toast.hiding { animation: dqOut 0.3s ease forwards; }
+        @keyframes dqIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes dqOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(24px); } }
+
+        /* Empty state */
+        .dq-empty { text-align: center; padding: 48px 24px; color: var(--dq-text-muted); }
+        .dq-empty-icon { font-size: 2.6rem; margin-bottom: 14px; }
+        .dq-empty h3 { color: var(--dq-text); font-size: 1.1rem; margin: 0 0 6px; }
+        .dq-empty p { font-size: 0.85rem; margin: 0 0 20px; }
+    </style>
+</head>
+<body>
+    <div class="dq-shell">
+        <aside class="dq-sidebar">
+            <a href="/" class="dq-logo" title="Go to Home"><img src="/static/brand/logo-horizontal.png" alt="Data Convo"></a>
+            <div class="dq-nav">
+                <div class="dq-nav-label">Workspace</div>
+                <a class="dq-nav-item" href="/chat"><span>💬</span> AI Chat</a>
+                <a class="dq-nav-item" href="/dashboard"><span>📊</span> Dashboard</a>
+                <a class="dq-nav-item active" href="/data-quality"><span>🩺</span> Anomaly Studio</a>
+                <div class="dq-nav-label">Admin</div>
+                <a class="dq-nav-item" href="/semantic-studio"><span>🧠</span> Semantic Studio</a>
+            </div>
+        </aside>
+
+        <main class="dq-main">
+            <header class="dq-topbar">
+                <div>
+                    <div class="dq-topbar-title">Anomaly Studio</div>
+                    <div class="dq-topbar-sub">Physical schema monitors · bypass semantic layer · admin-only</div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <button class="dq-btn" onclick="refreshAll()">↻ Refresh</button>
+                    <button class="dq-btn primary" onclick="openCreateModal()">+ New Monitor</button>
+                </div>
+            </header>
+
+            <div class="dq-content">
+                <div class="dq-layout">
+                    <!-- Left: schema browser -->
+                    <div class="dq-card">
+                        <div class="dq-card-header">
+                            <span class="dq-card-title">🗂️ Database Schema</span>
+                            <span class="dq-card-count" id="schemaCount">0 tables</span>
+                        </div>
+                        <div class="schema-search">
+                            <input type="text" id="schemaSearch" placeholder="Filter tables..." oninput="filterSchema()">
+                        </div>
+                        <div class="schema-tree" id="schemaTree">
+                            <div class="dq-empty" style="padding:30px 20px;">
+                                <div class="dq-empty-icon">🗄️</div>
+                                <p>Loading raw schema...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: monitors + incidents -->
+                    <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+                        <div class="dq-card">
+                            <div class="dq-card-header">
+                                <span class="dq-card-title">🛡️ Active Monitors</span>
+                                <span class="dq-card-count" id="monitorCount">0</span>
+                            </div>
+                            <div style="overflow-x:auto;">
+                                <table class="dq-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Table</th><th>Check</th><th>Severity</th><th>Status</th><th>Frequency</th><th>Last Run</th><th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="monitorsBody">
+                                        <tr><td colspan="7"><div class="dq-empty" style="padding:30px;"><p>Loading monitors...</p></div></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="dq-card">
+                            <div class="dq-card-header">
+                                <span class="dq-card-title">📋 Recent Incidents</span>
+                                <span class="dq-card-count">audit log</span>
+                            </div>
+                            <div class="dq-incidents" id="incidentsFeed">
+                                <div class="dq-empty" style="padding:24px;"><p>Loading incident history...</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="dqToastContainer" class="dq-toast-container"></div>
+
+    <!-- Create monitor modal -->
+    <div class="dq-modal-overlay" id="createMonitorModal">
+        <div class="dq-modal">
+            <div class="dq-modal-title">🩺 New Data Quality Monitor</div>
+
+            <div class="dq-field">
+                <label for="mqTable">Table</label>
+                <select id="mqTable"></select>
+            </div>
+
+            <div class="dq-field">
+                <label for="mqCheckType">Check Type</label>
+                <select id="mqCheckType" onchange="onCheckTypeChange()">
+                    <option value="freshness">Freshness — max timestamp age</option>
+                    <option value="volume">Volume — row count bounds</option>
+                    <option value="null_threshold">Null Threshold — % nulls in column</option>
+                    <option value="schema_drift">Schema Drift — column/type changes</option>
+                    <option value="uniqueness">Uniqueness — duplicate detection</option>
+                    <option value="value_range">Value Range — acceptance bounds</option>
+                    <option value="custom_sql">Custom SQL Assertion</option>
+                </select>
+            </div>
+
+            <div id="mqParamsContainer"></div>
+
+            <div class="dq-field">
+                <label for="mqFrequency">Frequency</label>
+                <select id="mqFrequency">
+                    <option value="manual">Manual</option>
+                    <option value="hourly">Hourly</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                </select>
+            </div>
+
+            <div class="dq-field">
+                <label>Severity</label>
+                <div class="dq-severity-row">
+                    <button type="button" class="dq-severity-option warning active" data-sev="warning" onclick="setSeverity('warning')">⚠️ Warning</button>
+                    <button type="button" class="dq-severity-option critical" data-sev="critical" onclick="setSeverity('critical')">🚨 Critical</button>
+                </div>
+            </div>
+
+            <div class="dq-field">
+                <label>🔔 Alert Notifications</label>
+                <div class="chart-toggle-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid var(--dq-border);border-radius:10px;margin-bottom:8px;">
+                    <div>
+                        <div style="font-size:0.8rem;font-weight:600;color:var(--dq-text-secondary);">Send alerts on failure</div>
+                        <div style="font-size:0.68rem;color:var(--dq-text-muted);margin-top:2px;">Email + Slack when a monitor fails</div>
+                    </div>
+                    <label class="chart-toggle" style="position:relative;width:42px;height:24px;border-radius:999px;background:rgba(255,255,255,0.08);border:1px solid var(--dq-border);cursor:pointer;">
+                        <input type="checkbox" id="mqAlertsEnabled" style="opacity:0;width:0;height:0;">
+                        <span style="content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#e2e8f0;transition:all 0.2s;pointer-events:none;"></span>
+                    </label>
+                </div>
+                <div id="mqChannelsContainer" style="display:none;">
+                    <div class="dq-field">
+                        <label for="mqEmailRecipients">Email Recipients (comma-separated)</label>
+                        <input type="text" id="mqEmailRecipients" placeholder="ops@company.com, alerts@company.com">
+                    </div>
+                    <div class="dq-field">
+                        <label for="mqSlackWebhook">Slack Webhook URL</label>
+                        <input type="text" id="mqSlackWebhook" placeholder="https://hooks.slack.com/services/...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="dq-modal-actions">
+                <button class="dq-btn" onclick="closeCreateModal()">Cancel</button>
+                <button class="dq-btn primary" onclick="createMonitor()">Create Monitor</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== State =====
+        let schemaTables = [];
+        let monitors = [];
+        let incidents = [];
+        let selectedSeverity = 'warning';
+        let selectedTable = '';
+
+        // ===== Toast =====
+        function dqToast(message, type = 'success') {
+            const c = document.getElementById('dqToastContainer');
+            const t = document.createElement('div');
+            t.className = 'dq-toast ' + type;
+            t.innerHTML = `<span>${type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌'}</span><span></span>`;
+            t.querySelector('span:last-child').textContent = message;
+            c.appendChild(t);
+            setTimeout(() => { t.classList.add('hiding'); setTimeout(() => t.remove(), 300); }, 4000);
+        }
+
+        // ===== API =====
+        async function apiFetch(url, options = {}) {
+            const opts = { credentials: 'include', ...options };
+            if (opts.body && typeof opts.body !== 'string') {
+                opts.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+                opts.body = JSON.stringify(opts.body);
+            }
+            const res = await fetch(url, opts);
+            let data = null;
+            try { data = await res.json(); } catch (e) {}
+            if (!res.ok) throw new Error((data && data.error) || ('Request failed (' + res.status + ')'));
+            return data;
+        }
+
+        function escapeHtml(t) {
+            if (!t) return '';
+            return String(t).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"').replace(/'/g, '&#039;');
+        }
+
+        function fmtTime(iso) {
+            if (!iso) return '—';
+            try { return new Date(iso).toLocaleString(); } catch (e) { return iso; }
+        }
+
+        // ===== Schema browser =====
+        async function loadSchema() {
+            const tree = document.getElementById('schemaTree');
+            try {
+                const data = await apiFetch('/api/data-quality/tables');
+                schemaTables = data.tables || [];
+                document.getElementById('schemaCount').textContent = schemaTables.length + ' tables';
+                if (schemaTables.length === 0) {
+                    tree.innerHTML = '<div class="dq-empty"><div class="dq-empty-icon">🗄️</div><p>No physical tables found. Connect a database first.</p></div>';
+                    return;
+                }
+                renderSchema();
+            } catch (err) {
+                tree.innerHTML = '<div class="dq-empty"><div class="dq-empty-icon">⚠️</div><p>' + escapeHtml(err.message) + '</p></div>';
+            }
+        }
+
+        function renderSchema() {
+            const tree = document.getElementById('schemaTree');
+            const q = (document.getElementById('schemaSearch').value || '').toLowerCase();
+            const filtered = q ? schemaTables.filter(t => t.name.toLowerCase().includes(q) || t.column_names.some(c => c.toLowerCase().includes(q))) : schemaTables;
+            tree.innerHTML = filtered.map(t => `
+                <div>
+                    <div class="schema-table-item" data-table="${escapeHtml(t.name)}" onclick="toggleTableCols(this)">
+                        <span class="table-icon">🗂️</span>
+                        <span>${escapeHtml(t.name)}</span>
+                        <span class="col-count">${t.column_names.length} cols</span>
+                    </div>
+                    <div class="schema-cols">
+                        ${t.column_names.slice(0, 20).map(c => `<div class="schema-col">· ${escapeHtml(c)}</div>`).join('')}
+                        ${t.column_names.length > 20 ? `<div class="schema-col" style="opacity:0.6;">… +${t.column_names.length - 20} more</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterSchema() {
+            if (schemaTables.length) renderSchema();
+        }
+
+        function toggleTableCols(el) {
+            el.classList.toggle('active');
+            const cols = el.nextElementSibling;
+            if (cols) cols.classList.toggle('open');
+            // Populate create-modal table selection
+            selectedTable = el.dataset.table;
+            const sel = document.getElementById('mqTable');
+            if (sel && ![...sel.options].some(o => o.value === selectedTable)) {
+                const opt = document.createElement('option');
+                opt.value = selectedTable;
+                opt.textContent = selectedTable;
+                sel.appendChild(opt);
+            }
+            sel.value = selectedTable;
+            buildParamsFields();
+        }
+
+        // ===== Create modal =====
+        function openCreateModal() {
+            buildTableOptions();
+            buildParamsFields();
+            // Reset notification toggle state
+            const alertsToggle = document.getElementById('mqAlertsEnabled');
+            if (alertsToggle) {
+                alertsToggle.checked = false;
+                const chan = document.getElementById('mqChannelsContainer');
+                if (chan) chan.style.display = 'none';
+                alertsToggle.onchange = toggleAlertChannels;
+            }
+            document.getElementById('createMonitorModal').classList.add('open');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createMonitorModal').classList.remove('open');
+        }
+
+        function buildTableOptions() {
+            const sel = document.getElementById('mqTable');
+            sel.innerHTML = '<option value="">-- Select a table --</option>';
+            schemaTables.forEach(t => {
+                const o = document.createElement('option');
+                o.value = t.name;
+                o.textContent = t.name + ' (' + t.column_names.length + ' cols)';
+                sel.appendChild(o);
+            });
+            if (selectedTable && [...sel.options].some(o => o.value === selectedTable)) sel.value = selectedTable;
+        }
+
+        function onCheckTypeChange() { buildParamsFields(); }
+
+        function buildParamsFields() {
+            const type = document.getElementById('mqCheckType').value;
+            const table = document.getElementById('mqTable').value;
+            const t = schemaTables.find(x => x.name === table);
+            const cols = t ? t.column_names : [];
+            const colOpts = cols.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+            const multiColOpts = cols.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+            const c = document.getElementById('mqParamsContainer');
+            let html = '';
+            if (type === 'freshness') {
+                html = `
+                    <div class="dq-param-grid">
+                        <div class="dq-field">
+                            <label for="pTimestampColumn">Timestamp Column</label>
+                            <select id="pTimestampColumn"><option value="">-- select --</option>${colOpts}</select>
+                        </div>
+                        <div class="dq-field">
+                            <label for="pThresholdHours">Max Age (hours)</label>
+                            <input type="number" id="pThresholdHours" value="24" min="1">
+                        </div>
+                    </div>`;
+            } else if (type === 'volume') {
+                html = `
+                    <div class="dq-param-grid">
+                        <div class="dq-field">
+                            <label for="pMinRows">Min Rows (optional)</label>
+                            <input type="number" id="pMinRows" placeholder="e.g. 0">
+                        </div>
+                        <div class="dq-field">
+                            <label for="pMaxRows">Max Rows (optional)</label>
+                            <input type="number" id="pMaxRows" placeholder="e.g. 1000000">
+                        </div>
+                    </div>`;
+            } else if (type === 'null_threshold') {
+                html = `
+                    <div class="dq-param-grid">
+                        <div class="dq-field">
+                            <label for="pNullColumn">Column</label>
+                            <select id="pNullColumn"><option value="">-- select --</option>${colOpts}</select>
+                        </div>
+                        <div class="dq-field">
+                            <label for="pNullPct">Max Null %</label>
+                            <input type="number" id="pNullPct" value="10" min="0" max="100" step="0.1">
+                        </div>
+                    </div>`;
+            } else if (type === 'schema_drift') {
+                // Baseline snapshot captured from the live schema at creation time
+                const baselineCols = t ? t.column_names.slice(0, 50) : [];
+                const baselineJson = {};
+                if (t) {
+                    baselineCols.forEach(c => { baselineJson[c] = (t.column_types && t.column_types[c]) || 'unknown'; });
+                }
+                html = `
+                    <div class="dq-field">
+                        <label>Baseline Schema Snapshot</label>
+                        <div style="font-size:0.72rem;color:var(--dq-text-muted);background:rgba(255,255,255,0.03);border:1px solid var(--dq-border);border-radius:8px;padding:8px 10px;margin-bottom:8px;">
+                            Captured at creation: <strong>${baselineCols.length}</strong> column(s) — ${baselineCols.length ? baselineCols.slice(0, 5).join(', ') + (baselineCols.length > 5 ? '…' : '') : 'none'}
+                        </div>
+                        <input type="hidden" id="pBaselineColumns" value='${escapeHtml(JSON.stringify(baselineJson))}'>
+                    </div>`;
+            } else if (type === 'uniqueness') {
+                html = `
+                    <div class="dq-param-grid">
+                        <div class="dq-field">
+                            <label for="pUniqueColumns">Unique Columns (select multiple)</label>
+                            <select id="pUniqueColumns" multiple size="6" style="min-height:120px;">${multiColOpts}</select>
+                            <div style="font-size:0.68rem;color:var(--dq-text-muted);margin-top:4px;">Hold Ctrl/Cmd to select multiple columns (composite key).</div>
+                        </div>
+                        <div class="dq-field">
+                            <label for="pMaxDupPct">Max Duplicate %</label>
+                            <input type="number" id="pMaxDupPct" value="0" min="0" max="100" step="0.1">
+                        </div>
+                    </div>`;
+            } else if (type === 'value_range') {
+                html = `
+                    <div class="dq-field">
+                        <label for="pRangeColumn">Column</label>
+                        <select id="pRangeColumn"><option value="">-- select --</option>${colOpts}</select>
+                    </div>
+                    <div class="dq-param-grid">
+                        <div class="dq-field">
+                            <label for="pMinValue">Min Value (numeric)</label>
+                            <input type="number" id="pMinValue" placeholder="e.g. 0">
+                        </div>
+                        <div class="dq-field">
+                            <label for="pMaxValue">Max Value (numeric)</label>
+                            <input type="number" id="pMaxValue" placeholder="e.g. 1000000">
+                        </div>
+                    </div>
+                    <div class="dq-field">
+                        <label for="pAllowedValues">Allowed Values (comma-separated whitelist)</label>
+                        <input type="text" id="pAllowedValues" placeholder="e.g. Active, Delayed, Completed">
+                    </div>`;
+            } else if (type === 'custom_sql') {
+                html = `
+                    <div class="dq-field">
+                        <label for="pCustomSql">Custom SQL Assertion (SELECT — any returned row = failure)</label>
+                        <textarea id="pCustomSql" placeholder='e.g. SELECT * FROM "mytable" WHERE status = &#039;ERROR&#039; AND created_at < date();'></textarea>
+                    </div>`;
+            }
+            c.innerHTML = html;
+        }
+
+        function toggleAlertChannels() {
+            const enabled = document.getElementById('mqAlertsEnabled').checked;
+            document.getElementById('mqChannelsContainer').style.display = enabled ? 'block' : 'none';
+        }
+
+        function setSeverity(sev) {
+            selectedSeverity = sev;
+            document.querySelectorAll('.dq-severity-option').forEach(b => b.classList.toggle('active', b.dataset.sev === sev));
+        }
+
+        async function createMonitor() {
+            const table = document.getElementById('mqTable').value;
+            const type = document.getElementById('mqCheckType').value;
+            const frequency = document.getElementById('mqFrequency').value;
+            if (!table) { dqToast('Please select a table.', 'error'); return; }
+
+            const params = {};
+            if (type === 'freshness') {
+                params.timestamp_column = document.getElementById('pTimestampColumn').value;
+                params.threshold_hours = parseFloat(document.getElementById('pThresholdHours').value) || 24;
+            } else if (type === 'volume') {
+                const mn = document.getElementById('pMinRows').value;
+                const mx = document.getElementById('pMaxRows').value;
+                if (mn !== '') params.min_rows = parseInt(mn, 10);
+                if (mx !== '') params.max_rows = parseInt(mx, 10);
+            } else if (type === 'null_threshold') {
+                params.column = document.getElementById('pNullColumn').value;
+                params.threshold_pct = parseFloat(document.getElementById('pNullPct').value) || 10;
+            } else if (type === 'schema_drift') {
+                try {
+                    params.baseline_columns = JSON.parse(document.getElementById('pBaselineColumns').value || '{}');
+                } catch (e) {
+                    params.baseline_columns = {};
+                }
+            } else if (type === 'uniqueness') {
+                const sel = document.getElementById('pUniqueColumns');
+                params.columns = Array.from(sel.selectedOptions).map(o => o.value);
+                params.max_duplicate_pct = parseFloat(document.getElementById('pMaxDupPct').value) || 0;
+            } else if (type === 'value_range') {
+                params.column = document.getElementById('pRangeColumn').value;
+                const mn = document.getElementById('pMinValue').value;
+                const mx = document.getElementById('pMaxValue').value;
+                if (mn !== '') params.min_value = parseFloat(mn);
+                if (mx !== '') params.max_value = parseFloat(mx);
+                const allowed = document.getElementById('pAllowedValues').value;
+                if (allowed.trim()) {
+                    params.allowed_values = allowed.split(',').map(s => s.trim()).filter(Boolean);
+                }
+            } else if (type === 'custom_sql') {
+                params.sql = document.getElementById('pCustomSql').value;
+            }
+
+            // Collect notification channels
+            const notification_channels = {};
+            if (document.getElementById('mqAlertsEnabled').checked) {
+                const emails = document.getElementById('mqEmailRecipients').value;
+                if (emails.trim()) {
+                    notification_channels.emails = emails.split(',').map(s => s.trim()).filter(Boolean);
+                }
+                const webhook = document.getElementById('mqSlackWebhook').value;
+                if (webhook.trim()) {
+                    notification_channels.slack_webhook_url = webhook.trim();
+                }
+            }
+
+            try {
+                const created = await apiFetch('/api/data-quality/monitors', {
+                    method: 'POST',
+                    body: { table_name: table, check_type: type, parameters: params, frequency: frequency, severity: selectedSeverity, is_active: true, notification_channels: notification_channels }
+                });
+                closeCreateModal();
+                dqToast('Monitor created.');
+                await loadMonitors();
+                selectedTable = '';
+            } catch (err) {
+                dqToast(err.message, 'error');
+            }
+        }
+
+        // ===== Monitors =====
+        async function loadMonitors() {
+            try {
+                monitors = await apiFetch('/api/data-quality/monitors');
+                document.getElementById('monitorCount').textContent = monitors.length;
+                const body = document.getElementById('monitorsBody');
+                if (!monitors.length) {
+                    body.innerHTML = '<tr><td colspan="7"><div class="dq-empty"><div class="dq-empty-icon">🛡️</div><h3>No monitors yet</h3><p>Create your first data quality monitor to start tracking raw table health.</p></div></td></tr>';
+                    return;
+                }
+                body.innerHTML = monitors.map(m => `
+                    <tr>
+                        <td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;">${escapeHtml(m.table_name)}</td>
+                        <td><span class="check-type-badge">${escapeHtml(m.check_type.replace('_', ' '))}</span></td>
+                        <td><span class="severity-badge ${escapeHtml(m.severity)}">${escapeHtml(m.severity)}</span></td>
+                        <td><span class="status-badge ${m.status === 'failing' ? 'failing' : m.status === 'passing' ? 'passing' : 'unknown'}">● ${m.status || 'unknown'}</span></td>
+                        <td>${escapeHtml(m.frequency || 'manual')}</td>
+                        <td style="font-size:0.72rem;color:var(--dq-text-muted);">${fmtTime(m.last_run)}</td>
+                        <td>
+                            <div class="dq-row-actions">
+                                <button class="dq-row-btn" onclick="runMonitor('${m.id}')">▶ Run Now</button>
+                                <button class="dq-row-btn" style="color:var(--dq-error);border-color:rgba(239,68,68,0.3);" onclick="deleteMonitor('${m.id}')">✕</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                document.getElementById('monitorsBody').innerHTML = '<tr><td colspan="7"><div class="dq-empty"><p>' + escapeHtml(err.message) + '</p></div></td></tr>';
+            }
+        }
+
+        async function runMonitor(id) {
+            try {
+                const res = await apiFetch('/api/data-quality/monitors/' + id + '/run', { method: 'POST' });
+                dqToast(res.message, res.passed ? 'success' : 'warning');
+                await loadMonitors();
+                await loadIncidents();
+            } catch (err) {
+                dqToast(err.message, 'error');
+            }
+        }
+
+        async function deleteMonitor(id) {
+            if (!confirm('Delete this monitor and its incident history?')) return;
+            try {
+                await apiFetch('/api/data-quality/monitors/' + id, { method: 'DELETE' });
+                dqToast('Monitor deleted.');
+                await loadMonitors();
+                await loadIncidents();
+            } catch (err) {
+                dqToast(err.message, 'error');
+            }
+        }
+
+        // ===== Incidents =====
+        function renderIncidents() {
+            const feed = document.getElementById('incidentsFeed');
+            if (!incidents.length) {
+                feed.innerHTML = '<div class="dq-empty" style="padding:24px;"><div class="dq-empty-icon">📋</div><p>No incidents yet. Run a monitor to generate history.</p></div>';
+                return;
+            }
+            feed.innerHTML = incidents.map(inc => `
+                <div class="incident-item ${inc.status}">
+                    <div class="incident-avatar">${inc.status === 'failing' ? '🚨' : '✅'}</div>
+                    <div class="incident-body">
+                        <div class="incident-title">${escapeHtml(inc.table_name)} · ${escapeHtml(inc.check_type.replace('_', ' '))}</div>
+                        <div class="incident-msg">${escapeHtml(inc.error_message)}</div>
+                        <div class="incident-meta">
+                            <span class="severity-badge ${escapeHtml(inc.severity || 'warning')}">${escapeHtml(inc.severity || 'warning')}</span>
+                            <span>${fmtTime(inc.triggered_at)}</span>
+                            ${inc.failed_rows_count !== null && inc.failed_rows_count !== undefined ? `<span>${inc.failed_rows_count} affected row(s)</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadIncidents() {
+            try {
+                incidents = await apiFetch('/api/data-quality/incidents?limit=50');
+                renderIncidents();
+            } catch (err) {
+                document.getElementById('incidentsFeed').innerHTML = '<div class="dq-empty"><p>' + escapeHtml(err.message) + '</p></div>';
+            }
+        }
+
+        async function refreshAll() {
+            await loadSchema();
+            await loadMonitors();
+            await loadIncidents();
+        }
+
+        document.addEventListener('DOMContentLoaded', refreshAll);
+    </script>
+<script src="/static/ux.js"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+version: "3.9"
+
+# ============================================================
+# Data Convo — Self-Hosted Production Stack
+# ============================================================
+# Deployed 100% on your own infrastructure. This manifest binds the
+# internal metadata database (SQLite via DATABASE_URL) and the app's
+# runtime data directory to a named volume, so `docker compose pull
+# && docker compose up -d` upgrades NEVER lose users, workspaces,
+# semantic models, or license state.
+#
+# Quick start:
+#   1. cp .env.example .env            (fill in BYOK + secrets)
+#   2. docker compose up -d --build
+#   3. open http://localhost:8000
+# ============================================================
+
+services:
+  app:
+    build: .
+    image: dataconvo:latest
+    container_name: dataconvo
+    restart: unless-stopped
+
+    # Expose on port 8000 by default; override via PORT in .env.
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+
+    # Persist the metadata database + user runtime data on a named volume
+    # so configuration, users, and semantic models survive container rebuilds.
+    volumes:
+      - dataconvo_data:/app/data
+
+    env_file:
+      - .env
+
+    environment:
+      # Force the SQLite metadata DB inside the named volume dir.
+      DATABASE_URL: "sqlite:////app/data/dataconvo.db"
+      # FLASK/SECRET_KEY comes from .env (FLASK_SECRET_KEY or SECRET_KEY).
+      APP_VERSION: "${APP_VERSION:-1.0.0}"
+      PORT: "${PORT:-8000}"
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-8000}/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  dataconvo_data:
+    name: dataconvo_data

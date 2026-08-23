@@ -1,0 +1,88 @@
+# ============ Python / virtualenv ============
+venv/
+.venv/
+env/
+.conda/
+__pycache__/
+*.py[cod]
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ============ Environment & secrets (NEVER commit) ============
+# Copy .env.example to .env locally; never ship real keys.
+.env
+!.env.example
+
+# ============ Data / databases (never commit local DBs) ============
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+sql_cache.db
+dataconvo.db
+
+# ============ Sessions / runtime state ============
+flask_session/
+flask_sessions/
+instance/
+.cache/
+.sass-cache/
+
+# ============ Uploads / user content ============
+uploads/
+app/uploads/
+
+# ============ Backups / exports / local-only ============
+Basebackup/
+exported_files/
+*.backup
+*.bak
+
+# ============ Local machine folders ============
+Mt4 indicator/
+Manage
+
+# ============ Debug/verification scratch (dev only, never ship) ============
+_verify_*.py
+_run_*.py
+_add_*.py
+_find_lines.py
+_glot_out.txt
+_byok_out.txt
+_dbg_byok.txt
+inspout.txt
+
+# ============ Logs / temp ============
+*.log
+*.tmp
+*.pid
+
+# ============ IDE / OS ============
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ============ Tests / coverage ============
+*.coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+fastapi_env/

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Set Up Two-Factor Authentication — Data Convo</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: radial-gradient(ellipse at 0% 0%, rgba(99,102,241,0.12), transparent 50%), var(--bg-primary); }
+        .mfa-card { width: 100%; max-width: 440px; padding: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 16px 48px rgba(0,0,0,0.36); text-align: center; }
+        .mfa-card h1 { font-size: 1.35rem; margin-bottom: 8px; }
+        .mfa-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
+        .brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px; }
+        .brand img { width: 34px; height: 34px; }
+        .qr-img { width: 220px; height: 220px; border: 1px solid var(--border); border-radius: 12px; margin: 0 auto 18px; display: block; background: #fff; padding: 8px; }
+        .manual-key { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; font-family: var(--font-mono); font-size: 0.9rem; letter-spacing: 0.15em; color: var(--text-primary); margin: 8px 0 16px; }
+        .copy-btn, .verify-btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+        .verify-btn { background: linear-gradient(135deg, var(--accent), var(--accent-secondary)); color: white; }
+        .copy-btn { background: var(--surface-hover); color: var(--text-secondary); border: 1px solid var(--border); }
+        .code-input { width: 100%; padding: 12px; font-size: 1.2rem; letter-spacing: 0.3em; text-align: center; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); outline: none; margin-top: 12px; }
+        .msg { font-size: 0.85rem; margin-top: 12px; min-height: 18px; }
+        .msg.error { color: var(--error); }
+        .msg.success { color: var(--success); }
+        .back { display: block; margin-top: 16px; color: var(--text-muted); font-size: 0.8rem; text-decoration: none; }
+        .loading { opacity: 0.6; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div class="mfa-card">
+        <div class="brand"><img src="/static/brand/logo-mark.png" alt="Data Convo"><strong>Data Convo</strong></div>
+        <h1>Set Up Two-Factor Authentication</h1>
+        <p>Scan the QR code with Google/Microsoft Authenticator, or enter the manual key.</p>
+
+        <img id="qrImg" class="qr-img" alt="QR code">
+        <div class="manual-key" id="manualKey">Loading…</div>
+        <button id="copyBtn" class="copy-btn">📋 Copy Manual Key</button>
+
+        <input id="codeInput" class="code-input" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit code">
+        <button id="verifyBtn" class="verify-btn">Verify & Enable</button>
+        <div id="msg" class="msg"></div>
+        <a class="back" href="{{ url_for('auth.account') }}">← Back to Account</a>
+    </div>
+
+    <script>
+        let mfaSecret = '';
+
+        async function loadSetup() {
+            try {
+                const r = await fetch('/api/auth/mfa/setup', { credentials: 'include' });
+                const d = await r.json();
+                if (d.error) { document.getElementById('msg').textContent = d.error; document.getElementById('msg').className = 'msg error'; return; }
+                mfaSecret = d.secret;
+                document.getElementById('qrImg').src = 'data:image/png;base64,' + d.qr_b64;
+                document.getElementById('manualKey').textContent = d.secret;
+                if (d.enrolled) {
+                    document.getElementById('msg').textContent = '✅ MFA is already enabled.';
+                    document.getElementById('msg').className = 'msg success';
+                }
+            } catch (e) {
+                document.getElementById('msg').textContent = 'Failed to load MFA setup: ' + e.message;
+                document.getElementById('msg').className = 'msg error';
+            }
+        }
+
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            if (!mfaSecret) return;
+            try { await navigator.clipboard.writeText(mfaSecret); }
+            catch (e) {
+                const t = document.getElementById('manualKey');
+                const r = document.createRange(); r.selectNodeContents(t);
+                const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+                document.execCommand('copy'); s.removeAllRanges();
+            }
+            document.getElementById('msg').textContent = 'Manual key copied to clipboard.';
+            document.getElementById('msg').className = 'msg success';
+        });
+
+        document.getElementById('verifyBtn').addEventListener('click', async () => {
+            const code = document.getElementById('codeInput').value.trim();
+            if (!/^\d{6}$/.test(code)) { document.getElementById('msg').textContent = 'Enter a 6-digit code.'; document.getElementById('msg').className = 'msg error'; return; }
+            const btn = document.getElementById('verifyBtn');
+            btn.textContent = 'Verifying…'; btn.classList.add('loading');
+            try {
+                const r = await fetch('/api/auth/mfa/verify', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+                    body: JSON.stringify({ code })
+                });
+                const d = await r.json();
+                if (d.error) { document.getElementById('msg').textContent = d.error; document.getElementById('msg').className = 'msg error'; }
+                else {
+                    document.getElementById('msg').textContent = '✅ MFA enabled successfully.';
+                    document.getElementById('msg').className = 'msg success';
+                }
+            } catch (e) {
+                document.getElementById('msg').textContent = 'Network error: ' + e.message;
+                document.getElementById('msg').className = 'msg error';
+            } finally {
+                btn.textContent = 'Verify & Enable'; btn.classList.remove('loading');
+            }
+        });
+
+        loadSetup();
+    </script>
+</body>
+</html>

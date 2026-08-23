@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Convo — Connect to Database</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/static/brand/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/brand/favicon-32x32.png">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        .home-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all var(--transition-fast);
+        }
+
+        .home-link:hover {
+            border-color: var(--border-strong);
+            color: var(--text-primary);
+            background: var(--surface-hover);
+            text-decoration: none;
+        }
+
+        .connect-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+            padding-top: 80px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        .brand-logo {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .brand-logo img { width: 100%; height: 100%; object-fit: contain; }
+
+        .brand-name {
+            font: var(--font-h3);
+            letter-spacing: -0.03em;
+            color: var(--text-primary);
+        }
+
+        .connect-card {
+            width: 100%;
+            max-width: 560px;
+            animation: slideUp 0.6s ease-out 0.1s both;
+        }
+
+        .connect-card h1 {
+            font: var(--font-h2);
+            margin-bottom: 8px;
+        }
+
+        .connect-card .subtitle {
+            color: var(--text-muted);
+            margin-bottom: 28px;
+            font: var(--font-body);
+        }
+
+        /* Database selector grid */
+        .db-selector-label {
+            font: var(--font-label);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .db-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 520px) {
+            .db-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .db-card {
+            position: relative;
+            background: #111827;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 18px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .db-card:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .db-card.active {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px #3b82f6, 0 0 24px rgba(59, 130, 246, 0.25);
+        }
+
+        .db-card .checkmark {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 18px;
+            height: 18px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.2s ease;
+        }
+
+        .db-card.active .checkmark {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .db-card .db-icon {
+            width: 36px;
+            height: 36px;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+        }
+
+        .db-card .db-name {
+            font: var(--font-body);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .db-card .db-tag {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        /* Security callout */
+        .security-callout {
+            background: #1e293b;
+            border-left: 4px solid #3b82f6;
+            border-radius: 0 8px 8px 0;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+            font: var(--font-body);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Form fields */
+        .form-group {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font: var(--font-label);
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font: var(--font-body);
+            transition: all var(--transition-fast);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 520px) {
+            .form-row { grid-template-columns: 1fr; }
+        }
+
+        .ip-whitelist {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .ip-whitelist strong {
+            color: var(--text-secondary);
+        }
+
+        /* Advanced accordion */
+        .advanced-accordion {
+            margin: 20px 0;
+            background: rgba(17, 24, 39, 0.5);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .advanced-accordion summary {
+            padding: 14px 16px;
+            cursor: pointer;
+            font: var(--font-label);
+            font-weight: 600;
+            color: var(--text-secondary);
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: color var(--transition-fast);
+        }
+
+        .advanced-accordion summary:hover {
+            color: var(--text-primary);
+        }
+
+        .advanced-accordion summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .advanced-accordion .chevron {
+            transition: transform 0.2s ease;
+            font-size: 0.8rem;
+        }
+
+        .advanced-accordion[open] .chevron {
+            transform: rotate(180deg);
+        }
+
+        .advanced-content {
+            padding: 0 16px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Toggle switch */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .toggle-label {
+            font: var(--font-body);
+            color: var(--text-primary);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: var(--border);
+            border-radius: 26px;
+            transition: 0.2s;
+        }
+
+        .toggle-slider:before {
+            content: "";
+            position: absolute;
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--accent);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+        }
+
+        .ssh-fields {
+            display: none;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .ssh-fields.visible {
+            display: flex;
+        }
+
+        /* Buttons */
+        .button-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        @media (max-width: 520px) {
+            .button-row { grid-template-columns: 1fr; }
+        }
+
+        .btn-test {
+            padding: 14px 20px;
+            border-radius: var(--radius-md);
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            font: var(--font-label);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-test:hover {
+            background: var(--surface-hover);
+            border-color: var(--border-strong);
+        }
+
+        .btn-connect {
+            padding: 14px 20px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            border: none;
+            color: white;
+            font: var(--font-label);
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-connect:hover {
+            box-shadow: 0 6px 20px var(--accent-glow);
+            filter: brightness(1.1);
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+            padding: 12px 14px;
+            border-radius: var(--radius-md);
+            margin-bottom: 16px;
+            font: var(--font-body);
+            font-size: 0.9rem;
+        }
+
+        .hidden-field {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="home-link">← Back to Home</a>
+    <div class="connect-page">
+        <a href="/" class="brand" title="Go to Home">
+            <div class="brand-logo">
+                <img src="/static/brand/logo-mark.png" alt="Data Convo">
+            </div>
+            <div class="brand-name">Data Convo</div>
+        </a>
+
+        <div class="card connect-card">
+            <h1>Connect Your Database</h1>
+            <p class="subtitle">Select your engine and configure a secure read-only connection.</p>
+
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" action="/set_connection" id="connectForm">
+                <input type="hidden" name="db_type" id="db_type" value="postgresql" required>
+
+                <label class="db-selector-label">Database Engine</label>
+                <div class="db-grid" id="dbGrid">
+                    <div class="db-card active" data-db="postgresql" data-port="5432">
+                        <div class="checkmark">✓</div>
+                        <div class="db-icon">🐘</div>
+                        <div class="db-name">PostgreSQL</div>
+                        <div class="db-tag">Relational</div>
+                    </div>
+                    <div class="db-card" data-db="mssql" data-port="1433">
+                        <div class="checkmark">✓</div>
+                        <div class="db-icon">🗄️</div>
+                        <div class="db-name">Microsoft SQL Server</div>
+                        <div class="db-tag">Relational</div>
+                    </div>
+                    <div class="db-card" data-db="mysql" data-port="3306">
+                        <div class="checkmark">✓</div>
+                        <div class="db-icon">🐬</div>
+                        <div class="db-name">MySQL</div>
+                        <div class="db-tag">Relational</div>
+                    </div>
+                    <div class="db-card" data-db="sqlite" data-port="">
+                        <div class="checkmark">✓</div>
+                        <div class="db-icon">📁</div>
+                        <div class="db-name">SQLite</div>
+                        <div class="db-tag">Local / Embedded</div>
+                    </div>
+                    <div class="db-card" data-db="snowflake" data-port="443">
+                        <div class="checkmark">✓</div>
+                        <div class="db-icon">❄️</div>
+                        <div class="db-name">Snowflake</div>
+                        <div class="db-tag">Cloud Data</div>
+                    </div>
+                    <div class="db-card" data-db="bigquery" data-port="443">
+                        <div class="checkmark">✓</div>
+                        <div class="db-icon">🔍</div>
+                        <div class="db-name">Google BigQuery</div>
+                        <div class="db-tag">Cloud Data</div>
+                    </div>
+                    <div class="db-card" data-db="redshift" data-port="5439">
+                        <div class="checkmark">✓</div>
+                        <div class="db-icon">🔺</div>
+                        <div class="db-name">Amazon Redshift</div>
+                        <div class="db-tag">Cloud Data</div>
+                    </div>
+                </div>
+
+                <div class="security-callout">
+                    🔒 Security Best Practice: Please provide a database user with READ-ONLY permissions. Data Convo will only introspect schema metadata and execute SELECT queries.
+                </div>
+
+                <div class="form-group" id="serverGroup">
+                    <label id="serverLabel">Server IP / Host</label>
+                    <input type="text" name="server" id="serverInput" required placeholder="e.g. db.example.com">
+                </div>
+
+                <div class="ip-whitelist">
+                    Behind a firewall? Whitelist the Data Convo static IPs: <strong>198.51.100.14, 198.51.100.15</strong>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Port</label>
+                        <input type="text" name="port" id="portInput" placeholder="5432">
+                    </div>
+                    <div class="form-group">
+                        <label>Database Name</label>
+                        <input type="text" name="database" required placeholder="my_database">
+                    </div>
+                </div>
+
+                <div class="form-row cred-row">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" name="username" placeholder="readonly_user">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" name="password">
+                    </div>
+                </div>
+
+                <div class="form-group" id="schemaGroup">
+                    <label>Schema</label>
+                    <input type="text" name="schema" value="public">
+                </div>
+
+                <div class="advanced-accordion">
+                    <details>
+                        <summary>
+                            <span>⚙️ Advanced Security & Networking</span>
+                            <span class="chevron">▼</span>
+                        </summary>
+                        <div class="advanced-content">
+                            <div class="form-group">
+                                <label>SSL Mode</label>
+                                <select name="ssl_mode">
+                                    <option value="require">Require</option>
+                                    <option value="prefer">Prefer</option>
+                                    <option value="disable">Disable</option>
+                                </select>
+                            </div>
+
+                            <div class="toggle-row">
+                                <span class="toggle-label">Use SSH Tunnel</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="sshToggle" name="use_ssh">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="ssh-fields" id="sshFields">
+                                <div class="form-group">
+                                    <label>SSH Host</label>
+                                    <input type="text" name="ssh_host" placeholder="bastion.example.com">
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>SSH Port</label>
+                                        <input type="text" name="ssh_port" placeholder="22">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>SSH Username</label>
+                                        <input type="text" name="ssh_username" placeholder="ssh_user">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>SSH Private Key</label>
+                                    <textarea name="ssh_private_key" rows="4" style="width:100%; padding:12px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); color:var(--text-primary); font:var(--font-mono); font-size:0.8rem; resize:vertical;"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
+                <div class="button-row">
+                    <button type="button" class="btn-test" id="testBtn">🔌 Test Connection</button>
+                    <button type="submit" class="btn-connect">🚀 Connect & Profile Schema</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const dbCards = document.querySelectorAll('.db-card');
+        const dbTypeInput = document.getElementById('db_type');
+        const serverLabel = document.getElementById('serverLabel');
+        const serverInput = document.getElementById('serverInput');
+        const portInput = document.getElementById('portInput');
+        const schemaGroup = document.getElementById('schemaGroup');
+        const sshToggle = document.getElementById('sshToggle');
+        const sshFields = document.getElementById('sshFields');
+        const testBtn = document.getElementById('testBtn');
+        const connectForm = document.getElementById('connectForm');
+
+        const dbConfig = {
+            postgresql: { port: '5432', serverLabel: 'Server IP / Host', serverPlaceholder: 'e.g. db.example.com', schema: 'public' },
+            mssql: { port: '1433', serverLabel: 'Server IP / Host', serverPlaceholder: 'e.g. sql.bsite.net\\MSSQL2016', schema: 'dbo' },
+            mysql: { port: '3306', serverLabel: 'Server IP / Host', serverPlaceholder: 'e.g. mysql.example.com', schema: '' },
+            sqlite: { port: '', serverLabel: 'Database File Path', serverPlaceholder: 'e.g. /path/to/app.db', schema: '' },
+            snowflake: { port: '443', serverLabel: 'Account Identifier', serverPlaceholder: 'e.g. xy12345.us-east-1', schema: 'PUBLIC' },
+            bigquery: { port: '443', serverLabel: 'Project ID', serverPlaceholder: 'e.g. my-gcp-project', schema: '' },
+            redshift: { port: '5439', serverLabel: 'Cluster Endpoint', serverPlaceholder: 'e.g. cluster.region.redshift.amazonaws.com', schema: 'public' }
+        };
+
+        function selectDatabase(db) {
+            dbCards.forEach(card => card.classList.remove('active'));
+            const selected = document.querySelector(`.db-card[data-db="${db}"]`);
+            if (selected) selected.classList.add('active');
+
+            dbTypeInput.value = db;
+            const cfg = dbConfig[db];
+
+            serverLabel.textContent = cfg.serverLabel;
+            serverInput.placeholder = cfg.serverPlaceholder;
+            portInput.placeholder = cfg.port;
+
+            if (cfg.schema) {
+                schemaGroup.style.display = 'block';
+                schemaGroup.querySelector('input').value = cfg.schema;
+            } else {
+                schemaGroup.style.display = 'none';
+            }
+
+            // For SQLite: no username/password needed
+            const credRow = document.querySelector('.cred-row');
+            if (credRow) credRow.style.display = db === 'sqlite' ? 'none' : '';
+        }
+
+        dbCards.forEach(card => {
+            card.addEventListener('click', () => {
+                selectDatabase(card.dataset.db);
+            });
+        });
+
+        sshToggle.addEventListener('change', () => {
+            sshFields.classList.toggle('visible', sshToggle.checked);
+        });
+
+        testBtn.addEventListener('click', () => {
+            const originalText = testBtn.textContent;
+            testBtn.textContent = '⏳ Testing...';
+            testBtn.disabled = true;
+
+            setTimeout(() => {
+                alert('Test connection simulated. In production this would validate credentials against the selected engine.');
+                testBtn.textContent = originalText;
+                testBtn.disabled = false;
+            }, 1200);
+        });
+
+        connectForm.addEventListener('submit', (e) => {
+            if (!dbTypeInput.value) {
+                e.preventDefault();
+                alert('Please select a database engine.');
+            }
+        });
+
+        // Initialize
+        selectDatabase('postgresql');
+    </script>
+<script src="/static/ux.js"></script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+tables:
+  customers:
+    description: "Contains information about registered customers/clients."
+    synonyms: ["clients", "buyers", "users", "consumers"]
+    columns:
+      id: "Primary key for customers."
+      name: "The full name of the customer."
+      join_date: "Date when the customer registered."
+      country: "The country where the customer resides."
+  orders:
+    description: "Contains transactions/purchases made by customers."
+    synonyms: ["purchases", "sales", "transactions"]
+    columns:
+      id: "Primary key for orders."
+      customer_id: "Foreign key referencing customers.id."
+      order_date: "Date and time when the order was placed."
+      total_amount: "The total dollar value of the order."
+      status: "Status of the order (e.g., 'Completed', 'Pending', 'Cancelled')."
+  order_items:
+    description: "Contains individual line items for each order."
+    synonyms: ["ordered products", "purchase details", "items in order"]
+    columns:
+      id: "Primary key."
+      order_id: "Foreign key referencing orders.id."
+      product_id: "Foreign key referencing products.id."
+      quantity: "The number of items purchased."
+      unit_price: "The price per individual unit."
+  products:
+    description: "Catalog of products available for sale."
+    synonyms: ["items", "merchandise", "goods", "skus"]
+    columns:
+      id: "Primary key for products."
+      name: "Name of the product."
+      category: "Category the product belongs to (e.g., 'Electronics', 'Clothing')."
+      price: "Retail price of the product."
+
+custom_metrics:
+  revenue: "SUM(orders.total_amount) where status is Completed"
+  average_order_value: "AVG(orders.total_amount)"
+  aov: "AVG(orders.total_amount)"
+  total_units_sold: "SUM(order_items.quantity)"
+
+relationships:
+  - from_table: "orders"
+    from_column: "customer_id"
+    to_table: "customers"
+    to_column: "id"
+    description: "An order is placed by exactly one customer."
+  - from_table: "order_items"
+    from_column: "order_id"
+    to_table: "orders"
+    to_column: "id"
+    description: "An order item belongs to an order."
+  - from_table: "order_items"
+    from_column: "product_id"
+    to_table: "products"
+    to_column: "id"
+    description: "An order item references a specific product."

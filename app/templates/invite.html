@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invitation — Data Convo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(ellipse at 0% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
+                        radial-gradient(ellipse at 100% 100%, rgba(139, 92, 246, 0.10) 0%, transparent 50%),
+                        var(--bg-primary, #0a0a0f);
+            background-attachment: fixed;
+            color: var(--text-primary);
+        }
+        .invite-card {
+            width: 100%;
+            max-width: 440px;
+            background: var(--bg-secondary, #111118);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px 32px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+            text-align: center;
+            animation: slideUp 0.5s ease-out;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .invite-logo { width: 64px; height: 64px; margin: 0 auto 20px; }
+        .invite-logo img { width: 100%; height: 100%; object-fit: contain; }
+        .invite-icon { font-size: 2.5rem; margin-bottom: 12px; }
+        .invite-card h1 { font-size: 1.4rem; margin: 0 0 8px; font-weight: 700; }
+        .invite-card p.sub { color: var(--text-muted, #64748b); margin: 0 0 24px; font-size: 0.95rem; }
+        .invite-email {
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+        .form-group { margin-bottom: 14px; text-align: left; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+        .form-group input {
+            width: 100%; padding: 10px 12px;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        .form-group input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .invite-btn {
+            width: 100%; padding: 13px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            color: #fff; border: none;
+            border-radius: 8px;
+            font-size: 1rem; font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(99,102,241,0.25);
+            transition: all 0.2s;
+        }
+        .invite-btn:hover { filter: brightness(1.1); box-shadow: 0 6px 20px var(--accent-glow); }
+        .already { margin-top: 16px; font-size: 0.85rem; color: var(--text-muted); }
+        .already a { color: var(--accent-hover); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="invite-card">
+        <a href="/" class="invite-logo" title="Go to Home"><img src="/static/brand/logo-mark.png" alt="Data Convo"></a>
+        <div class="invite-icon">🤝</div>
+        <h1>You've been invited to join</h1>
+        <p class="sub"><strong>{{ workspace_name }}</strong> on Data Convo</p>
+
+        {% if already_logged_in %}
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                You're logged in ({{ current_user.email }}). Accept to join as a <strong>member</strong>.
+            </p>
+            <form method="POST" action="{{ url_for('main.invite_accept_post', token=invite.token) }}">
+                <button type="submit" class="invite-btn">👍 Accept Invitation</button>
+            </form>
+        {% else %}
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Create an account (or log in) to join as a <strong>member</strong>.
+            </p>
+            <form method="POST" action="{{ url_for('main.invite_accept_post', token=invite.token) }}">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" value="{{ invite.email }}" readonly
+                           style="background:rgba(148,163,184,0.12);color:var(--text-muted);cursor:not-allowed;opacity:0.75;"
+                           title="This email is locked to the invitation and cannot be changed.">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" placeholder="Set a password (min 6 characters)" minlength="6" required>
+                </div>
+                <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 14px;text-align:left;">
+                    🔐 After joining you'll be asked to set up <strong>Two-Factor Authentication (MFA)</strong> — required for workspace security.
+                </p>
+                <button type="submit" class="invite-btn">🚀 Accept & Set Up MFA</button>
+            </form>
+            {% if error %}
+                <p style="color: var(--error); margin-top: 12px;">{{ error }}</p>
+            {% endif %}
+        {% endif %}
+    </div>
+<script src="/static/ux.js"></script>
+</body>
+</html>
+</｜｜DSML｜｜parameter>
+</｜｜DSML｜｜invoke>
+</｜｜DSML｜｜tool_calls>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>403 - Access Restricted</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',-apple-system,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 0% 0%,rgba(99,102,241,.12),transparent 50%),radial-gradient(ellipse at 100% 100%,rgba(239,68,68,.08),transparent 50%),#0a0a0f;color:#f8fafc;padding:24px}
+.card{max-width:480px;width:100%;background:#111827;border:1px solid #1e293b;border-radius:16px;padding:40px 36px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.5);animation:up .4s ease-out}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.icon{font-size:48px;margin-bottom:16px}
+.code{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:#f59e0b;font-weight:700;margin-bottom:8px}
+h1{font-size:22px;font-weight:800;margin-bottom:12px}
+p{color:#94a3b8;font-size:.92rem;line-height:1.6;margin-bottom:28px}
+.reason{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#fca5a5;border-radius:10px;padding:12px 16px;font-size:.82rem;margin-bottom:24px}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:10px;font-size:.88rem;font-weight:600;text-decoration:none;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-secondary{background:rgba(255,255,255,.04);color:#cbd5e1;border:1px solid #1e293b}
+.btn-secondary:hover{border-color:#334155;color:#fff}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">&#x1F6E1;&#xFE0F;</div>
+  <div class="code">403 - Forbidden</div>
+  <h1>{{ title or 'Access Restricted' }}</h1>
+  <div class="reason">{% if reason %}{{ reason }}{% else %}This area is only available to administrators on your workspace.{% endif %}</div>
+  <p>The feature you tried to open is not available for your current role. If you believe this is an error, contact your workspace administrator.</p>
+  <div class="actions">
+    <a href="/dashboard" class="btn btn-primary">&#x1F4CA; Dashboard</a>
+    <a href="/chat" class="btn btn-secondary">&#x1F4AC; Chat</a>
+    <a href="/account" class="btn btn-secondary">&#x1F464; Account</a>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,2006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Data Convo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/static/brand/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/brand/favicon-32x32.png">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --dash-bg: #070a11;
+            --dash-surface: #0d111d;
+            --dash-card: #0f1524;
+            --dash-border: #1e293b;
+            --dash-border-strong: #334155;
+            --dash-accent: #6366f1;
+            --dash-accent-hover: #818cf8;
+            --dash-success: #10b981;
+            --dash-error: #ef4444;
+            --dash-warning: #f59e0b;
+            --dash-text: #e2e8f0;
+            --dash-text-secondary: #94a3b8;
+            --dash-text-muted: #64748b;
+            --dash-accent-glow: rgba(99, 102, 241, 0.35);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--dash-bg);
+            color: var(--dash-text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* App shell */
+        .dash-shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .dash-sidebar {
+            width: 260px;
+            background: rgba(11, 15, 26, 0.98);
+            border-right: 1px solid var(--dash-border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 40;
+        }
+
+        .dash-main {
+            flex: 1;
+            margin-left: 260px;
+            min-width: 0;
+        }
+
+        @media (max-width: 900px) {
+            .dash-sidebar { display: none; }
+            .dash-main { margin-left: 0; }
+        }
+
+        .dash-logo {
+            padding: 22px 24px;
+            border-bottom: 1px solid var(--dash-border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dash-logo img {
+            height: 44px;
+            object-fit: contain;
+        }
+
+        .dash-logo-title {
+            font-weight: 800;
+            font-size: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .dash-nav {
+            padding: 16px 12px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .dash-nav-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--dash-text-muted);
+            padding: 8px 12px;
+            font-weight: 700;
+        }
+
+        .dash-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 12px;
+            border-radius: 10px;
+            color: var(--dash-text-secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.18s;
+            margin-bottom: 4px;
+        }
+
+        .dash-nav-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--dash-text);
+        }
+
+        .dash-nav-item.active {
+            background: rgba(99, 102, 241, 0.12);
+            color: var(--dash-accent-hover);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+        }
+
+        /* Top bar */
+        .dash-topbar {
+            height: 68px;
+            border-bottom: 1px solid var(--dash-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            background: rgba(7, 10, 17, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            position: sticky;
+            top: 0;
+            z-index: 30;
+        }
+
+        .dash-topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .dash-topbar-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .dash-topbar-sub {
+            font-size: 0.75rem;
+            color: var(--dash-text-muted);
+            margin-top: 2px;
+        }
+
+        .dash-topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dash-btn {
+            padding: 9px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--dash-border);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--dash-text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .dash-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--dash-text);
+            border-color: var(--dash-border-strong);
+        }
+
+        .dash-btn.primary {
+            background: linear-gradient(135deg, var(--dash-accent), #8b5cf6);
+            border: none;
+            color: white;
+        }
+
+        .dash-btn.primary:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 4px 16px var(--dash-accent-glow);
+        }
+
+        .dash-btn.loading .refresh-spinner {
+            display: inline-block;
+        }
+
+        .refresh-spinner {
+            width: 13px;
+            height: 13px;
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: dashspin 0.7s linear infinite;
+            display: none;
+        }
+
+        .dash-btn.loading .refresh-spinner {
+            display: inline-block;
+        }
+
+        @keyframes dashspin { to { transform: rotate(360deg); } }
+
+        /* Content wrapper */
+        .dash-content {
+            padding: 28px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Skeleton loader */
+        .widget-skeleton {
+            border-radius: 16px;
+            background: var(--dash-card);
+            border: 1px solid var(--dash-border);
+            padding: 20px;
+            min-height: 280px;
+        }
+
+        .skeleton-line {
+            height: 14px;
+            border-radius: 6px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+            background-size: 200% 100%;
+            animation: skeletonShimmer 1.4s infinite;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-line.short { width: 40%; }
+        .skeleton-line.tall { height: 180px; border-radius: 10px; }
+
+        @keyframes skeletonShimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Widget grid */
+        .widget-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 20px;
+        }
+
+        @media (max-width: 480px) {
+            .widget-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Widget card */
+        .widget-card {
+            background: var(--dash-card);
+            border: 1px solid var(--dash-border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            min-height: 320px;
+            animation: widgetIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes widgetIn {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .widget-card:hover {
+            border-color: var(--dash-border-strong);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(99, 102, 241, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .widget-card.removing {
+            animation: widgetOut 0.3s ease forwards;
+        }
+
+        @keyframes widgetOut {
+            to { opacity: 0; transform: scale(0.92); }
+        }
+
+        .widget-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            gap: 12px;
+        }
+
+        .widget-title-wrap {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .widget-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            letter-spacing: -0.01em;
+        }
+
+        .widget-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+            font-size: 0.7rem;
+            color: var(--dash-text-muted);
+        }
+
+        .widget-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--dash-text-muted);
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--dash-text);
+        }
+
+        .icon-btn.refreshing {
+            animation: dashspin 0.8s linear infinite;
+            color: var(--dash-accent-hover);
+        }
+
+        /* Dropdown menu */
+        .widget-menu-wrap {
+            position: relative;
+        }
+
+        .widget-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 6px);
+            min-width: 190px;
+            background: var(--dash-surface);
+            border: 1px solid var(--dash-border);
+            border-radius: 12px;
+            padding: 6px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+            z-index: 50;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-6px);
+            transition: all 0.18s ease;
+        }
+
+        .widget-menu.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .widget-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 8px;
+            background: transparent;
+            border: none;
+            color: var(--dash-text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.12s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .widget-menu-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--dash-text);
+        }
+
+        .widget-menu-item.danger {
+            color: #f87171;
+        }
+
+        .widget-menu-item.danger:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+        }
+
+        .widget-menu-divider {
+            height: 1px;
+            background: var(--dash-border);
+            margin: 6px 4px;
+        }
+
+        /* Widget body */
+        .widget-body {
+            flex: 1;
+            padding: 16px 18px;
+            position: relative;
+            min-height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .widget-body canvas {
+            max-height: 260px;
+            width: 100% !important;
+        }
+
+        /* Table view fallback */
+        .widget-table-scroll {
+            width: 100%;
+            max-height: 260px;
+            overflow: auto;
+        }
+
+        .widget-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+
+        .widget-table thead th {
+            position: sticky;
+            top: 0;
+            background: #121829;
+            color: var(--dash-text-secondary);
+            font-weight: 600;
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--dash-border);
+            white-space: nowrap;
+        }
+
+        .widget-table tbody td {
+            padding: 7px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--dash-text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+        }
+
+        /* Widget footer */
+        .widget-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 18px;
+            background: rgba(255, 255, 255, 0.015);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.72rem;
+            color: var(--dash-text-muted);
+        }
+
+        .widget-footer .stat {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--dash-success);
+            font-weight: 600;
+        }
+
+        /* Error / repair state */
+        .widget-error {
+            text-align: center;
+            padding: 28px 20px;
+            color: var(--dash-text-secondary);
+        }
+
+        .widget-error-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+
+        .widget-error-title {
+            font-weight: 700;
+            color: #f87171;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+
+        .widget-error-msg {
+            font-size: 0.8rem;
+            color: var(--dash-text-muted);
+            line-height: 1.5;
+            margin-bottom: 16px;
+            word-break: break-word;
+        }
+
+        .widget-error-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .repair-btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--dash-warning);
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .repair-btn:hover {
+            background: rgba(245, 158, 11, 0.2);
+        }
+
+        /* Empty state */
+        .dash-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 80px 24px;
+            color: var(--dash-text-muted);
+        }
+
+        .dash-empty-icon {
+            width: 84px;
+            height: 84px;
+            border-radius: 24px;
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+        }
+
+        .dash-empty h2 {
+            color: var(--dash-text);
+            font-size: 1.3rem;
+            margin: 0 0 6px;
+        }
+
+        .dash-empty p {
+            font-size: 0.9rem;
+            max-width: 420px;
+            line-height: 1.6;
+            margin: 0 0 24px;
+        }
+
+        /* Toast */
+        .dash-toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .dash-toast {
+            min-width: 260px;
+            max-width: 400px;
+            padding: 13px 16px;
+            border-radius: 12px;
+            background: var(--dash-surface);
+            border: 1px solid var(--dash-border);
+            box-shadow: 0 14px 44px rgba(0, 0, 0, 0.55);
+            color: var(--dash-text);
+            font-size: 0.84rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: dashToastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: auto;
+        }
+
+        .dash-toast.success { border-left: 3px solid var(--dash-success); }
+        .dash-toast.error { border-left: 3px solid var(--dash-error); }
+        .dash-toast.warning { border-left: 3px solid var(--dash-warning); }
+
+        .dash-toast.hiding {
+            animation: dashToastOut 0.3s ease forwards;
+        }
+
+        @keyframes dashToastIn {
+            from { opacity: 0; transform: translateX(24px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes dashToastOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(24px); }
+        }
+
+        /* Modal */
+        .dash-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .dash-modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .dash-modal {
+            width: 92%;
+            max-width: 560px;
+            background: var(--dash-surface);
+            border: 1px solid var(--dash-border);
+            border-radius: 18px;
+            padding: 26px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+            transform: translateY(12px);
+            transition: transform 0.25s ease;
+        }
+
+        .dash-modal-overlay.open .dash-modal {
+            transform: translateY(0);
+        }
+
+        .dash-modal-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .dash-modal-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--dash-text-secondary);
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .dash-modal-input,
+        .dash-modal-textarea {
+            width: 100%;
+            padding: 11px 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--dash-border);
+            border-radius: 10px;
+            color: var(--dash-text);
+            font-size: 0.85rem;
+            outline: none;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 14px;
+            resize: vertical;
+        }
+
+        .dash-modal-input:focus,
+        .dash-modal-textarea:focus {
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 0 3px var(--dash-accent-glow);
+        }
+
+        .dash-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        /* Chart settings controls */
+        .chart-settings-section {
+            margin-bottom: 20px;
+        }
+        .chart-settings-section:last-child { margin-bottom: 0; }
+        .chart-settings-label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--dash-text-muted);
+            margin-bottom: 8px;
+        }
+        .chart-type-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        .chart-type-option {
+            padding: 10px 6px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--dash-border);
+            color: var(--dash-text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.18s;
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-type-option span { display: block; font-size: 1.1rem; margin-bottom: 4px; }
+        .chart-type-option:hover { border-color: var(--dash-border-strong); color: var(--dash-text); }
+        .chart-type-option.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: rgba(99, 102, 241, 0.5);
+            color: var(--dash-accent-hover);
+        }
+        .chart-field-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .chart-select-field label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--dash-text-secondary);
+            margin-bottom: 6px;
+        }
+        .chart-select-field select,
+        .chart-select-field input {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--dash-border);
+            border-radius: 10px;
+            color: var(--dash-text);
+            font-size: 0.82rem;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-select-field select:focus,
+        .chart-select-field input:focus {
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 0 3px var(--dash-accent-glow);
+        }
+        .palette-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .palette-swatch {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.18s;
+            position: relative;
+        }
+        .palette-swatch:hover { transform: scale(1.08); }
+        .palette-swatch.active { border-color: #fff; box-shadow: 0 0 0 2px var(--dash-accent), 0 4px 14px rgba(0,0,0,0.4); }
+        .palette-gradient { width: 100%; height: 100%; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; }
+        .chart-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--dash-border);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .chart-toggle-row:last-child { margin-bottom: 0; }
+        .chart-toggle-label { font-size: 0.8rem; font-weight: 600; color: var(--dash-text-secondary); }
+        .chart-toggle-desc { font-size: 0.68rem; color: var(--dash-text-muted); margin-top: 2px; }
+        .chart-toggle {
+            width: 42px; height: 24px; border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08); border: 1px solid var(--dash-border);
+            position: relative; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+        }
+        .chart-toggle.active { background: var(--dash-accent); border-color: transparent; }
+        .chart-toggle::after {
+            content: ''; position: absolute; top: 2px; left: 2px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: #e2e8f0; transition: all 0.2s;
+        }
+        .chart-toggle.active::after { left: 20px; }
+        .chart-toggle.disabled { opacity: 0.4; pointer-events: none; }
+        .chart-toggle-disabled-msg { font-size: 0.68rem; color: var(--dash-text-muted); margin-top: 8px; }
+        .chart-sort-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 10px;
+        }
+        .chart-sort-row select,
+        .chart-sort-row input {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--dash-border);
+            border-radius: 10px;
+            color: var(--dash-text);
+            font-size: 0.82rem;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-modal-hint {
+            font-size: 0.72rem;
+            color: var(--dash-text-muted);
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 16px;
+        }
+
+        /* Grid sizing classes */
+        .widget-card.size-1x1 { grid-column: span 1; }
+        .widget-card.size-2x1 { grid-column: span 2; }
+        .widget-card.size-full { grid-column: 1 / -1; }
+        @media (max-width: 760px) {
+            .widget-card.size-2x1,
+            .widget-card.size-full { grid-column: span 1; }
+        }
+
+        /* Scorecard (KPI) rendering */
+        .widget-scorecard {
+            text-align: center;
+            padding: 24px 16px;
+            width: 100%;
+        }
+        .widget-scorecard-value {
+            font-size: 2.6rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            background: linear-gradient(135deg, var(--dash-text), var(--dash-accent-hover));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            word-break: break-word;
+            margin-bottom: 8px;
+        }
+        .widget-scorecard-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--dash-text-muted);
+            max-width: 90%;
+            margin: 0 auto;
+        }
+        .widget-scorecard-sub {
+            font-size: 0.72rem;
+            color: var(--dash-text-muted);
+            margin-top: 8px;
+        }
+
+        /* VizBot assistant inside Edit Query modal */
+        .vizbot-panel {
+            margin-bottom: 14px;
+            padding: 12px;
+            background: rgba(99, 102, 241, 0.06);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 12px;
+        }
+        .vizbot-panel-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--dash-accent-hover);
+            margin-bottom: 10px;
+        }
+        .vizbot-panel-header img {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .vizbot-input-row {
+            display: flex;
+            gap: 8px;
+        }
+        .vizbot-input-row input {
+            flex: 1;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--dash-border);
+            border-radius: 10px;
+            color: var(--dash-text);
+            font-size: 0.82rem;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+        }
+        .vizbot-input-row input:focus {
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 0 3px var(--dash-accent-glow);
+        }
+        .vizbot-btn {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, var(--dash-accent), #8b5cf6);
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-family: 'Inter', sans-serif;
+        }
+        .vizbot-btn:hover { filter: brightness(1.1); }
+        .vizbot-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .vizbot-result {
+            margin-top: 10px;
+            font-size: 0.72rem;
+            color: var(--dash-text-muted);
+        }
+        .vizbot-result.error { color: var(--dash-error); }
+        .vizbot-suggestion {
+            display: inline-block;
+            margin-top: 8px;
+            margin-right: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--dash-border);
+            color: var(--dash-text-secondary);
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: 'Inter', sans-serif;
+        }
+        .vizbot-suggestion:hover { border-color: var(--dash-accent); color: var(--dash-text); }
+    </style>
+</head>
+<body>
+    <div class="dash-shell">
+        <aside class="dash-sidebar">
+            <a href="/" class="dash-logo" title="Go to Home">
+                <img src="/static/brand/logo-horizontal.png" alt="Data Convo">
+            </a>
+            <div class="dash-nav">
+                <div class="dash-nav-label">Workspace</div>
+                <a class="dash-nav-item" href="/chat">
+                    <span>💬</span> AI Chat
+                </a>
+                <a class="dash-nav-item active" href="/dashboard">
+                    <span>📊</span> Dashboard
+                </a>
+                <div class="dash-nav-label">Admin</div>
+                <a class="dash-nav-item" href="/semantic-studio">
+                    <span>🧠</span> Semantic Studio
+                </a>
+            </div>
+        </aside>
+
+        <main class="dash-main">
+            {% if current_user.role == 'admin' %}
+            <div id="dashUpdateBanner" style="display:none;margin:12px 20px 0;padding:12px 16px;border-radius:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#fbbf24;font-size:0.82rem;line-height:1.5;">
+                <strong>🚀 New version available.</strong> Run <code>docker compose pull && docker compose up -d</code> to update.
+                <span style="display:block;margin-top:4px;font-size:0.72rem;color:var(--dash-text-muted);" id="dashUpdateVersionInfo"></span>
+            </div>
+            {% endif %}
+            <header class="dash-topbar">
+                <div class="dash-topbar-left">
+                    <div>
+                        <div class="dash-topbar-title">BI Dashboard</div>
+                        <div class="dash-topbar-sub">Live widgets · Auto-refresh · Schema-validated</div>
+                    </div>
+                </div>
+                <div class="dash-topbar-actions">
+                    <a class="dash-btn" href="/chat">
+                        + New Widget
+                    </a>
+                    <button class="dash-btn primary" id="refreshAllBtn" onclick="refreshAllWidgets()">
+                        <span class="refresh-spinner"></span>
+                        Refresh All
+                    </button>
+                </div>
+            </header>
+
+            <div class="dash-content">
+                <!-- Skeleton loader -->
+                <div id="skeletonGrid" class="widget-grid" style="display: none;">
+                    <div class="widget-skeleton">
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line tall"></div>
+                    </div>
+                    <div class="widget-skeleton">
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line tall"></div>
+                    </div>
+                    <div class="widget-skeleton">
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line tall"></div>
+                    </div>
+                </div>
+
+                <!-- Empty state -->
+                <div id="dashEmpty" class="dash-empty" style="display: none;">
+                    <div class="dash-empty-icon">📊</div>
+                    <h2>No widgets yet</h2>
+                    <p>Run a query in the AI chat and click <strong>📌 Pin to Dashboard</strong> on any result to add it here.</p>
+                    <a class="dash-btn primary" href="/chat">Ask a question →</a>
+                </div>
+
+                <!-- Widget grid -->
+                <div id="widgetGrid" class="widget-grid"></div>
+            </div>
+        </main>
+    </div>
+
+    <div id="dashToastContainer" class="dash-toast-container"></div>
+
+    <!-- Rename modal -->
+    <div class="dash-modal-overlay" id="renameModal">
+        <div class="dash-modal">
+            <div class="dash-modal-title">Rename Widget</div>
+            <label class="dash-modal-label" for="renameInput">Widget title</label>
+            <input class="dash-modal-input" id="renameInput" type="text" maxlength="200" placeholder="e.g. Monthly Revenue Trend">
+            <div class="dash-modal-actions">
+                <button class="dash-btn" onclick="closeRenameModal()">Cancel</button>
+                <button class="dash-btn primary" onclick="confirmRename()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit query modal -->
+    <div class="dash-modal-overlay" id="editQueryModal">
+        <div class="dash-modal">
+            <div class="dash-modal-title">Edit Query</div>
+
+            <!-- VizBot AI assistant -->
+            <div class="vizbot-panel">
+                <div class="vizbot-panel-header">
+                    <img src="/static/brand/vizbot.png" alt="VizBot">
+                    <span>🤖 VizBot — Ask me to modify this query</span>
+                </div>
+                <div class="vizbot-input-row">
+                    <input type="text" id="vizbotInstruction" placeholder='e.g. "include regional breakdown" or "filter by status equal to Delayed"' onkeydown="if(event.key==='Enter'){event.preventDefault();askVizBot();}">
+                    <button class="vizbot-btn" id="vizbotAskBtn" onclick="askVizBot()">Rewrite ✨</button>
+                </div>
+                <div class="vizbot-suggestion" onclick="useVizBotSuggestion(this)">include regional breakdown</div>
+                <div class="vizbot-suggestion" onclick="useVizBotSuggestion(this)">filter by status equal to Delayed</div>
+                <div class="vizbot-suggestion" onclick="useVizBotSuggestion(this)">show top 10 by value</div>
+                <div class="vizbot-result" id="vizbotResult"></div>
+            </div>
+
+            <label class="dash-modal-label" for="editQueryInput">SQL (SELECT-only)</label>
+            <textarea class="dash-modal-textarea" id="editQueryInput" rows="7" spellcheck="false"></textarea>
+            <div class="dash-modal-actions">
+                <button class="dash-btn" onclick="closeEditQueryModal()">Cancel</button>
+                <button class="dash-btn primary" onclick="confirmEditQuery()">Save & Re-run</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart settings modal -->
+    <div class="dash-modal-overlay" id="chartSettingsModal">
+        <div class="dash-modal" style="max-width: 620px;">
+            <div class="dash-modal-title">🎨 Customize Chart</div>
+            <div class="chart-modal-hint" id="chartSettingsHint"></div>
+
+            <div class="chart-settings-section">
+                <span class="chart-settings-label">📈 Chart Type</span>
+                <div class="chart-type-grid">
+                    <button type="button" class="chart-type-option" data-chart-type="bar" onclick="setChartType('bar')"><span>📊</span> Bar</button>
+                    <button type="button" class="chart-type-option" data-chart-type="line" onclick="setChartType('line')"><span>📈</span> Line</button>
+                    <button type="button" class="chart-type-option" data-chart-type="area" onclick="setChartType('area')"><span>🌊</span> Area</button>
+                    <button type="button" class="chart-type-option" data-chart-type="pie" onclick="setChartType('pie')"><span>🍩</span> Pie</button>
+                </div>
+                <div style="margin-top:8px;">
+                    <button type="button" class="chart-type-option" data-chart-type="scorecard" onclick="setChartType('scorecard')" style="width:100%;"><span>🏁</span> KPI Scorecard</button>
+                </div>
+            </div>
+
+            <div class="chart-settings-section">
+                <span class="chart-settings-label">🧭 Axis Mapping</span>
+                <div class="chart-field-row">
+                    <div class="chart-select-field">
+                        <label for="chartXAxis">X-Axis (Category)</label>
+                        <select id="chartXAxis" onchange="onChartAxisChange()"></select>
+                    </div>
+                    <div class="chart-select-field">
+                        <label for="chartYAxis">Y-Axis (Value)</label>
+                        <select id="chartYAxis" onchange="onChartAxisChange()"></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-settings-section">
+                <span class="chart-settings-label">🎨 Color Palette</span>
+                <div class="palette-row" id="paletteRow">
+                    <div class="palette-swatch active" data-palette="neon" onclick="setPalette('neon')" title="Neon Purple">
+                        <div class="palette-gradient" style="background:linear-gradient(135deg,#6366f1,#8b5cf6,#00F2FE);"></div>
+                    </div>
+                    <div class="palette-swatch" data-palette="corporate" onclick="setPalette('corporate')" title="Corporate Blue">
+                        <div class="palette-gradient" style="background:linear-gradient(135deg,#2563eb,#3b82f6,#38bdf8);"></div>
+                    </div>
+                    <div class="palette-swatch" data-palette="emerald" onclick="setPalette('emerald')" title="Emerald">
+                        <div class="palette-gradient" style="background:linear-gradient(135deg,#059669,#10b981,#34d399);"></div>
+                    </div>
+                    <div class="palette-swatch" data-palette="sunset" onclick="setPalette('sunset')" title="Sunset">
+                        <div class="palette-gradient" style="background:linear-gradient(135deg,#f59e0b,#f97316,#ef4444);"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-settings-section">
+                <span class="chart-settings-label">⚙️ Aggregation & Limits</span>
+                <div class="chart-sort-row">
+                    <div class="chart-select-field">
+                        <label for="chartSortOrder">Sort by Value<br><span style="font-size:0.62rem;font-weight:400;">(ascending / descending)</span></label>
+                        <select id="chartSortOrder">
+                            <option value="asc">Ascending (low → high)</option>
+                            <option value="desc">Descending (high → low)</option>
+                        </select>
+                    </div>
+                    <div class="chart-select-field">
+                        <label for="chartTopN">Top N rows</label>
+                        <input type="number" id="chartTopN" min="1" max="500" value="20" placeholder="e.g. 20">
+                    </div>
+                </div>
+                <div class="chart-toggle-row">
+                    <div>
+                        <div class="chart-toggle-label">Enable Sorting</div>
+                        <div class="chart-toggle-desc">Reorders chart data by value column</div>
+                    </div>
+                    <div class="chart-toggle" id="chartSortToggle" onclick="toggleChartSort()"></div>
+                </div>
+                <div class="chart-toggle-row">
+                    <div>
+                        <div class="chart-toggle-label">Apply Top N Limit</div>
+                        <div class="chart-toggle-desc">Only show the first N rows after sorting</div>
+                    </div>
+                    <div class="chart-toggle" id="chartLimitToggle" onclick="toggleChartLimit()"></div>
+                </div>
+            </div>
+
+            <div class="dash-modal-actions" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--dash-border);">
+                <button class="dash-btn" onclick="closeChartSettings()">Cancel</button>
+                <button class="dash-btn primary" onclick="confirmChartSettings()">💾 Save & Re-render</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== State =====
+        let widgets = [];
+        const chartInstances = {};
+        // Stores the most recent data payload per widget so the Chart Settings
+        // modal can re-render live without a network round-trip.
+        const widgetDataStore = {};
+        let editingWidgetId = null;
+        let renamingWidgetId = null;
+        let chartSettingsWidgetId = null;
+        let chartSettingsType = 'bar';
+        let chartSettingsPalette = 'neon';
+        let chartSettingsSortEnabled = false;
+        let chartSettingsLimitEnabled = false;
+
+        // Color palettes for chart accents
+        const CHART_PALETTES = {
+            neon: {
+                border: '#6366f1',
+                fill: 'rgba(99, 102, 241, 0.35)',
+                series: ['#6366f1', '#8b5cf6', '#00F2FE', '#a78bfa', '#22d3ee'],
+                card: 'rgba(99, 102, 241, 0.08)'
+            },
+            corporate: {
+                border: '#2563eb',
+                fill: 'rgba(37, 99, 235, 0.3)',
+                series: ['#2563eb', '#3b82f6', '#38bdf8', '#60a5fa', '#0ea5e9'],
+                card: 'rgba(37, 99, 235, 0.08)'
+            },
+            emerald: {
+                border: '#059669',
+                fill: 'rgba(5, 150, 105, 0.3)',
+                series: ['#059669', '#10b981', '#34d399', '#6ee7b7', '#2dd4bf'],
+                card: 'rgba(16, 185, 129, 0.08)'
+            },
+            sunset: {
+                border: '#f59e0b',
+                fill: 'rgba(245, 158, 11, 0.3)',
+                series: ['#f59e0b', '#f97316', '#ef4444', '#fb923c', '#fca5a5'],
+                card: 'rgba(245, 158, 11, 0.08)'
+            }
+        };
+
+        // ===== Chart Settings state helpers =====
+        function setChartType(type) {
+            chartSettingsType = type;
+            document.querySelectorAll('.chart-type-option').forEach(el => {
+                el.classList.toggle('active', el.dataset.chartType === type);
+            });
+        }
+
+        function setPalette(name) {
+            chartSettingsPalette = name;
+            document.querySelectorAll('.palette-swatch').forEach(el => {
+                el.classList.toggle('active', el.dataset.palette === name);
+            });
+        }
+
+        function toggleChartSort() {
+            chartSettingsSortEnabled = !chartSettingsSortEnabled;
+            const el = document.getElementById('chartSortToggle');
+            if (el) el.classList.toggle('active', chartSettingsSortEnabled);
+        }
+
+        function toggleChartLimit() {
+            chartSettingsLimitEnabled = !chartSettingsLimitEnabled;
+            const el = document.getElementById('chartLimitToggle');
+            if (el) el.classList.toggle('active', chartSettingsLimitEnabled);
+        }
+
+        // ===== Grid size persistence =====
+        async function setWidgetSize(eventOrId, size) {
+            const widgetId = resolveWidgetId(eventOrId);
+            if (!widgetId) return;
+            toggleMenu(widgetId);
+            const card = document.getElementById('widget-' + widgetId);
+            if (!card) return;
+
+            // Apply CSS span class immediately (visual feedback)
+            card.classList.remove('size-1x1', 'size-2x1', 'size-full');
+            card.classList.add('size-' + size);
+
+            // Persist via chart_config.grid_size
+            try {
+                const idx = widgets.findIndex(w => w.id === widgetId);
+                const cfg = Object.assign({}, (idx >= 0 ? (widgets[idx].chart_config || {}) : {}), { grid_size: size });
+                const updated = await apiFetch('/api/dashboard/widgets/' + widgetId, {
+                    method: 'PUT',
+                    body: { chart_config: cfg }
+                });
+                if (idx >= 0) widgets[idx] = updated;
+                dashToast('Grid size updated to ' + size.replace('x', ' × ') + '.');
+            } catch (err) {
+                // Revert visual change on failure
+                card.classList.remove('size-1x1', 'size-2x1', 'size-full');
+                const cfg = widgets.find(w => w.id === widgetId).chart_config || {};
+                if (cfg.grid_size) card.classList.add('size-' + cfg.grid_size);
+                dashToast(err.message, 'error');
+            }
+        }
+
+        function onChartAxisChange() {
+            // Live-preview the axis swap inside the modal hint.
+            const xAxis = document.getElementById('chartXAxis').value;
+            const yAxis = document.getElementById('chartYAxis').value;
+            const hint = document.getElementById('chartSettingsHint');
+            if (hint) hint.textContent = 'Preview: ' + xAxis + ' → ' + yAxis;
+        }
+
+        function openChartSettings(eventOrId) {
+            const widgetId = resolveWidgetId(eventOrId);
+            if (!widgetId) return;
+            const widget = widgets.find(w => w.id === widgetId);
+            if (!widget) return;
+            toggleMenu(widgetId);
+
+            chartSettingsWidgetId = widgetId;
+            const cfg = widget.chart_config || {};
+            chartSettingsType = cfg.chart_type || 'bar';
+            chartSettingsPalette = cfg.palette || 'neon';
+            chartSettingsSortEnabled = !!cfg.sort_enabled;
+            chartSettingsLimitEnabled = !!cfg.limit_enabled;
+
+            // Build column options from widget's persisted metadata or last data
+            let cols = (cfg.columns || widget.result_metadata && widget.result_metadata.columns) || [];
+            const data = widgetDataStore[widgetId];
+            if (!cols.length && data && data.length) cols = Object.keys(data[0]);
+
+            const xSel = document.getElementById('chartXAxis');
+            const ySel = document.getElementById('chartYAxis');
+            xSel.innerHTML = '';
+            ySel.innerHTML = '';
+            cols.forEach(c => {
+                xSel.innerHTML += '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>';
+                ySel.innerHTML += '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>';
+            });
+
+            const labelCol = cfg.label_column || (data && data[0] ? Object.keys(data[0]).find(k => !data.some(r => typeof r[k] === 'number')) : cols[0]) || cols[0];
+            const valueCol = cfg.value_column || (data && data[0] ? Object.keys(data[0]).find(k => data.some(r => typeof r[k] === 'number')) : cols[1] || cols[0]) || cols[cols.length - 1] || cols[0];
+            if (labelCol) xSel.value = labelCol;
+            if (valueCol) ySel.value = valueCol;
+
+            // Type + palette UI state
+            document.querySelectorAll('.chart-type-option').forEach(el => {
+                el.classList.toggle('active', el.dataset.chartType === chartSettingsType);
+            });
+            document.querySelectorAll('.palette-swatch').forEach(el => {
+                el.classList.toggle('active', el.dataset.palette === chartSettingsPalette);
+            });
+            const sortToggle = document.getElementById('chartSortToggle');
+            const limitToggle = document.getElementById('chartLimitToggle');
+            if (sortToggle) sortToggle.classList.toggle('active', chartSettingsSortEnabled);
+            if (limitToggle) limitToggle.classList.toggle('active', chartSettingsLimitEnabled);
+
+            const sortSel = document.getElementById('chartSortOrder');
+            const topN = document.getElementById('chartTopN');
+            if (sortSel) sortSel.value = cfg.sort_order || 'desc';
+            if (topN) topN.value = cfg.top_n || 20;
+
+            const hint = document.getElementById('chartSettingsHint');
+            if (hint) hint.textContent = 'Configure render settings for "' + widget.title + '". Changes are persisted to the widget.';
+            document.getElementById('chartSettingsModal').classList.add('open');
+        }
+
+        function closeChartSettings() {
+            document.getElementById('chartSettingsModal').classList.remove('open');
+            chartSettingsWidgetId = null;
+        }
+
+        async function confirmChartSettings() {
+            if (!chartSettingsWidgetId) return;
+            const xAxis = document.getElementById('chartXAxis').value;
+            const yAxis = document.getElementById('chartYAxis').value;
+            const topN = parseInt(document.getElementById('chartTopN').value, 10) || 20;
+            const sortOrder = document.getElementById('chartSortOrder').value;
+
+            const chartConfig = {
+                chart_type: chartSettingsType,
+                label_column: xAxis,
+                value_column: yAxis,
+                palette: chartSettingsPalette,
+                sort_enabled: chartSettingsSortEnabled,
+                sort_order: sortOrder,
+                limit_enabled: chartSettingsLimitEnabled,
+                top_n: Math.max(1, Math.min(500, topN)),
+                columns: Array.from(new Set([xAxis, yAxis]))
+            };
+
+            try {
+                const updated = await apiFetch('/api/dashboard/widgets/' + chartSettingsWidgetId, {
+                    method: 'PUT',
+                    body: { chart_config: chartConfig }
+                });
+                const idx = widgets.findIndex(w => w.id === chartSettingsWidgetId);
+                if (idx >= 0) widgets[idx] = updated;
+
+                // Instant live re-render using cached data (no page reload)
+                const data = widgetDataStore[chartSettingsWidgetId];
+                if (data) {
+                    renderWidgetChart(chartSettingsWidgetId, data, chartConfig);
+                } else {
+                    await refreshWidget(chartSettingsWidgetId, true);
+                }
+
+                const hint = document.getElementById('chartSettingsHint');
+                if (hint) hint.textContent = '';
+                closeChartSettings();
+                dashToast('Chart settings saved & re-rendered.');
+            } catch (err) {
+                dashToast(err.message, 'error');
+            }
+        }
+
+        // ===== Toast =====
+        function dashToast(message, type = 'success') {
+            const container = document.getElementById('dashToastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = 'dash-toast ' + type;
+            const icon = type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌';
+            toast.innerHTML = `<span>${icon}</span><span></span>`;
+            toast.querySelector('span:last-child').textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+            }, 4200);
+        }
+
+        // ===== API helpers =====
+        async function apiFetch(url, options = {}) {
+            const opts = { credentials: 'include', ...options };
+            if (opts.body && typeof opts.body !== 'string') {
+                opts.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+                opts.body = JSON.stringify(opts.body);
+            }
+            const res = await fetch(url, opts);
+            let data = null;
+            try { data = await res.json(); } catch (e) { /* non-JSON response */ }
+            if (!res.ok) {
+                throw new Error((data && data.error) || ('Request failed (' + res.status + ')'));
+            }
+            return data;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, '&')
+                .replace(/</g, '<')
+                .replace(/>/g, '>')
+                .replace(/"/g, '"')
+                .replace(/'/g, '&#039;');
+        }
+
+        // ===== Chart rendering =====
+        function renderWidgetChart(widgetId, data, chartConfig) {
+            // Cache data for the Chart Settings modal's instant live re-render.
+            widgetDataStore[widgetId] = data;
+
+            const container = document.getElementById('widget-body-' + widgetId);
+            if (!container) return;
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="widget-error"><div class="widget-error-icon">📭</div><div class="widget-error-title">No Data</div><div class="widget-error-msg">This query returned no rows.</div></div>';
+                return;
+            }
+
+            const keys = Object.keys(data[0]);
+            const numericKeys = keys.filter(k => data.some(row => typeof row[k] === 'number' && !isNaN(row[k])));
+            const labelKey = (chartConfig && chartConfig.label_column) || keys.find(k => !numericKeys.includes(k)) || keys[0];
+            const valueKey = (chartConfig && chartConfig.value_column) || numericKeys[0] || keys[1] || keys[0];
+            const chartType = (chartConfig && chartConfig.chart_type) || (numericKeys.length > 0 ? 'bar' : 'table');
+            const palette = CHART_PALETTES[(chartConfig && chartConfig.palette) || 'neon'] || CHART_PALETTES.neon;
+
+            // Scorecard (KPI) — large metric value centered in the card
+            if (chartType === 'scorecard') {
+                const firstRow = data[0];
+                const allKeys = keys;
+                const numKey = valueKey && firstRow[valueKey] !== undefined ? valueKey : (numericKeys[0] || keys[0]);
+                const labelKey2 = labelKey !== numKey ? labelKey : (allKeys.find(k => k !== numKey) || '');
+                let metricValue = firstRow[numKey];
+                let metricLabel = labelKey2 ? String(firstRow[labelKey2]) : valueKey;
+                if (metricValue === null || metricValue === undefined) metricValue = 0;
+                if (typeof metricValue === 'number') {
+                    metricValue = metricValue.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                }
+                const sub = data.length > 1 ? data.length + ' rows · first row shown' : 'Single row result';
+                container.innerHTML = `
+                    <div class="widget-scorecard">
+                        <div class="widget-scorecard-value">${escapeHtml(String(metricValue))}</div>
+                        <div class="widget-scorecard-label">${escapeHtml(String(metricLabel || valueKey))}</div>
+                        <div class="widget-scorecard-sub">${escapeHtml(sub)}</div>
+                    </div>`;
+                if (chartInstances[widgetId]) {
+                    chartInstances[widgetId].destroy();
+                    delete chartInstances[widgetId];
+                }
+                return;
+            }
+
+            // Apply sort + top-N limit
+            let rows = data.slice();
+            if (chartConfig && chartConfig.sort_enabled) {
+                rows.sort((a, b) => {
+                    const av = Number(a[valueKey]) || 0;
+                    const bv = Number(b[valueKey]) || 0;
+                    return (chartConfig.sort_order === 'asc') ? av - bv : bv - av;
+                });
+            }
+            if (chartConfig && chartConfig.limit_enabled && chartConfig.top_n) {
+                rows = rows.slice(0, chartConfig.top_n);
+            }
+
+            // Non-numeric → render table view
+            if (chartType === 'table' || !numericKeys.length) {
+                const headerHtml = keys.map(k => `<th>${escapeHtml(k)}</th>`).join('');
+                const rowsHtml = rows.slice(0, 50).map(row =>
+                    '<tr>' + keys.map(k => `<td>${escapeHtml(String(row[k] !== null && row[k] !== undefined ? row[k] : ''))}</td>`).join('') + '</tr>'
+                ).join('');
+                container.innerHTML = `
+                    <div class="widget-table-scroll">
+                        <table class="widget-table">
+                            <thead><tr>${headerHtml}</tr></thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>`;
+                return;
+            }
+
+            const labels = rows.map(row => String(row[labelKey]));
+            const values = rows.map(row => Number(row[valueKey]) || 0);
+
+            container.innerHTML = '<canvas></canvas>';
+            const canvas = container.querySelector('canvas');
+
+            if (chartInstances[widgetId]) {
+                chartInstances[widgetId].destroy();
+            }
+
+            const isPie = chartType === 'pie';
+            const isArea = chartType === 'area';
+            const isLine = chartType === 'line';
+
+            if (isPie) {
+                chartInstances[widgetId] = new Chart(canvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: palette.series,
+                            borderColor: '#0d111d',
+                            borderWidth: 2,
+                            hoverOffset: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 500 },
+                        plugins: {
+                            legend: {
+                                labels: { color: '#e2e8f0', font: { size: 11 }, boxWidth: 12 }
+                            },
+                            tooltip: {
+                                backgroundColor: '#0d111d',
+                                borderColor: '#1e293b',
+                                borderWidth: 1,
+                                titleColor: '#e2e8f0',
+                                bodyColor: '#94a3b8'
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
+            chartInstances[widgetId] = new Chart(canvas, {
+                type: isLine || isArea ? 'line' : 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: valueKey,
+                        data: values,
+                        borderColor: palette.border,
+                        backgroundColor: isArea ? palette.fill : palette.series[0] + 'a6',
+                        borderWidth: isLine || isArea ? 2.5 : 1.8,
+                        tension: 0.35,
+                        fill: isArea || isLine,
+                        pointRadius: isLine || isArea ? 3 : 0,
+                        pointHoverRadius: 5,
+                        barPercentage: 0.7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 500 },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#e2e8f0', font: { size: 11 } }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0d111d',
+                            borderColor: '#1e293b',
+                            borderWidth: 1,
+                            titleColor: '#e2e8f0',
+                            bodyColor: '#94a3b8'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#94a3b8', maxRotation: 45, font: { size: 10 } },
+                            grid: { color: 'rgba(148, 163, 184, 0.08)' }
+                        },
+                        y: {
+                            ticks: { color: '#94a3b8', font: { size: 10 } },
+                            grid: { color: 'rgba(148, 163, 184, 0.08)' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // ===== Widget card =====
+        function renderWidgetCard(widget) {
+            const id = widget.id;
+            const meta = widget.result_metadata || {};
+            const rowCount = meta.row_count || 0;
+            const refreshedAt = meta.refreshed_at ? new Date(meta.refreshed_at).toLocaleString() : 'Never';
+
+            const card = document.createElement('div');
+            card.className = 'widget-card';
+            card.id = 'widget-' + id;
+            card.dataset.widgetId = id;
+            // Restore persisted grid size
+            const gs = (widget.chart_config || {}).grid_size;
+            if (gs && ['1x1', '2x1', 'full'].includes(gs)) card.classList.add('size-' + gs);
+            card.innerHTML = `
+                <div class="widget-header">
+                    <div class="widget-title-wrap">
+                        <div class="widget-title" title="${escapeHtml(widget.title)}">${escapeHtml(widget.title)}</div>
+                        <div class="widget-meta">
+                            <span class="stat">● ${rowCount} rows</span>
+                            <span>·</span>
+                            <span>${escapeHtml(refreshedAt)}</span>
+                        </div>
+                    </div>
+                    <div class="widget-actions">
+                        <button class="icon-btn" id="refresh-${id}" onclick="refreshWidget(event)" title="Refresh widget">⟳</button>
+                        <div class="widget-menu-wrap">
+                            <button class="icon-btn" onclick="toggleMenu(event)" title="Widget options">⋯</button>
+                            <div class="widget-menu" id="menu-${id}">
+                                <button class="widget-menu-item" onclick="openRenameModal(event)">
+                                    <span>✏️</span> Rename
+                                </button>
+                                <button class="widget-menu-item" onclick="openChartSettings(event)">
+                                    <span>🎨</span> Customize Chart
+                                </button>
+                                <div class="widget-menu-divider"></div>
+                                <div class="widget-menu-item" style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--dash-text-muted);pointer-events:none;">Grid Size</div>
+                                <button class="widget-menu-item" onclick="setWidgetSize(event, '1x1')">
+                                    <span>⬛</span> 1 × 1 (Default)
+                                </button>
+                                <button class="widget-menu-item" onclick="setWidgetSize(event, '2x1')">
+                                    <span>▬</span> 2 × 1 (Wide)
+                                </button>
+                                <button class="widget-menu-item" onclick="setWidgetSize(event, 'full')">
+                                    <span>🌐</span> Full Width
+                                </button>
+                                <div class="widget-menu-divider"></div>
+                                <button class="widget-menu-item" onclick="openEditQueryModal(event)">
+                                    <span>🛠️</span> Edit Query
+                                </button>
+                                <button class="widget-menu-item" onclick="exportWidget(event)">
+                                    <span>📥</span> Export Data to CSV
+                                </button>
+                                <div class="widget-menu-divider"></div>
+                                <button class="widget-menu-item danger" onclick="deleteWidget(event)">
+                                    <span>🗑️</span> Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="widget-body" id="widget-body-${id}">
+                    <div class="widget-error">
+                        <div class="widget-error-icon">⏳</div>
+                        <div class="widget-error-title">Loading data...</div>
+                    </div>
+                </div>
+                <div class="widget-footer">
+                    <span>Widget ID: ${id.slice(0, 8)}</span>
+                    <button class="dash-btn" style="padding: 5px 10px; font-size: 0.7rem;" onclick="refreshWidget(event)">⟳ Refresh</button>
+                </div>
+            `;
+            return card;
+        }
+
+        function renderErrorState(widgetId, errorMsg) {
+            const body = document.getElementById('widget-body-' + widgetId);
+            if (!body) return;
+            body.innerHTML = `
+                <div class="widget-error">
+                    <div class="widget-error-icon">⚠️</div>
+                    <div class="widget-error-title">Schema or Execution Error</div>
+                    <div class="widget-error-msg">${escapeHtml(errorMsg)}</div>
+                    <div class="widget-error-actions">
+                        <button class="repair-btn" onclick="refreshWidget('${widgetId}')">🔄 Retry Refresh</button>
+                        <button class="repair-btn" onclick="openEditQueryModal('${widgetId}')">🛠️ Repair Query</button>
+                        <a class="repair-btn" href="/semantic-studio" style="text-decoration:none;">🧠 Re-publish Semantic Layer</a>
+                    </div>
+                </div>`;
+        }
+
+        // ===== Widget ID resolution =====
+        // Every widget action resolves its UUID from the parent card's
+        // data-widget-id before firing so a missing/unassigned ID can
+        // never reach the network as "/api/dashboard/widgets/null/...".
+        function resolveWidgetId(eventOrId) {
+            if (typeof eventOrId === 'string' && eventOrId) return eventOrId;
+            if (eventOrId && eventOrId.currentTarget) {
+                const card = eventOrId.currentTarget.closest('.widget-card');
+                if (card && card.dataset.widgetId) return card.dataset.widgetId;
+            }
+            console.warn('[Dashboard] Widget action aborted: could not resolve a valid widget ID from the target DOM element.');
+            return null;
+        }
+
+        // ===== Widget ops =====
+        async function refreshWidget(eventOrId, silent = false) {
+            // Event-handler invocation (onclick="refreshWidget(event)"): the
+            // first arg is the Event object — resolve the ID from the DOM.
+            const widgetId = resolveWidgetId(eventOrId);
+            if (!widgetId) return;
+            const refreshBtn = document.getElementById('refresh-' + widgetId);
+            if (refreshBtn) refreshBtn.classList.add('refreshing');
+            try {
+                const data = await apiFetch('/api/dashboard/widgets/' + widgetId + '/refresh', {
+                    method: 'POST'
+                });
+                if (data.error) {
+                    renderErrorState(widgetId, data.error);
+                    if (!silent) dashToast(data.error, 'warning');
+                } else {
+                    renderWidgetChart(widgetId, data.data, (data.widget.chart_config || {}));
+                    updateWidgetMeta(widgetId, data.metadata);
+                    if (!silent) dashToast('Widget refreshed successfully.');
+                }
+            } catch (err) {
+                renderErrorState(widgetId, err.message);
+                if (!silent) dashToast(err.message, 'error');
+            } finally {
+                if (refreshBtn) refreshBtn.classList.remove('refreshing');
+            }
+        }
+
+        function updateWidgetMeta(widgetId, metadata) {
+            const card = document.getElementById('widget-' + widgetId);
+            if (!card || !metadata) return;
+            const stat = card.querySelector('.stat');
+            const time = card.querySelector('.widget-meta span:last-child');
+            if (stat) stat.textContent = `● ${metadata.row_count || 0} rows`;
+            if (time && metadata.refreshed_at) {
+                time.textContent = new Date(metadata.refreshed_at).toLocaleString();
+            }
+        }
+
+        async function refreshAllWidgets() {
+            const btn = document.getElementById('refreshAllBtn');
+            if (btn) btn.classList.add('loading');
+            let done = 0;
+            for (const w of widgets) {
+                await refreshWidget(w.id, true);
+                done++;
+            }
+            if (btn) btn.classList.remove('loading');
+            dashToast(`Refreshed ${done} widget${done !== 1 ? 's' : ''}.`);
+        }
+
+        async function deleteWidget(eventOrId) {
+            const widgetId = resolveWidgetId(eventOrId);
+            if (!widgetId) return;
+            if (!confirm('Delete this widget from your dashboard?')) return;
+            toggleMenu(widgetId);
+            try {
+                await apiFetch('/api/dashboard/pins/' + widgetId, { method: 'DELETE' });
+                const card = document.getElementById('widget-' + widgetId);
+                if (card) {
+                    card.classList.add('removing');
+                    setTimeout(() => {
+                        card.remove();
+                        widgets = widgets.filter(w => w.id !== widgetId);
+                        checkEmpty();
+                    }, 300);
+                }
+                dashToast('Widget deleted.');
+            } catch (err) {
+                dashToast(err.message, 'error');
+            }
+        }
+
+        async function exportWidget(eventOrId) {
+            const widgetId = resolveWidgetId(eventOrId);
+            if (!widgetId) return;
+            toggleMenu(widgetId);
+            try {
+                const res = await fetch('/api/dashboard/widgets/' + widgetId + '/export', {
+                    credentials: 'include'
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => null);
+                    throw new Error((data && data.error) || 'Export failed.');
+                }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const cd = res.headers.get('Content-Disposition') || '';
+                const match = cd.match(/filename="?([^";]+)"?/);
+                a.href = url;
+                a.download = match ? match[1] : 'widget_export.csv';
+                a.click();
+                URL.revokeObjectURL(url);
+                dashToast('CSV export ready.');
+            } catch (err) {
+                dashToast(err.message, 'error');
+            }
+        }
+
+        // ===== Menu / modal helpers =====
+        function toggleMenu(eventOrId) {
+            const widgetId = resolveWidgetId(eventOrId);
+            if (!widgetId) return;
+            const menu = document.getElementById('menu-' + widgetId);
+            if (!menu) return;
+            menu.classList.toggle('open');
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.widget-menu-wrap')) {
+                document.querySelectorAll('.widget-menu.open').forEach(m => m.classList.remove('open'));
+            }
+        });
+
+        function openRenameModal(eventOrId) {
+            const widgetId = resolveWidgetId(eventOrId);
+            if (!widgetId) return;
+            renamingWidgetId = widgetId;
+            toggleMenu(widgetId);
+            const widget = widgets.find(w => w.id === widgetId);
+            document.getElementById('renameInput').value = widget ? widget.title : '';
+            document.getElementById('renameModal').classList.add('open');
+            setTimeout(() => document.getElementById('renameInput').focus(), 100);
+        }
+
+        function closeRenameModal() {
+            document.getElementById('renameModal').classList.remove('open');
+            renamingWidgetId = null;
+        }
+
+        async function confirmRename() {
+            const title = document.getElementById('renameInput').value.trim();
+            if (!title || !renamingWidgetId) return;
+            try {
+                const updated = await apiFetch('/api/dashboard/widgets/' + renamingWidgetId, {
+                    method: 'PUT',
+                    body: { title: title }
+                });
+                const card = document.getElementById('widget-' + renamingWidgetId);
+                if (card) {
+                    const titleEl = card.querySelector('.widget-title');
+                    if (titleEl) {
+                        titleEl.textContent = updated.title;
+                        titleEl.title = updated.title;
+                    }
+                }
+                const idx = widgets.findIndex(w => w.id === renamingWidgetId);
+                if (idx >= 0) widgets[idx].title = updated.title;
+                dashToast('Widget renamed.');
+            } catch (err) {
+                dashToast(err.message, 'error');
+            } finally {
+                closeRenameModal();
+            }
+        }
+
+        function openEditQueryModal(eventOrId) {
+            const widgetId = resolveWidgetId(eventOrId);
+            if (!widgetId) return;
+            editingWidgetId = widgetId;
+            toggleMenu(widgetId);
+            const widget = widgets.find(w => w.id === widgetId);
+            document.getElementById('editQueryInput').value = widget ? widget.sql_query : '';
+            document.getElementById('editQueryModal').classList.add('open');
+            setTimeout(() => document.getElementById('editQueryInput').focus(), 100);
+        }
+
+        function closeEditQueryModal() {
+            document.getElementById('editQueryModal').classList.remove('open');
+            editingWidgetId = null;
+        }
+
+        async function confirmEditQuery() {
+            const sql = document.getElementById('editQueryInput').value.trim();
+            if (!sql || !editingWidgetId) return;
+            try {
+                const updated = await apiFetch('/api/dashboard/widgets/' + editingWidgetId, {
+                    method: 'PUT',
+                    body: { sql_query: sql, title: 'Edited Query', chart_config: {} }
+                });
+                const idx = widgets.findIndex(w => w.id === editingWidgetId);
+                if (idx >= 0) widgets[idx] = updated;
+                closeEditQueryModal();
+                await refreshWidget(editingWidgetId, true);
+                dashToast('Query updated and re-run.');
+            } catch (err) {
+                dashToast(err.message, 'error');
+            }
+        }
+
+        // ===== VizBot AI assistant =====
+        function useVizBotSuggestion(el) {
+            document.getElementById('vizbotInstruction').value = el.textContent.trim();
+            document.getElementById('vizbotInstruction').focus();
+        }
+
+        async function askVizBot() {
+            const resultEl = document.getElementById('vizbotResult');
+            const inputEl = document.getElementById('vizbotInstruction');
+            const btn = document.getElementById('vizbotAskBtn');
+            const instruction = inputEl.value.trim();
+            if (!instruction) {
+                resultEl.textContent = 'Please describe the modification you want VizBot to make.';
+                resultEl.className = 'vizbot-result error';
+                return;
+            }
+            if (!editingWidgetId) {
+                resultEl.textContent = 'No widget selected.';
+                resultEl.className = 'vizbot-result error';
+                return;
+            }
+            const currentSql = document.getElementById('editQueryInput').value;
+
+            btn.disabled = true;
+            btn.textContent = 'Thinking...';
+            resultEl.textContent = 'VizBot is rewriting your query against the active schema...';
+            resultEl.className = 'vizbot-result';
+
+            try {
+                const res = await apiFetch('/api/dashboard/vizbot/rewrite-sql', {
+                    method: 'POST',
+                    body: { instruction: instruction, sql_query: currentSql }
+                });
+                const sql = res.sql || '';
+                document.getElementById('editQueryInput').value = sql;
+                resultEl.textContent = '✅ VizBot updated the SQL. Review it below, then click "Save & Re-run".';
+                resultEl.className = 'vizbot-result';
+                inputEl.value = '';
+            } catch (err) {
+                resultEl.textContent = '❌ ' + err.message;
+                resultEl.className = 'vizbot-result error';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Rewrite ✨';
+            }
+        }
+
+        // ===== Bootstrap =====
+        function checkEmpty() {
+            document.getElementById('dashEmpty').style.display = widgets.length === 0 ? 'flex' : 'none';
+        }
+
+        async function loadDashboard() {
+            const skeleton = document.getElementById('skeletonGrid');
+            const grid = document.getElementById('widgetGrid');
+            skeleton.style.display = 'grid';
+            try {
+                widgets = await apiFetch('/api/dashboard/widgets');
+                grid.innerHTML = '';
+                if (!widgets || widgets.length === 0) {
+                    checkEmpty();
+                    skeleton.style.display = 'none';
+                    return;
+                }
+                widgets.forEach(widget => {
+                    grid.appendChild(renderWidgetCard(widget));
+                    refreshWidget(widget.id, true);
+                });
+                skeleton.style.display = 'none';
+                checkEmpty();
+            } catch (err) {
+                skeleton.style.display = 'none';
+                checkEmpty();
+                dashToast(err.message, 'error');
+            }
+        }
+
+        // ===== In-app version update checker (Super Admin dashboard) =====
+        function checkForDashboardUpdate() {
+            const banner = document.getElementById('dashUpdateBanner');
+            const info = document.getElementById('dashUpdateVersionInfo');
+            if (!banner) return; // Members don't see the update banner
+            fetch('/api/version/check', { credentials: 'include' })
+                .then(function(r){ return r.json(); })
+                .then(function(d){
+                    if (d.update_available) {
+                        banner.style.display = 'block';
+                        if (info) info.textContent = d.current_version + ' → ' + d.latest_version;
+                    }
+                })
+                .catch(function(){ /* silent — best-effort version check */ });
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){
+            loadDashboard();
+            checkForDashboardUpdate();
+        });
+    </script>
+<script src="/static/ux.js"></script>
+</body>
+</html>

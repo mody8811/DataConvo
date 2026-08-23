@@ -1,0 +1,344 @@
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header */
+header {
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar {
+    padding: 1rem 2rem;
+}
+
+.navbar .logo-container img {
+    height: 45px;
+    width: auto;
+}
+
+.navbar-nav .nav-item {
+    margin-left: 10px;
+}
+
+.navbar-nav .btn {
+    padding: 8px 16px;
+}
+
+/* Hero Section */
+.hero {
+    background: #f8f9fa;
+    padding: 100px 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero h1 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+}
+
+.hero p {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+}
+
+.typing-container {
+    min-height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+}
+
+.typing-text {
+    border-right: 3px solid #000;
+    padding-right: 5px;
+    animation: blink 0.75s step-end infinite;
+    font-size: 1.5rem;
+    color: #007BFF;
+}
+
+@keyframes blink {
+    from, to { border-color: transparent }
+    50% { border-color: #000 }
+}
+
+/* Features Section */
+.features {
+    padding: 80px 0;
+    text-align: center;
+}
+
+.feature-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+}
+
+.feature-card i {
+    font-size: 40px;
+    color: #007BFF;
+    margin-bottom: 20px;
+}
+
+.feature-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+}
+
+.feature-card p {
+    font-size: 1rem;
+    color: #666;
+}
+
+/* How It Works Section */
+.how-it-works {
+    background: #f8f9fa;
+    padding: 80px 0;
+    text-align: center;
+}
+
+.step {
+    margin-bottom: 20px;
+}
+
+.step i {
+    font-size: 50px;
+    color: #007BFF;
+    margin-bottom: 20px;
+}
+
+.step h3 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+}
+
+.step p {
+    font-size: 1rem;
+    color: #666;
+}
+
+/* Testimonials Section */
+.testimonials {
+    padding: 80px 0;
+    text-align: center;
+}
+
+.testimonial-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.testimonial-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+}
+
+.testimonial-card p {
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.testimonial-card h4 {
+    margin-bottom: 0.25rem;
+    font-size: 1.1rem;
+}
+
+.testimonial-card .position {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.25rem;
+}
+
+.testimonial-card .company {
+    font-size: 0.85rem;
+    color: #007bff;
+    font-weight: 500;
+}
+
+/* Add a subtle separator */
+.testimonial-card p {
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.testimonial-card p::before {
+    content: "“";
+    position: absolute;
+    left: 0;
+    top: -0.5rem;
+    font-size: 2.5rem;
+    color: #007bff;
+    opacity: 0.3;
+    font-family: Arial, sans-serif;
+}
+
+/* Footer */
+footer {
+    background: #333;
+    color: #fff;
+    padding: 40px 0;
+    text-align: center;
+}
+
+footer .social-icons a {
+    color: #fff;
+    margin: 0 10px;
+    font-size: 20px;
+}
+
+footer .social-icons a:hover {
+    color: #007BFF;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .hero {
+        padding: 60px 0;
+    }
+
+    .hero h1 {
+        font-size: 2rem;
+    }
+
+    .hero p {
+        font-size: 1rem;
+    }
+
+    .features, .how-it-works, .testimonials {
+        padding: 40px 0;
+    }
+
+    .feature-card, .testimonial-card {
+        margin-bottom: 15px;
+    }
+
+    .step i {
+        font-size: 40px;
+    }
+}
+
+/* Add email link styling */
+a[href^="mailto:"] {
+    color: #007bff;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+a[href^="mailto:"]:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.cta .btn-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0062cc 100%);
+    border: none;
+    color: white;
+    padding: 15px 50px;
+    font-size: 1.25rem;
+    border-radius: 30px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cta .btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0,123,255,0.25);
+    background: linear-gradient(135deg, #0069d9 0%, #0056b3 100%);
+}
+
+.cta .btn-primary i {
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+    transition: transform 0.3s ease;
+}
+
+.cta .btn-primary:hover i {
+    transform: translateX(3px);
+}
+
+/* Pricing button icons */
+.pricing-card .btn i {
+    transition: transform 0.3s ease;
+    margin-left: 8px;
+}
+
+.pricing-card .btn:hover i {
+    transform: translateX(3px);
+}
+
+.social-icons a {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.social-icons a:hover {
+    transform: translateY(-3px) scale(1.1);
+}
+
+.social-icons .fa-instagram:hover { color: #E1306C; }
+.social-icons .fa-x-twitter:hover { color: #000000; }
+.social-icons .fa-linkedin-in:hover { color: #0A66C2; }
+.social-icons .fa-facebook-f:hover { color: #1877F2; }
+
+.demo-section {
+    padding: 1rem 0;
+    background: #f8f9fa;
+}
+
+.demo-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.demo-wrapper:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+    .demo-wrapper {
+        margin: 0 -15px;
+        border-radius: 0;
+    }
+}
+
+.demo-caption {
+    background: rgba(255,255,255,0.9);
+    border-top: 1px solid rgba(0,0,0,0.1);
+    margin: -5px; /* Overlap slightly with image */
+}
+
+.demo-caption h5 {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.demo-caption .fa-magic {
+    color: #007bff;
+}

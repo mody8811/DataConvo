@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account — Data Convo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/static/brand/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/brand/favicon-32x32.png">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(ellipse at 0% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
+                        radial-gradient(ellipse at 100% 100%, rgba(139, 92, 246, 0.10) 0%, transparent 50%),
+                        var(--bg-primary);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .account-nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .account-nav .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.15rem;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+        .account-nav .logo img { width: 40px; height: 40px; object-fit: contain; }
+        .account-nav-links { display: flex; gap: 12px; align-items: center; }
+        .account-nav-links a {
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .account-nav-links a:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.04); }
+        .account-nav-links a.btn-logout {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: var(--error);
+        }
+        .account-nav-links a.btn-logout:hover { background: rgba(239, 68, 68, 0.15); }
+
+        .account-page { max-width: 900px; margin: 0 auto; padding: 48px 24px; animation: slideUp 0.5s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .account-header { margin-bottom: 32px; }
+        .account-header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; }
+        .account-header p { color: var(--text-muted); margin: 0; }
+        .account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 768px) { .account-grid { grid-template-columns: 1fr; } }
+
+        .account-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+        }
+        .account-card h2 { font-size: 1.1rem; font-weight: 600; margin: 0 0 16px; display: flex; align-items: center; gap: 8px; }
+        .profile-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .profile-row:last-child { border-bottom: none; }
+        .profile-label { color: var(--text-muted); font-size: 0.85rem; }
+        .profile-value { color: var(--text-primary); font-weight: 500; }
+
+        /* Workspace section */
+        .workspace-full { margin-top: 24px; animation: slideUp 0.5s ease-out; }
+        .seat-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 12px; border-radius: 999px;
+            font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        .seat-badge.member {
+            background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.2);
+            color: var(--text-secondary);
+        }
+        .seat-badge.admin {
+            background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3);
+            color: var(--accent-hover);
+        }
+        .seat-bar { height: 8px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; margin: 12px 0; }
+        .seat-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-secondary)); transition: width 0.4s ease; }
+        .workspace-members { list-style: none; padding: 0; margin: 12px 0; }
+        .workspace-members li {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+        }
+        .member-avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem; font-weight: 700; color: #fff; flex-shrink: 0;
+        }
+        .member-info { flex: 1; min-width: 0; }
+        .member-name { font-weight: 600; font-size: 0.9rem; color: var(--text-primary); }
+        .member-email { font-size: 0.8rem; color: var(--text-muted); }
+        .member-role {
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.04em; padding: 3px 10px; border-radius: 999px;
+            background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25);
+            color: var(--accent-hover);
+        }
+
+        .invite-row { display: flex; gap: 10px; margin-top: 16px; align-items: center; }
+        .invite-row input#inviteEmail {
+            flex: 1 1 auto; min-width: 0; padding: 10px 12px;
+            background: rgba(0,0,0,0.25); border: 1px solid var(--border);
+            border-radius: var(--radius-md); color: var(--text-primary);
+            font-size: 0.9rem; font-family: inherit;
+        }
+        .invite-row input#inviteEmail:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .invite-row select#inviteRole {
+            flex: 0 0 150px; width: 150px; padding: 10px 12px;
+            background: rgba(0,0,0,0.25); border: 1px solid var(--border);
+            border-radius: var(--radius-md); color: var(--text-primary);
+            font-size: 0.9rem; font-family: 'Inter', sans-serif; cursor: pointer;
+        }
+        .invite-row select#inviteRole:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .invite-row .invite-btn { flex: 0 0 auto; white-space: nowrap; }
+        .invite-btn {
+            padding: 10px 18px; border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            color: #fff; border: none; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .invite-btn:hover { filter: brightness(1.1); box-shadow: 0 4px 14px var(--accent-glow); }
+        .invite-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pending-invite {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 8px;
+            background: rgba(245,158,11,0.05);
+            border: 1px solid rgba(245,158,11,0.2);
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+        .pending-invite .status {
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+            padding: 3px 10px; border-radius: 999px;
+            background: rgba(245,158,11,0.15); color: var(--warning);
+        }
+        .invite-url {
+            font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+        /* Upgrade modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; z-index: 1000;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: var(--bg-secondary); border: 1px solid var(--border-strong);
+            border-radius: var(--radius-lg); padding: 32px; max-width: 420px;
+            text-align: center; box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+            animation: slideUp 0.3s ease-out;
+        }
+        .modal-box h3 { font-size: 1.2rem; margin: 0 0 8px; }
+        .modal-box p { color: var(--text-secondary); font-size: 0.9rem; margin: 0 0 20px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: center; }
+        .modal-actions .btn-upgrade {
+            padding: 12px 24px; border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            color: #fff; border: none; font-weight: 600; cursor: pointer; text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .modal-actions .btn-cancel {
+            padding: 12px 20px; border-radius: var(--radius-md);
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text-secondary); font-weight: 600; cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .modal-actions .btn-cancel:hover { border-color: var(--border-strong); color: var(--text-primary); }
+        .invite-result-msg { font-size: 0.85rem; margin-top: 10px; display: none; }
+        .invite-result-msg.success { color: var(--success); }
+        .invite-result-msg.error { color: var(--error); }
+
+        .flash { margin-bottom: 16px; padding: 12px 16px; border-radius: var(--radius-md); text-align: center; font-size: 0.85rem; }
+        .flash.error { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--error); }
+        .flash.success { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--success); }
+        .flash.info { background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); color: var(--accent-hover); }
+        .app-links { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; }
+        .app-link {
+            flex: 1; min-width: 160px; padding: 14px; border-radius: var(--radius-md);
+            background: var(--surface); border: 1px solid var(--border);
+            color: var(--text-secondary); text-align: center; font-size: 0.9rem; font-weight: 600;
+            text-decoration: none; transition: all 0.2s;
+        }
+        .app-link:hover { background: var(--surface-hover); border-color: var(--border-strong); color: var(--text-primary); text-decoration: none; }
+        .app-link .app-link-arrow { opacity: 0; transform: translateX(-4px); transition: all 0.2s; }
+        .app-link:hover .app-link-arrow { opacity: 1; transform: translateX(0); }
+        .app-link.admin { border-color: rgba(245, 158, 11, 0.25); }
+        .app-link.admin:hover { border-color: rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.05); }
+        .account-header-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+        .account-header { display: flex; align-items: flex-start; }
+        .account-header .header-text { flex: 1; }
+        .header-quick-link {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 16px; border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            color: #fff; font-size: 0.85rem; font-weight: 600;
+            text-decoration: none; transition: all 0.2s;
+            box-shadow: 0 4px 14px var(--accent-glow);
+        }
+        .header-quick-link:hover { filter: brightness(1.1); box-shadow: 0 6px 20px var(--accent-glow); }
+        .header-quick-link.admin-studio {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+        }
+        .header-quick-link.admin-studio:hover { box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35); }
+
+        /* ===== TABBED LAYOUT ===== */
+        .account-tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid var(--border);
+            margin: 0 0 28px;
+            overflow-x: auto;
+        }
+        .account-tab {
+            padding: 10px 20px;
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+            background: transparent;
+            border: 1px solid transparent;
+            border-bottom: none;
+            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .account-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+        .account-tab.active {
+            background: var(--bg-secondary);
+            border-color: var(--border);
+            color: var(--text-primary);
+            box-shadow: 0 -2px 0 var(--accent) inset;
+        }
+        .account-tab-panel { display: none; animation: slideUp 0.3s ease-out; }
+        .account-tab-panel.active { display: block; }
+        .sec-status-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 14px; border-radius: 999px;
+            font-size: 0.75rem; font-weight: 700; letter-spacing: 0.03em;
+        }
+        .sec-status-pill.enabled {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success);
+        }
+        .sec-status-pill.disabled {
+            background: rgba(148, 163, 184, 0.1);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            color: var(--text-secondary);
+        }
+        .byok-summary-card {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 14px;
+        }
+        .byok-summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.83rem;
+        }
+        .byok-summary-row:last-child { border-bottom: none; }
+        .byok-summary-label { color: #94a3b8; }
+        .byok-summary-value { color: #e2e8f0; font-weight: 600; }
+        .byok-summary-value.mask-text { font-family: 'JetBrains Mono', monospace; color: #fbbf24; }
+        .byok-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+        .byok-action-btn {
+            padding: 9px 16px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+        .byok-action-btn:hover { color: var(--text-primary); border-color: var(--border-strong); }
+        .byok-action-btn.primary { background: linear-gradient(135deg, #f59e0b, #d97706); border: none; color: #fff; }
+        .byok-action-btn.primary:hover { filter: brightness(1.1); }
+        .byok-action-btn.danger { color: var(--error); border-color: rgba(239,68,68,0.3); }
+        .byok-action-btn.danger:hover { background: rgba(239,68,68,0.08); }
+        .byok-empty-state {
+            text-align: center;
+            padding: 30px 20px;
+            border: 1px dashed #334155;
+            border-radius: 12px;
+            background: rgba(0,0,0,0.2);
+        }
+        .byok-empty-icon { font-size: 2.2rem; margin-bottom: 8px; }
+        .byok-empty-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+        .byok-empty-desc { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
+        .mfa-detail-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem;
+        }
+        .mfa-detail-row:last-child { border-bottom: none; }
+        .mfa-detail-label { color: var(--text-muted); }
+        .account-card { max-width: 860px; }
+    </style>
+</head>
+<body>
+    <nav class="account-nav">
+        <a href="/" class="logo">
+            <img src="/static/brand/logo-mark.png" alt="Data Convo">
+            <span>Data Convo</span>
+        </a>
+        <div class="account-nav-links">
+            {% if current_user.is_authenticated %}
+                <a href="/chat">Chat Terminal</a>
+                <a href="/dashboard">📊 Dashboard</a>
+                {% if current_user.role == 'admin' %}
+                    <a href="/data-quality">🩺 Anomaly Studio</a>
+                    <a href="/semantic-studio">Semantic Studio</a>
+                {% endif %}
+                <a href="/account">Account</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn-logout">Logout</a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}">Login</a>
+                <a href="{{ url_for('auth.signup') }}">Sign Up</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="account-page">
+        <div class="account-header">
+            <div class="header-text">
+                <h1>Account Settings</h1>
+                <p>Manage your profile, workspace, and subscription.</p>
+            </div>
+            <div class="account-header-actions">
+                {% if user.role == 'admin' %}
+                    <a href="/data-quality" class="header-quick-link admin-studio">🩺 Anomaly Studio</a>
+                {% endif %}
+                <a href="/dashboard" class="header-quick-link">📊 Dashboard</a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- ===== SECTION TABS ===== -->
+        <div class="account-tabs" role="tablist">
+            <button class="account-tab active" data-tab="profile" onclick="switchTab('profile')">👤 Profile</button>
+            <button class="account-tab" data-tab="security" onclick="switchTab('security')">🔐 Security</button>
+            {% if user.role == 'admin' %}
+            <button class="account-tab" data-tab="license" onclick="switchTab('license')">🔑 License & Subscription</button>
+            {% endif %}
+            <button class="account-tab" data-tab="workspace" onclick="switchTab('workspace')">🏢 Workspace</button>
+        </div>
+
+        <div class="account-tab-panel active" id="tab-profile">
+        <div class="account-grid">
+            <div class="account-card">
+                <h2>👤 Profile</h2>
+                <div class="profile-row">
+                    <span class="profile-label">Email</span>
+                    <span class="profile-value">{{ user.email }}</span>
+                </div>
+                <div class="profile-row">
+                    <span class="profile-label">Username</span>
+                    <span class="profile-value">{{ user.username or '—' }}</span>
+                </div>
+                <div class="profile-row">
+                    <span class="profile-label">Role</span>
+                    <span class="profile-value">
+                        {% if user.role == 'admin' %}
+                            <span class="seat-badge admin">👑 Admin</span>
+                        {% else %}
+                            <span class="seat-badge member">👤 Member</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="profile-row">
+                    <span class="profile-label">Member Since</span>
+                    <span class="profile-value">{{ user.created_at.strftime('%B %d, %Y') if user.created_at else '—' }}</span>
+                </div>
+            </div>
+        </div><!-- close account-grid -->
+        </div><!-- /tab-profile -->
+
+
+        {% if user.role == 'admin' %}
+        <div class="account-tab-panel" id="tab-license">
+            <div class="account-card">
+                <h2>🔑 License & Subscription</h2>
+                <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 16px;">
+                    Activate your self-hosted license to unlock the correct tier. This deployment is
+                    <strong>100% self-hosted</strong> — no data leaves your infrastructure and every LLM call
+                    requires your own BYOK provider key (zero platform API key fallback).
+                </p>
+
+                <!-- CURRENT LICENSE STATUS -->
+                <div class="byok-summary-card">
+                    <div class="byok-summary-row">
+                        <span class="byok-summary-label">Current Plan</span>
+                        <span class="sec-status-pill" id="licenseTierPill" style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);color:#34d399;">Community</span>
+                    </div>
+                    <div class="byok-summary-row">
+                        <span class="byok-summary-label">Seats</span>
+                        <span class="byok-summary-value" id="licenseSeats">0 / 1 used</span>
+                    </div>
+                    <div class="byok-summary-row">
+                        <span class="byok-summary-label">BYOK Requirement</span>
+                        <span class="byok-summary-value" id="licenseByok">Required — not configured</span>
+                    </div>
+                    <div class="byok-summary-row" style="border-bottom:none;">
+                        <span class="byok-summary-label">License Key</span>
+                        <span class="byok-summary-value mask-text" id="licenseKeyMask">—</span>
+                    </div>
+                </div>
+
+                <!-- UPGRADE / BUY TEAM -->
+                {% if team_payment_link %}
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;border-radius:10px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);margin:14px 0;">
+                    <div style="font-size:0.85rem;color:var(--text-secondary);">
+                        <strong style="color:var(--text-primary);">Need more seats?</strong> Upgrade to
+                        <strong>Team ($399/mo)</strong> — up to 15 members.
+                    </div>
+                    <a class="byok-action-btn primary" href="{{ team_payment_link }}" target="_blank" rel="noopener" style="margin:0;">💳 Buy Team</a>
+                </div>
+                {% endif %}
+
+                <!-- ACTIVATE LICENSE -->
+                <h2 style="font-size:1.05rem;margin:18px 0 6px;">Activate License</h2>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px;">
+                    Paste the signed license key issued for your admin email. Keys activate the
+                    Community / Team / Enterprise tier locally (HMAC-verified, no phone-home).
+                </p>
+                <input type="text" id="licenseKeyInput" placeholder="DCCONVO-..." autocomplete="off"
+                       style="width:100%;padding:11px 14px;background:#020617;border:1px solid #1e293b;border-radius:10px;color:#f8fafc;outline:none;font-size:0.9rem;font-family:'JetBrains Mono',var(--font-mono);margin-bottom:14px;">
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <button class="byok-action-btn primary" onclick="activateLicense()">💾 Activate License</button>
+                    <span id="licenseFeed" style="font-size:0.82rem;min-height:18px;"></span>
+                </div>
+
+                <hr style="border:0;border-top:1px solid var(--border);margin:22px 0;">
+
+                <!-- VERSION UPDATE CHECKER -->
+                <h2 style="font-size:1.05rem;margin:0 0 6px;">🛠️ Version Check</h2>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px;">
+                    We automatically check the remote release feed and alert you when a new version drops.
+                </p>
+                <div id="updateBanner" style="display:none;padding:14px 16px;border-radius:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#fbbf24;font-size:0.85rem;line-height:1.5;">
+                    <strong>🚀 New version available.</strong> Run <code>docker compose pull && docker compose up -d</code> to update.
+                    <span style="display:block;margin-top:6px;font-size:0.75rem;color:var(--text-muted);" id="updateVersionInfo"></span>
+                </div>
+            </div>
+        </div><!-- /tab-license -->
+        {% endif %}
+
+        <div class="account-tab-panel" id="tab-security">
+            <div class="account-card">
+                <h2>🔐 Security</h2>
+
+                <!-- MFA STATUS -->
+                <div class="mfa-detail-row">
+                    <span class="mfa-detail-label">Two-Factor Authentication</span>
+                    {% if user.totp_secret and user.mfa_verified %}
+                        <span class="sec-status-pill enabled">✓ 2FA Enabled</span>
+                    {% else %}
+                        <span class="sec-status-pill disabled">2FA Not Enabled</span>
+                    {% endif %}
+                </div>
+                <div class="mfa-detail-row">
+                    <span class="mfa-detail-label">Authenticator App</span>
+                    <span style="color:var(--text-muted);font-size:0.82rem;">
+                        {% if user.totp_secret %}Google / Microsoft Authenticator{% else %}Not configured{% endif %}
+                    </span>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+                    {% if user.totp_secret %}
+                        <a class="byok-action-btn" href="/mfa/setup">🔄 Regenerate Recovery Codes</a>
+                        <button class="byok-action-btn danger" onclick="confirmDisableMfa()">🗑 Disable 2FA</button>
+                    {% else %}
+                        <a class="byok-action-btn primary" href="/mfa/setup">🔐 Set up 2FA</a>
+                    {% endif %}
+                </div>
+
+                <hr style="border:0;border-top:1px solid var(--border);margin:20px 0;">
+
+                <!-- BYOK -->
+                {% if user.role == 'admin' %}
+                <h2 style="font-size:1.05rem;margin:0 0 6px;">Bring Your Own Key (BYOK)</h2>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 14px;">
+                    Connect your own LLM provider — OpenAI, Anthropic, OpenRouter, Google Gemini, or an OpenAI-compatible endpoint.
+                </p>
+
+                <!-- Masked summary (shown when BYOK is active) -->
+                <div class="byok-summary-card" id="byokSummaryCard" style="display:none;">
+                    <div class="byok-summary-row">
+                        <span class="byok-summary-label">Status</span>
+                        <span class="sec-status-pill" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fbbf24;">BYOK Active</span>
+                    </div>
+                    <div class="byok-summary-row">
+                        <span class="byok-summary-label">Provider</span>
+                        <span class="byok-summary-value" id="byokSummaryProvider">—</span>
+                    </div>
+                    <div class="byok-summary-row">
+                        <span class="byok-summary-label">Model</span>
+                        <span class="byok-summary-value" id="byokSummaryModel">—</span>
+                    </div>
+                    <div class="byok-summary-row">
+                        <span class="byok-summary-label">Key</span>
+                        <span class="byok-summary-value mask-text" id="byokSummaryKey">••••</span>
+                    </div>
+                    <div class="byok-actions">
+                        <button class="byok-action-btn primary" onclick="byokEditMode(true)">✏️ Update Key</button>
+                        <button class="byok-action-btn" onclick="byokTestSaved()">🧪 Test Key</button>
+                        <button class="byok-action-btn danger" onclick="confirmDeleteByok()">🗑 Delete Key</button>
+                    </div>
+                </div>
+
+                <!-- Empty state (shown when no BYOK key saved) -->
+                <div class="byok-empty-state" id="byokEmptyState">
+                    <div class="byok-empty-icon">🔑</div>
+                    <div class="byok-empty-title">No API Key Configured</div>
+                    <div class="byok-empty-desc">Connect your own LLM provider to enable BYOK.</div>
+                    <button class="byok-action-btn primary" onclick="byokEditMode(true)">➕ Add API Key</button>
+                </div>
+
+                <!-- Edit form (hidden until Add/Update clicked) -->
+                <div id="byokEditForm" style="display:none;margin-top:16px;">
+                    <label style="display:block;margin-bottom:6px;font-size:0.85rem;color:#cbd5e1;">API Provider</label>
+                    <select id="byokProviderSelect" style="width:100%;padding:11px 14px;background:#020617;border:1px solid #1e293b;border-radius:10px;color:#f8fafc;outline:none;font-size:0.9rem;margin-bottom:14px;font-family:'Inter',sans-serif;">
+                        <option value="openai">OpenAI</option><option value="anthropic">Anthropic</option>
+                        <option value="openrouter">OpenRouter</option><option value="gemini">Google Gemini</option>
+                        <option value="custom">Custom / OpenAI-compatible</option>
+                    </select>
+                    <div id="byokBaseUrlWrap" style="display:none;">
+                        <label style="display:block;margin-bottom:6px;font-size:0.85rem;color:#cbd5e1;">Base URL Endpoint</label>
+                        <input type="text" id="byokBaseUrlInput" placeholder="https://openrouter.ai/api/v1" autocomplete="off" style="width:100%;padding:11px 14px;background:#020617;border:1px solid #1e293b;border-radius:10px;color:#f8fafc;outline:none;font-size:0.9rem;margin-bottom:14px;">
+                    </div>
+                    <label style="display:block;margin-bottom:6px;font-size:0.85rem;color:#cbd5e1;">Model ID</label>
+                    <input type="text" id="byokModelInput" placeholder="gpt-4o, claude-3-5-sonnet..." autocomplete="off" style="width:100%;padding:11px 14px;background:#020617;border:1px solid #1e293b;border-radius:10px;color:#f8fafc;outline:none;font-size:0.9rem;margin-bottom:14px;">
+                    <label style="display:block;margin-bottom:6px;font-size:0.85rem;color:#cbd5e1;">API Key</label>
+                    <input type="password" id="byokKeyInput" placeholder="sk-..." autocomplete="off" style="width:100%;padding:11px 14px;background:#020617;border:1px solid #1e293b;border-radius:10px;color:#f8fafc;outline:none;font-size:0.9rem;">
+                    <div style="margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <button id="byokSaveBtn" class="byok-action-btn primary">💾 Save Configuration</button>
+                        <button id="byokTestBtn" class="byok-action-btn">🧪 Test Key</button>
+                        <button class="byok-action-btn" onclick="byokEditMode(false)">Cancel</button>
+                        <span id="byokFeed" style="font-size:0.82rem;min-height:18px;"></span>
+                    </div>
+                </div>
+                {% else %}
+                <!-- Read-only BYOK status for members (managed by workspace admin) -->
+                <h2 style="font-size:1.05rem;margin:0 0 6px;">Bring Your Own Key (BYOK)</h2>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 14px;">
+                    LLM provider configuration is managed securely by your workspace admin and inherited automatically.
+                </p>
+                <div class="byok-summary-card" id="byokMemberStatusCard">
+                    <div class="byok-summary-row">
+                        <span class="byok-summary-label">Status</span>
+                        <span class="sec-status-pill" style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4);color:#34d399;">Workspace-Managed</span>
+                    </div>
+                    <div class="byok-summary-row">
+                        <span class="byok-summary-label">Access</span>
+                        <span class="byok-summary-value">Inherited from Admin</span>
+                    </div>
+                    <div class="byok-summary-row" style="border-bottom:none;">
+                        <span class="byok-summary-label">Note</span>
+                        <span class="byok-summary-value" style="color:var(--text-muted);font-weight:400;">This workspace uses the admin's secure LLM configuration automatically. No action needed.</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div><!-- /tab-security -->
+
+        <div class="account-tab-panel" id="tab-workspace">
+        <!-- ===== TEAM & WORKSPACE (members see workspace info; invite controls admin-only) ===== -->
+        <div class="workspace-full">
+            <div class="account-card">
+                <h2>🏢 Team & Workspace</h2>
+                <div class="profile-row">
+                    <span class="profile-label">Workspace</span>
+                    <span class="profile-value">{{ workspace.name if workspace else '—' }}</span>
+                </div>
+                <div class="profile-row">
+                    <span class="profile-label">Plan</span>
+                    <span class="profile-value">
+                        {% if current_tier == 'team' or current_tier == 'pro' %}
+                            <span class="seat-badge admin">⭐ Team — {{ member_count + pending_invites_count }}/15 seats</span>
+                        {% elif current_tier == 'enterprise' %}
+                            <span class="seat-badge admin">🏢 Enterprise — Unlimited seats</span>
+                        {% else %}
+                            <span class="seat-badge member">Community — {{ member_count + pending_invites_count }}/1 seats</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="seat-bar">
+                    {% set used_seats = member_count + pending_invites_count %}
+                    {% if seat_limit > 0 %}
+                        {% set pct = (used_seats / seat_limit * 100) %}
+                        {% if pct > 100 %}{% set pct = 100 %}{% endif %}
+                    {% else %}
+                        {% set pct = 0 %}
+                    {% endif %}
+                    <div class="seat-bar-fill" style="width: {{ pct }}%;"></div>
+                </div>
+                <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">
+                    {{ member_count + pending_invites_count }} / {{ seat_limit }} seats used
+                </div>
+
+                <h3 style="font-size:0.95rem;margin-bottom:8px;">👥 Members</h3>
+                <ul class="workspace-members">
+                    {% for m in members %}
+                    <li data-member-id="{{ m.id }}">
+                        <div class="member-avatar">{{ m.username[0]|upper if m.username else '?' }}</div>
+                        <div class="member-info">
+                            <div class="member-name">{{ m.username or '—' }}</div>
+                            <div class="member-email">{{ m.email }}</div>
+                        </div>
+                        <span class="member-role">{{ m.role }}</span>
+                        {% if user.role == 'admin' and m.id != workspace.owner_id and m.id != user.id %}
+                        <button class="byok-action-btn danger" style="padding:4px 10px;font-size:0.72rem;flex-shrink:0;"
+                                onclick="removeWorkspaceMember({{ m.id }}, '{{ (m.username or m.email)|e }}')">✕ Remove</button>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                    {% if not members %}
+                        <li><div class="member-info"><span style="color:var(--text-muted);font-size:0.85rem;">No members yet. Invite your first teammate below.</span></div></li>
+                    {% endif %}
+                </ul>
+
+                {% if invites %}
+                <h3 style="font-size:0.95rem;margin-bottom:8px;">⏳ Pending Invites</h3>
+                {% for inv in invites %}
+                <div class="pending-invite" style="justify-content:space-between;gap:12px;">
+                    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                        <span>✉️ {{ inv.email }}</span>
+                        {% if inv.role == 'admin' %}<span class="status" style="background:rgba(99,102,241,0.15);color:var(--accent-hover);">Admin</span>{% endif %}
+                        <span class="status">Pending</span>
+                    </div>
+                    <button class="byok-action-btn danger" style="padding:4px 10px;font-size:0.7rem;flex-shrink:0;"
+                            onclick="revokeInvite({{ inv.id }})">🗑 Revoke</button>
+                </div>
+                {% endfor %}
+                {% endif %}
+
+                {% if user.role == 'admin' %}
+                <!-- ===== INVITE FORM ===== -->
+                <h3 style="font-size:0.95rem;margin:20px 0 8px;">✉️ Invite Member</h3>
+                <div class="invite-row">
+                    <input type="email" id="inviteEmail" placeholder="teammate@company.com">
+                    <select id="inviteRole">
+                        <option value="member">Member</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button class="invite-btn" id="inviteBtn" onclick="sendInvite()">Invite Member</button>
+                </div>
+                <div class="invite-result-msg" id="inviteResult"></div>
+
+                <!-- ===== ACTIVE INVITATIONS TABLE ===== -->
+                <h3 style="font-size:0.95rem;margin:20px 0 8px;">⏳ Active Invitations</h3>
+                <div id="activeInvitesWrap">
+                    <p style="font-size:0.8rem;color:var(--text-muted);">Loading invitations...</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        </div><!-- /tab-workspace -->
+
+        <div class="app-links">
+            <a href="/chat" class="app-link">💬 Open Chat Terminal<span class="app-link-arrow">→</span></a>
+            <a href="/dashboard" class="app-link" style="background:linear-gradient(135deg, var(--accent), var(--accent-secondary));color:#fff;border:none;">📊 Go to BI Dashboard<span class="app-link-arrow">→</span></a>
+            {% if user.role == 'admin' %}
+                <a href="/data-quality" class="app-link admin">🩺 Anomaly Studio<span class="app-link-arrow">→</span></a>
+                <a href="/semantic-studio" class="app-link">🗺️ Semantic Layer Studio<span class="app-link-arrow">→</span></a>
+                <a href="/connect" class="app-link">🔌 Connect Database<span class="app-link-arrow">→</span></a>
+            {% endif %}
+            <a href="/pricing" class="app-link">💰 Pricing<span class="app-link-arrow">→</span></a>
+        </div>
+    </div>
+
+    <!-- Upgrade modal -->
+    <div class="modal-overlay" id="upgradeModal">
+        <div class="modal-box">
+            <h3>🚀 Upgrade to Team</h3>
+            <p>You've reached your Community seat limit. Upgrade to <strong>Team ($399/mo)</strong> to invite up to <strong>15 team members</strong>.</p>
+            <div class="modal-actions">
+                <a class="btn-upgrade" href="/pricing" style="text-decoration:none;">View Pricing</a>
+                <button class="btn-cancel" onclick="closeUpgradeModal()">Later</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const seatLimit = {{ seat_limit }};
+        let pendingInvites = {{ pending_invites_count }};
+        let memberCount = {{ member_count }};
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"').replace(/'/g, '&#039;');
+        }
+
+        function showInviteMessage(msg, isError) {
+            const el = document.getElementById('inviteResult');
+            el.textContent = msg;
+            el.className = 'invite-result-msg ' + (isError ? 'error' : 'success');
+            el.style.display = 'block';
+        }
+
+        function closeUpgradeModal() {
+            document.getElementById('upgradeModal').classList.remove('open');
+        }
+
+        async function sendInvite() {
+            const emailInput = document.getElementById('inviteEmail');
+            const roleSelect = document.getElementById('inviteRole');
+            const email = emailInput.value.trim();
+            const role = roleSelect ? roleSelect.value : 'member';
+            if (!email || !email.includes('@')) {
+                showInviteMessage('Please enter a valid email address.', true);
+                return;
+            }
+
+            const btn = document.getElementById('inviteBtn');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+
+            try {
+                const resp = await fetch('/admin/invites', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email: email, role: role })
+                });
+
+                const data = await resp.json();
+
+                if (resp.status === 402) {
+                    document.getElementById('upgradeModal').classList.add('open');
+                    showInviteMessage(data.error, true);
+                    btn.disabled = false;
+                    btn.textContent = 'Invite Member';
+                    return;
+                }
+
+                if (!resp.ok) {
+                    showInviteMessage(data.error || 'Invite failed. Please try again.', true);
+                    btn.disabled = false;
+                    btn.textContent = 'Invite Member';
+                    return;
+                }
+
+                showInviteMessage(`Invite sent! Email ${data.email_sent ? 'delivered' : 'logged (SMTP not configured)'}. Link: ${data.invite_url}`, false);
+                emailInput.value = '';
+                pendingInvites++;
+                btn.disabled = false;
+                btn.textContent = 'Invite Member';
+                loadActiveInvites();
+            } catch (err) {
+                showInviteMessage('Network error. Please try again.', true);
+                btn.disabled = false;
+                btn.textContent = 'Invite Member';
+            }
+        }
+
+        // ===== Active Invitations table =====
+        async function loadActiveInvites() {
+            const wrap = document.getElementById('activeInvitesWrap');
+            if (!wrap) return;
+            try {
+                const resp = await fetch('/admin/invites', { credentials: 'include' });
+                const data = await resp.json();
+                const invites = data.invites || [];
+                if (invites.length === 0) {
+                    wrap.innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);">No pending invitations.</p>';
+                    return;
+                }
+                wrap.innerHTML = `
+                    <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+                        <thead>
+                            <tr style="color:var(--text-muted);text-align:left;border-bottom:1px solid var(--border);">
+                                <th style="padding:8px 6px;">Email</th>
+                                <th style="padding:8px 6px;">Role</th>
+                                <th style="padding:8px 6px;">Date Sent</th>
+                                <th style="padding:8px 6px;">Email</th>
+                                <th style="padding:8px 6px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${invites.map(inv => `
+                                <tr style="border-bottom:1px solid var(--border);">
+                                    <td style="padding:8px 6px;color:var(--text-primary);">${escapeHtml(inv.email)}</td>
+                                    <td style="padding:8px 6px;">${inv.role === 'admin' ? '👑 Admin' : '👤 Member'}</td>
+                                    <td style="padding:8px 6px;color:var(--text-muted);">${inv.created_at ? new Date(inv.created_at).toLocaleDateString() : '-'}</td>
+                                    <td style="padding:8px 6px;">${inv.email_sent ? '<span style="color:var(--success);">✓ Sent</span>' : '<span style="color:var(--warning);">⚠ Dev-mode</span>'}</td>
+                                    <td style="padding:8px 6px;">
+                                        <button class="byok-action-btn danger" style="padding:5px 10px;font-size:0.72rem;"
+                                                onclick="revokeInvite(${inv.id})">Revoke</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>`;
+            } catch (e) {
+                wrap.innerHTML = '<p style="font-size:0.8rem;color:var(--error);">Failed to load invitations.</p>';
+            }
+        }
+
+        async function revokeInvite(inviteId) {
+            if (!confirm('Revoke this invitation?')) return;
+            try {
+                const resp = await fetch(`/api/workspace/invites/${inviteId}/revoke`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    loadActiveInvites();
+                    pendingInvites = Math.max(0, pendingInvites - 1);
+                } else {
+                    alert(data.error || 'Failed to revoke invite.');
+                }
+            } catch (e) {
+                alert('Network error revoking invite.');
+            }
+        }
+
+        // Load invites on page load
+        document.addEventListener('DOMContentLoaded', loadActiveInvites);
+
+        async function removeWorkspaceMember(userId, name) {
+            if (!confirm('Are you sure you want to remove ' + name + ' from the workspace?')) return;
+            try {
+                const resp = await fetch('/workspace/members/' + userId + '/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    dcToast(name + ' removed from workspace.', 'success');
+                    const card = document.querySelector('[data-member-id="' + userId + '"]');
+                    if (card) card.remove();
+                    if (typeof memberCount !== 'undefined') memberCount = Math.max(0, memberCount - 1);
+                } else {
+                    dcToast(data.error || 'Failed to remove member.', 'error');
+                }
+            } catch (e) {
+                dcToast('Network error removing member.', 'error');
+            }
+        }
+    </script>
+
+
+<script>
+/* ===== Tab switching ===== */
+function switchTab(name) {
+    document.querySelectorAll('.account-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === name);
+    });
+    document.querySelectorAll('.account-tab-panel').forEach(p => {
+        p.classList.toggle('active', p.id === 'tab-' + name);
+    });
+}
+
+/* ===== BYOK state ===== */
+function byokEditMode(show) {
+    var el = document.getElementById('byokEditForm');
+    if (!el) return; // Member read-only view
+    el.style.display = show ? 'block' : 'none';
+    if (show) el.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function refreshByokUi(status) {
+    var sum = document.getElementById('byokSummaryCard');
+    var empty = document.getElementById('byokEmptyState');
+    if (!sum || !empty) return; // Member read-only view
+    var active = status && status.byok_enabled;
+    if (active) {
+        sum.style.display = 'block';
+        empty.style.display = 'none';
+        document.getElementById('byokSummaryProvider').textContent = status.llm_provider || '-';
+        document.getElementById('byokSummaryModel').textContent = status.llm_model_id || '-';
+        // Show last 6 chars of the masked key
+        var masked = '';
+        if (status.llm_provider === 'anthropic' && status.anthropic_masked) masked = status.anthropic_masked;
+        else if (status.openai_masked) masked = status.openai_masked;
+        document.getElementById('byokSummaryKey').textContent = masked ? '****' + masked.slice(-6) : '••••';
+        // Restore edit form state from saved values
+        var prov = document.getElementById('byokProviderSelect');
+        if (status.llm_provider && prov) prov.value = status.llm_provider;
+        var baseUrl = document.getElementById('byokBaseUrlInput');
+        var model = document.getElementById('byokModelInput');
+        if (baseUrl) baseUrl.value = status.llm_base_url || '';
+        if (model) model.value = status.llm_model_id || '';
+        updateProviderUI();
+    } else {
+        sum.style.display = 'none';
+        empty.style.display = 'block';
+    }
+}
+
+function byokTestSaved() {
+    var prov = document.getElementById('byokProviderSelect');
+    var model = document.getElementById('byokModelInput');
+    var baseUrl = document.getElementById('byokBaseUrlInput');
+    fetch('/api/settings/byok/test', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        credentials: 'include',
+        body: JSON.stringify({
+            llm_provider: prov.value,
+            api_key: 'test',
+            llm_base_url: baseUrl ? baseUrl.value : ''
+        })
+    }).then(function(r){ return r.json(); })
+      .then(function(d){
+        var f = document.getElementById('byokFeed');
+        if (f) { f.textContent = d.valid ? d.message : (d.error || 'Test failed'); f.style.color = d.valid ? '#34d399' : '#ef4444'; }
+      })
+      .catch(function(e){
+        var f = document.getElementById('byokFeed');
+        if (f) { f.textContent = 'Error: ' + e.message; f.style.color = '#ef4444'; }
+      });
+}
+
+function confirmDeleteByok() {
+    if (!confirm('Delete your BYOK API key and revert to the default provider?')) return;
+    fetch('/api/settings/byok', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        credentials: 'include',
+        body: JSON.stringify({ llm_provider: 'openai', byok_enabled: false, api_key: '' })
+    }).then(function(r){ return r.json(); })
+      .then(function(){
+        document.getElementById('byokKeyInput').value = '';
+        refreshByokUi({byok_enabled: false});
+        var f = document.getElementById('byokFeed');
+        if (f) { f.textContent = 'BYOK disabled - reverted to default provider.'; f.style.color = '#94a3b8'; }
+      })
+      .catch(function(e){
+        var f = document.getElementById('byokFeed');
+        if (f) { f.textContent = 'Delete failed: ' + e.message; f.style.color = '#ef4444'; }
+      });
+}
+
+function confirmDisableMfa() {
+    if (!confirm('Disable Two-Factor Authentication for your account?')) return;
+    fetch('/api/auth/mfa/disable', {method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.success) { location.reload(); }
+        else { alert(d.error || 'Failed to disable 2FA'); }
+      })
+      .catch(function(){ alert('Network error disabling 2FA'); });
+}
+
+/* ===== BYOK save/test wired ===== */
+(function(){
+    if (window.__byokAccDone) return;
+    window.__byokAccDone = true;
+    var f = document.getElementById('byokFeed');
+    var i = document.getElementById('byokKeyInput');
+    var b = document.getElementById('byokSaveBtn');
+    var t = document.getElementById('byokTestBtn');
+    var prov = document.getElementById('byokProviderSelect');
+    var baseWrap = document.getElementById('byokBaseUrlWrap');
+    var baseUrl = document.getElementById('byokBaseUrlInput');
+    var model = document.getElementById('byokModelInput');
+    if (!prov) return;
+
+    var PROVIDERS = {
+        openai:   { base: '',                model: 'gpt-4o-mini',           showBase: false },
+        anthropic:{ base: '',                model: 'claude-3-5-sonnet-20241022', showBase: false },
+        openrouter:{base: 'https://openrouter.ai/api/v1', model: 'deepseek/deepseek-chat', showBase: true },
+        gemini:   { base: '',                model: 'gemini-2.0-flash',      showBase: false },
+        custom:   { base: '',                model: 'gpt-4o-mini',           showBase: true }
+    };
+
+    function updateProviderUI() {
+        var key = prov.value;
+        var cfg = PROVIDERS[key];
+        if (!cfg) return;
+        if (baseWrap) baseWrap.style.display = cfg.showBase ? 'block' : 'none';
+        if (model && !model.value.trim()) model.value = cfg.model;
+        if (key === 'openrouter' && baseUrl && !baseUrl.value.trim()) baseUrl.value = cfg.base;
+    }
+    window.updateProviderUI = updateProviderUI;
+    if (prov) prov.addEventListener('change', updateProviderUI);
+
+    // Test
+    if (t) t.addEventListener('click', function(){
+        var key = (i && i.value.trim()) || '';
+        if (!key) { if (f) { f.textContent = 'Enter an API key first.'; f.style.color='#ef4444'; } return; }
+        fetch('/api/settings/byok/test', {
+            method: 'POST', headers: {'Content-Type':'application/json'}, credentials: 'include',
+            body: JSON.stringify({llm_provider: prov.value, api_key: key, llm_base_url: baseUrl ? baseUrl.value : ''})
+        }).then(function(x){ return x.json(); })
+          .then(function(d){
+            if (f) { f.textContent = (d.valid ? d.message : (d.error || 'Failed')); f.style.color = d.valid ? '#34d399' : '#ef4444'; }
+          })
+          .catch(function(e){ if (f) { f.textContent = 'Error: '+e.message; f.style.color='#ef4444'; } });
+    });
+
+    // Save
+    if (b) b.addEventListener('click', function(){
+        var key = (i && i.value.trim()) || '';
+        if (!key) { if (f) { f.textContent = 'Enter an API key.'; f.style.color='#ef4444'; } return; }
+        fetch('/api/settings/byok', {
+            method: 'POST', headers: {'Content-Type':'application/json'}, credentials: 'include',
+            body: JSON.stringify({
+                llm_provider: prov.value,
+                llm_base_url: baseUrl ? baseUrl.value : '',
+                llm_model_id: model ? model.value : '',
+                api_key: key
+            })
+        }).then(function(x){ return x.json(); })
+          .then(function(d){
+            if (f) {
+                f.textContent = d.error || 'Configuration saved - BYOK active.';
+                f.style.color = d.error ? '#ef4444' : '#34d399';
+            }
+            if (!d.error) {
+                if (i) i.value = '';
+                byokEditMode(false);
+                refreshByokUi(d);
+            }
+          })
+          .catch(function(e){ if (f) { f.textContent = 'Error: '+e.message; f.style.color='#ef4444'; } });
+    });
+
+    // Load current status
+    fetch('/api/settings/byok/status', {credentials: 'include'})
+        .then(function(x){ return x.json(); })
+        .then(refreshByokUi)
+        .catch(function(){ refreshByokUi({byok_enabled:false}); });
+})();
+</script>
+
+<script>
+/* ===== License & Subscription (self-hosted activation portal) ===== */
+function maskLicenseKey(key) {
+    if (!key) return '—';
+    if (key.length <= 12) return '••••••••' + key.slice(-4);
+    return key.slice(0, 7) + '••••••••' + key.slice(-4);
+}
+
+function loadLicenseStatus() {
+    var pill = document.getElementById('licenseTierPill');
+    var seats = document.getElementById('licenseSeats');
+    var byok = document.getElementById('licenseByok');
+    var key = document.getElementById('licenseKeyMask');
+    if (!pill) return; // Member view — no license tab
+    fetch('/account/license/status', {credentials: 'include'})
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            var plan = d.plan || {};
+            var tierLabel = plan.name || (d.tier || 'Community');
+            pill.textContent = tierLabel;
+            var limit = d.seat_limit === null ? 'Unlimited' : String(d.seat_limit);
+            if (seats) seats.textContent = d.seats_used + ' / ' + limit + ' used';
+            if (byok) byok.textContent = d.byok && d.byok.configured
+                ? 'Required — configured (' + (d.byok.provider || '-') + ')'
+                : 'Required — not configured';
+            if (key) key.textContent = maskLicenseKey(d.license_key);
+        })
+        .catch(function(){
+            if (seats) seats.textContent = '—';
+        });
+}
+
+function activateLicense() {
+    var input = document.getElementById('licenseKeyInput');
+    var feed = document.getElementById('licenseFeed');
+    var licenseKey = (input && input.value.trim()) || '';
+    if (!licenseKey) {
+        if (feed) { feed.textContent = 'Enter a license key to activate.'; feed.style.color = '#ef4444'; }
+        return;
+    }
+    if (feed) { feed.textContent = 'Activating...'; feed.style.color = '#94a3b8'; }
+    fetch('/account/license/activate', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        credentials: 'include',
+        body: JSON.stringify({ license_key: licenseKey })
+    }).then(function(r){ return r.json(); })
+      .then(function(d){
+        if (feed) {
+            if (d.error) { feed.textContent = d.error; feed.style.color = '#ef4444'; }
+            else {
+                feed.textContent = '✓ ' + d.plan_name + ' activated (' + d.seats_text + ')';
+                feed.style.color = '#34d399';
+                if (input) input.value = '';
+                loadLicenseStatus();
+            }
+        }
+      })
+      .catch(function(e){
+        if (feed) { feed.textContent = 'Activation failed: ' + e.message; feed.style.color = '#ef4444'; }
+      });
+}
+
+function checkForUpdate() {
+    var banner = document.getElementById('updateBanner');
+    var info = document.getElementById('updateVersionInfo');
+    if (!banner) return; // Member view — no license tab
+    fetch('/api/version/check', {credentials: 'include'})
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            if (d.update_available) {
+                banner.style.display = 'block';
+                if (info) info.textContent = d.current_version + ' → ' + d.latest_version;
+            }
+        })
+        .catch(function(){ /* silent — version check is best-effort */ });
+}
+
+(function(){
+    if (window.__licensePageDone) return;
+    window.__licensePageDone = true;
+    loadLicenseStatus();
+    checkForUpdate();
+})();
+</script>
+
+<script src="/static/ux.js"></script>
+</body>
+</html>
