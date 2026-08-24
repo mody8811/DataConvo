@@ -123,32 +123,6 @@ That's the exact upgrade command — configuration and data are preserved.
 
 ---
 
-## 🔑 Issuing Customer Licenses (Vendor / Internal CLI)
-
-Generate HMAC-SHA256 signed license keys bound to a customer's admin email:
-
-```bash
-python generate_key.py --email client@company.com --tier team --months 12
-python generate_key.py --email admin@acme.io --tier enterprise        # no expiry
-```
-
-The output is a copy-paste friendly box with the license key and summary:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ LICENSE KEY                                                  │
-│                                                              │
-│ DCCONVO-ORSWC3JOMFSG22LOIB4C42LPFYYTOOBXGM2DMMRXGQ-5f90d…   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-- `--tier` : `community` (1 member) · `team` (15 members) · `enterprise` (unlimited)
-- `--months` : licence duration in calendar months; omit for non-expiring
-
-**Important:** the CLI and the customer's deployment must share the same
-`LICENSE_SIGNING_SECRET`, otherwise activation will reject the key.
-
----
 
 ## 📂 Persistent Data & Volume
 
