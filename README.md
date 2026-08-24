@@ -1,7 +1,7 @@
 <div align="center">
 
   <!-- Replace 'assets/logo.png' with your actual logo path once uploaded -->
-  <img src="assets/data-convo-horizontal-dark.png" alt="Data Convo Logo" width="120" style="border-radius: 20px;" />
+  <img src="assets/data-convo-mark-glow.png" alt="Data Convo Logo" width="120" style="border-radius: 20px;" />
 
   # Data Convo
   
