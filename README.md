@@ -1,3 +1,39 @@
+<div align="center">
+
+  <!-- Replace 'assets/logo.png' with your actual logo path once uploaded -->
+  <img src="assets/data-convo-horizontal-dark.png" alt="Data Convo Logo" width="120" style="border-radius: 20px;" />
+
+  # Data Convo
+  
+  **100% self-hosted. Docker-first. Deploy securely on your own infrastructure with zero data retention.**
+
+  Data Convo turns your database into an AI-ready semantic layer — offering Chat-to-SQL, BI dashboards, and anomaly detection — powered entirely by your own BYOK LLM keys (no platform API key fallback).
+
+  [![Live App](https://img.shields.io/badge/Try_Free-dataconvo.app-blue?style=flat-square&logo=google-chrome)](https://www.dataconvo.app)
+  [![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+  [![Docker](https://img.shields.io/badge/Containerized-Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
+
+</div>
+
+---
+
+> **Want to test it out instantly?** 
+> Explore the live workspace right now at 👉 **[dataconvo.app](https://www.dataconvo.app)**.
+
+---
+
+## 💎 Core Capabilities
+
+* **🤖 Chat-to-SQL & Semantic Layer:** Bridge business users and complex relational databases. Transform natural language into precise, production-grade database queries instantly.
+* **📊 Interactive BI Dashboards:** Go beyond simple text outputs by generating dynamic dashboards and visual metrics straight from your conversation workspace.
+* **🔍 Autonomous Anomaly Detection:** Let your data intelligence layer surface unusual trends, traffic spikes, or outlier metrics automatically.
+* **🛡️ Universal BYOK (Bring Your Own Key):** Securely plug in your own OpenAI, Anthropic, OpenRouter, or Gemini keys. Every LLM call uses your encrypted keys with zero platform fallback or data interception.
+* **🔒 Zero Data Retention Architecture:** Because Data Convo is built Docker-first for your own infrastructure, your database schemas, user workspaces, and query data never leave your direct control.
+
+---
+
+
+
 # Data Convo · Self-Hosted Enterprise Semantic Layer
 
 > **100% self-hosted. Docker-first.** Deploy securely on your own infrastructure
