@@ -214,6 +214,68 @@ def set_connection():
         logger.error(f"Connection failed: {e}")
         return render_template('connection_form.html', error=f"Connection Error: {str(e)}")
 
+@main.route('/api/test-connection', methods=['POST'])
+@login_required
+def test_connection():
+    """Live DB connectivity test for the connection form (admin only).
+
+    Mirrors set_connection's field parsing and connection-string building,
+    but only runs a lightweight `SELECT 1` with a short connect timeout.
+    Returns JSON so the frontend can show a clear success/failure message
+    instead of a silent failure or hang.
+    """
+    if current_user.role != 'admin':
+        return jsonify({"success": False, "error": "Access denied. Only admins can test connections."}), 403
+
+    db_type = (request.form.get('db_type') or request.json.get('db_type') if request.is_json else None) or request.form.get('db_type') or ''
+    server = request.form.get('server') or (request.json.get('server') if request.is_json else '') or ''
+    database = request.form.get('database') or (request.json.get('database') if request.is_json else '') or ''
+    username = request.form.get('username') or (request.json.get('username') if request.is_json else '') or ''
+    password = request.form.get('password') or (request.json.get('password') if request.is_json else '') or ''
+    credentials_path = request.form.get('credentials_path') or (request.json.get('credentials_path') if request.is_json else '') or ''
+
+    if not db_type or not server:
+        return jsonify({"success": False, "error": "Missing required fields: database engine and host are required."}), 400
+
+    try:
+        from app.profiler import _build_connection_string_for
+        conn_str = _build_connection_string_for(
+            db_type,
+            server=server or '',
+            database=database or '',
+            username=username or '',
+            password=password or '',
+            credentials_path=credentials_path,
+        )
+    except Exception as e:
+        current_app.logger.warning("test-connection build failed: %s", e)
+        return jsonify({"success": False, "error": f"Could not build connection string: {e}"}), 400
+
+    try:
+        from sqlalchemy import create_engine, text
+        engine = create_engine(conn_str, connect_args={"connect_timeout": 5}, pool_pre_ping=True)
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        engine.dispose()
+        return jsonify({"success": True, "message": "Connection successful. Engine reachable and authenticated."})
+    except ImportError as e:
+        # Most commonly pyodbc / MSSQL driver missing on the container.
+        msg = str(e)
+        if "pyodbc" in msg:
+            msg = "pyodbc is not installed. Add pyodbc to requirements.txt and ensure unixODBC drivers are installed in the container."
+        return jsonify({"success": False, "error": f"Missing driver module: {msg}"}), 500
+    except Exception as e:
+        # Sanitize: never echo credentials back to the client.
+        safe = type(e).__name__
+        detail = str(e)
+        # Keep only the first meaningful line, strip anything that looks like a password/token.
+        for token in (password, username):
+            if token and token in detail:
+                detail = detail.replace(token, "*****")
+        first = (detail or "").splitlines()[0][:220] if detail else ""
+        return jsonify({"success": False, "error": f"Connection failed ({safe}): {first}"}), 400
+
+
 @main.route('/semantic-studio')
 @login_required
 def semantic_studio():

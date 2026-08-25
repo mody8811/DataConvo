@@ -650,16 +650,39 @@
             sshFields.classList.toggle('visible', sshToggle.checked);
         });
 
-        testBtn.addEventListener('click', () => {
+        testBtn.addEventListener('click', async () => {
             const originalText = testBtn.textContent;
             testBtn.textContent = '⏳ Testing...';
             testBtn.disabled = true;
 
-            setTimeout(() => {
-                alert('Test connection simulated. In production this would validate credentials against the selected engine.');
+            const fd = new FormData(connectForm);
+
+            // SQLite: the file input may use .files rather than a value
+            if (fd.get('db_type') === 'sqlite') {
+                const fileInput = document.querySelector('input[name="server"]');
+                if (fileInput && fileInput.files && fileInput.files[0]) {
+                    fd.set('server', fileInput.files[0].path || fileInput.files[0].name);
+                }
+            }
+
+            try {
+                const resp = await fetch('/api/test-connection', {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-Requested-With': 'fetch' }
+                });
+                const data = await resp.json().catch(() => ({}));
+                if (resp.ok && data.success) {
+                    alert('✅ ' + (data.message || 'Connection successful.'));
+                } else {
+                    alert('❌ ' + (data.error || 'Test connection failed. Please check your credentials and try again.'));
+                }
+            } catch (err) {
+                alert('❌ Could not reach the server. Please try again. (' + err.message + ')');
+            } finally {
                 testBtn.textContent = originalText;
                 testBtn.disabled = false;
-            }, 1200);
+            }
         });
 
         connectForm.addEventListener('submit', (e) => {
