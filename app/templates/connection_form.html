@@ -669,9 +669,13 @@
             if (db === 'databricks') {
                 if (userLabel) userLabel.textContent = 'Personal Access Token (PAT)';
                 if (passLabel) passLabel.textContent = 'Confirm PAT';
+                const patInput = document.querySelector('.cred-row input[name="username"]');
+                if (patInput) patInput.type = 'password';
             } else {
                 if (userLabel) userLabel.textContent = 'Username';
                 if (passLabel) passLabel.textContent = 'Password';
+                const patInput = document.querySelector('.cred-row input[name="username"]');
+                if (patInput) patInput.type = 'text';
             }
         }
 

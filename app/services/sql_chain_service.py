@@ -404,6 +404,15 @@ Available tables:
 - Use 'LIMIT N' at the end of the query.
 - Use backticks `table`.`column` to quote identifiers if needed.
 """
+        elif 'databricks' in dialect_key:
+            dialect_instructions = """
+- This is a Databricks (Unity Catalog) database.
+- ALWAYS fully qualify every table as `catalog`.`schema`.`table` using the exact
+  catalog and schema values shown in the Tables section (e.g. peoplecert.prod.my_table).
+- Never rely on the default catalog ('peoplecert.default') — use the configured schema.
+- Use backticks `catalog`.`schema`.`table` to quote identifiers.
+- Use 'LIMIT N' at the end of the query.
+"""
         elif 'sqlite' in dialect_key:
             dialect_instructions = """
 - This is a SQLite database.

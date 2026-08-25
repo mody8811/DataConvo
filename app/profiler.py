@@ -105,7 +105,7 @@ def introspect_primary_keys(engine, schema=None):
                 cols = pk.get('constrained_columns', []) or []
                 if cols:
                     # Use the fully-qualified table name to avoid cross-schema collisions
-                    display_name = f"{sch}.{table}" if sch and dialect in ('postgresql', 'mssql') else table
+                    display_name = f"{sch}.{table}" if sch and dialect in ('postgresql', 'mssql', 'databricks') else table
                     pk_map[display_name] = cols
                     # Also store under the bare name for backward compatibility
                     if table not in pk_map:
@@ -212,6 +212,12 @@ def discover_connection(engine):
                 if dialect in ('postgresql', 'mssql'):
                     display_name = f"{sch}.{table}"
                     schema_display = sch
+                elif dialect == 'databricks':
+                    # Databricks get_schema_names() returns "catalog.schema" (two-level).
+                    # Qualify table names as catalog.schema.table so generated SQL
+                    # never falls back to the default catalog (peoplecert.default).
+                    display_name = f"{sch}.{table}"
+                    schema_display = sch
             elif sch in ('public', 'dbo'):
                 display_name = table  # Don't prefix default schemas
 
@@ -249,6 +255,8 @@ def _fetch_sample(engine, schema, table, dialect, limit=5):
     """Fetch a small sample of rows from a table using dialect-safe LIMIT syntax."""
     if schema and schema not in ('main', 'public', 'dbo') and dialect in ('postgresql', 'mssql'):
         qualified = f'"{schema}"."{table}"' if dialect == 'postgresql' else f"[{schema}].[{table}]"
+    elif dialect == 'databricks' and schema:
+        qualified = f"`{schema}`.`{table}`"
     else:
         qualified = f'"{table}"' if dialect in ('postgresql', 'sqlite') else f"[{table}]" if dialect == 'mssql' else f"`{table}`"
 
