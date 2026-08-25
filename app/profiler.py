@@ -150,6 +150,19 @@ def _build_connection_string_for(dialect, **kwargs):
     elif dialect == 'redshift':
         # Redshift: postgres-compatible
         return f"redshift+psycopg2://{kwargs['username']}:{kwargs['password']}@{kwargs['server']}/{kwargs['database']}"
+    elif dialect == 'databricks':
+        # Databricks SQL Warehouse: databricks-sql-connector + databricks-sqlalchemy.
+        # URI: databricks://token:<token>@<host>?http_path=<http_path>&catalog=<catalog>&schema=<schema>
+        import urllib.parse
+        token = kwargs.get('username') or kwargs.get('password') or ''
+        host = kwargs.get('server') or ''
+        http_path = urllib.parse.quote(kwargs.get('http_path') or '/sql/1.0/warehouses/default', safe='')
+        catalog = urllib.parse.quote(kwargs.get('catalog') or 'main', safe='')
+        schema = urllib.parse.quote(kwargs.get('schema') or 'default', safe='')
+        return (
+            f"databricks://token:{token}@{host}"
+            f"?http_path={http_path}&catalog={catalog}&schema={schema}"
+        )
     else:
         raise ValueError(f"Unsupported database type: {dialect}")
 

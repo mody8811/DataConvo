@@ -190,6 +190,8 @@ def set_connection():
             username=username or '',
             password=password or '',
             credentials_path=credentials_path,
+            http_path=request.form.get('http_path', '') or '',
+            catalog=request.form.get('catalog', '') or '',
         )
 
         profile = profile_database(connection_string, schema=schema if schema else 'public')
@@ -246,6 +248,8 @@ def test_connection():
             username=username or '',
             password=password or '',
             credentials_path=credentials_path,
+            http_path=(request.form.get('http_path') or (request.json.get('http_path') if request.is_json else '') or ''),
+            catalog=(request.form.get('catalog') or (request.json.get('catalog') if request.is_json else '') or ''),
         )
     except Exception as e:
         current_app.logger.warning("test-connection build failed: %s", e)

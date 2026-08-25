@@ -496,6 +496,12 @@
                         <div class="db-name">Amazon Redshift</div>
                         <div class="db-tag">Cloud Data</div>
                     </div>
+                    <div class="db-card" data-db="databricks" data-port="443">
+                        <div class="checkmark">✓</div>
+                        <div class="db-icon">💻</div>
+                        <div class="db-name">Databricks</div>
+                        <div class="db-tag">Lakehouse</div>
+                    </div>
                 </div>
 
                 <div class="security-callout">
@@ -531,6 +537,17 @@
                         <label>Password</label>
                         <input type="password" name="password">
                     </div>
+                </div>
+
+                <div class="form-group hidden-field" id="httpPathGroup">
+                    <label>HTTP Path</label>
+                    <input type="text" name="http_path" id="httpPathInput" placeholder="/sql/1.0/warehouses/xxxxxxxxxxxx">
+                    <div class="ip-whitelist" style="margin-top:6px;">Find it in Databricks: Compute → your SQL Warehouse → Connection details → Serverless HTTP path.</div>
+                </div>
+
+                <div class="form-group hidden-field" id="catalogGroup">
+                    <label>Catalog</label>
+                    <input type="text" name="catalog" id="catalogInput" placeholder="main">
                 </div>
 
                 <div class="form-group" id="schemaGroup">
@@ -590,6 +607,7 @@
                     <button type="button" class="btn-test" id="testBtn">🔌 Test Connection</button>
                     <button type="submit" class="btn-connect">🚀 Connect & Profile Schema</button>
                 </div>
+                <div id="testResult" style="display:none; margin-top:14px; padding:12px 16px; border-radius:10px; font-size:0.9rem; line-height:1.5;"></div>
             </form>
         </div>
     </div>
@@ -613,7 +631,8 @@
             sqlite: { port: '', serverLabel: 'Database File Path', serverPlaceholder: 'e.g. /path/to/app.db', schema: '' },
             snowflake: { port: '443', serverLabel: 'Account Identifier', serverPlaceholder: 'e.g. xy12345.us-east-1', schema: 'PUBLIC' },
             bigquery: { port: '443', serverLabel: 'Project ID', serverPlaceholder: 'e.g. my-gcp-project', schema: '' },
-            redshift: { port: '5439', serverLabel: 'Cluster Endpoint', serverPlaceholder: 'e.g. cluster.region.redshift.amazonaws.com', schema: 'public' }
+            redshift: { port: '5439', serverLabel: 'Cluster Endpoint', serverPlaceholder: 'e.g. cluster.region.redshift.amazonaws.com', schema: 'public' },
+            databricks: { port: '443', serverLabel: 'Server Hostname', serverPlaceholder: 'e.g. adb-123.456.7.8.9.azuredatabricks.net', schema: 'default', showHttp: true, showCatalog: true }
         };
 
         function selectDatabase(db) {
@@ -638,6 +657,22 @@
             // For SQLite: no username/password needed
             const credRow = document.querySelector('.cred-row');
             if (credRow) credRow.style.display = db === 'sqlite' ? 'none' : '';
+
+            // Databricks: show HTTP Path + Catalog fields, label credential as PAT
+            const httpGroup = document.getElementById('httpPathGroup');
+            const catalogGroup = document.getElementById('catalogGroup');
+            if (httpGroup) httpGroup.style.display = (db === 'databricks') ? 'block' : 'none';
+            if (catalogGroup) catalogGroup.style.display = (db === 'databricks') ? 'block' : 'none';
+
+            const userLabel = document.querySelector('.cred-row .form-group label');
+            const passLabel = document.querySelector('.cred-row .form-group:last-child label');
+            if (db === 'databricks') {
+                if (userLabel) userLabel.textContent = 'Personal Access Token (PAT)';
+                if (passLabel) passLabel.textContent = 'Confirm PAT';
+            } else {
+                if (userLabel) userLabel.textContent = 'Username';
+                if (passLabel) passLabel.textContent = 'Password';
+            }
         }
 
         dbCards.forEach(card => {
@@ -672,13 +707,30 @@
                     headers: { 'X-Requested-With': 'fetch' }
                 });
                 const data = await resp.json().catch(() => ({}));
-                if (resp.ok && data.success) {
-                    alert('✅ ' + (data.message || 'Connection successful.'));
-                } else {
-                    alert('❌ ' + (data.error || 'Test connection failed. Please check your credentials and try again.'));
+                const resultEl = document.getElementById('testResult');
+                if (resultEl) {
+                    resultEl.style.display = 'block';
+                    if (resp.ok && data.success) {
+                        resultEl.style.background = 'rgba(16,185,129,0.1)';
+                        resultEl.style.border = '1px solid rgba(16,185,129,0.3)';
+                        resultEl.style.color = '#10b981';
+                        resultEl.textContent = '✅ ' + (data.message || 'Connection successful.');
+                    } else {
+                        resultEl.style.background = 'rgba(239,68,68,0.1)';
+                        resultEl.style.border = '1px solid rgba(239,68,68,0.3)';
+                        resultEl.style.color = '#ef4444';
+                        resultEl.textContent = '❌ ' + (data.error || 'Test connection failed. Please check your credentials and try again.');
+                    }
                 }
             } catch (err) {
-                alert('❌ Could not reach the server. Please try again. (' + err.message + ')');
+                const resultEl = document.getElementById('testResult');
+                if (resultEl) {
+                    resultEl.style.display = 'block';
+                    resultEl.style.background = 'rgba(239,68,68,0.1)';
+                    resultEl.style.border = '1px solid rgba(239,68,68,0.3)';
+                    resultEl.style.color = '#ef4444';
+                    resultEl.textContent = '❌ Could not reach the server. Please try again. (' + err.message + ')';
+                }
             } finally {
                 testBtn.textContent = originalText;
                 testBtn.disabled = false;
