@@ -456,6 +456,24 @@ def _load_workspace_semantic_context():
     semantic_model = session.get('published_semantic_layer')
     conn_str = session.get('connection_string')
     if semantic_model:
+        # MEMBER SYNC FIX: non-admin users must re-read the workspace owner's
+        # latest PublishedModel row from the DB (source of truth) on EVERY load.
+        # The session snapshot alone is stale after the admin publishes new
+        # semantics or grants tables — members would keep seeing/querying the
+        # old allowed set. If the DB row exists, it WINS over the snapshot.
+        if current_user.role != 'admin':
+            owner_id = _workspace_owner_id()
+            if owner_id:
+                saved = PublishedModel.query.filter_by(user_id=owner_id).order_by(PublishedModel.updated_at.desc()).first()
+                if saved:
+                    try:
+                        semantic_model = json.loads(saved.model_json)
+                        session['published_semantic_layer'] = semantic_model
+                    except Exception:
+                        pass
+                    if saved.connection_string:
+                        conn_str = saved.connection_string
+                        session['connection_string'] = conn_str
         if not conn_str:
             # Still try to backfill the connection string from DB for members.
             owner_id = _workspace_owner_id()
