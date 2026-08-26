@@ -414,8 +414,14 @@ def _build_live_semantic_model(profile=None, published=None):
     pub_tables = published.get('tables') or {}
     _SYSTEM = {'user', 'users', 'sessions', 'alembic_version', 'sqlite_sequence'}
     tables = {}
+    # LIVE MEMBERSHIP GATE: when a published model exists, ONLY tables present
+    # in its active-table set (pub_tables) may appear in chat + LLM context.
+    # Admin toggle-offs remove the table from pub_tables, so it must also
+    # disappear from /get-available-tables, chips, and the prompt immediately.
     for tname, tinfo in (profile.get('tables') or {}).items():
         if tname.lower() in _SYSTEM:
+            continue
+        if pub_tables and tname not in pub_tables:
             continue
         cols = {}
         tcols = tinfo.get('columns') or {}
