@@ -139,7 +139,7 @@ class SQLChainService:
         gjoins = model.get('global_joins') or ''
         if isinstance(gjoins, str):
             for line in gjoins.split('\n'):
-                line = line.strip()
+                line = line.strip().replace('->','=')
                 if not line or '=' not in line:
                     continue
                 left, right = [p.strip() for p in line.split('=', 1)]
