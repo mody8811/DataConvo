@@ -891,7 +891,7 @@
 
             <div class="table-box">
                 <h3 style="margin-bottom: 12px;">🔗 Global Joins</h3>
-                <textarea id="global_joins" name="global_joins" rows="4" style="width: 100%; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; margin-bottom: 12px;" placeholder="orders.customer_id -> customers.id"></textarea>
+                <textarea id="global_joins" name="global_joins" rows="4" style="width: 100%; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; margin-bottom: 12px;" placeholder="orders.customer_id -> customers.id"{{ published_model.global_joins if published_model and published_model.global_joins else '' }}></textarea>
                 <div style="display: flex; gap: 10px; margin-bottom: 12px;">
                     <button type="button" class="btn-sm" onclick="addEmptyJoinRow()">+ Add Join</button>
                 </div>
