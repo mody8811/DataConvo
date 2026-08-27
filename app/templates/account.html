@@ -372,7 +372,25 @@
             <div class="header-text">
                 <h1>Account Settings</h1>
                 <p>Manage your profile, workspace, and subscription.</p>
+            
+
+        <!-- ===== ACTIVE CONNECTION (persistent workspace) ===== -->
+        <div class="account-card" id="active-connection-card" style="margin-bottom: 24px;">
+            <h3 style="margin:0 0 12px;">🔌 Active Connection</h3>
+            <div id="active-conn-loading" style="color: var(--text-muted); font-size: 0.9rem;">Loading persistent workspace connection…</div>
+            <div id="active-conn-empty" style="display:none; color: var(--text-muted); font-size: 0.9rem;">
+                No active database connection yet. <a href="/connect" style="color: var(--accent);">Connect a database</a> to enable Chat & Semantic Studio.
             </div>
+            <div id="active-conn-details" style="display:none; font-size: 0.9rem; line-height: 1.7;">
+                <div><strong>Engine:</strong> <span id="ac-engine">—</span></div>
+                <div><strong>Host:</strong> <span id="ac-host">—</span></div>
+                <div><strong>Catalog:</strong> <span id="ac-catalog">—</span></div>
+                <div><strong>Schema:</strong> <span id="ac-schema">—</span></div>
+                <div><strong>Token:</strong> <span id="ac-token">—</span></div>
+                <div style="margin-top: 12px;"><a href="/connect" style="display:inline-block; padding:8px 14px; border-radius:8px; background:var(--accent); color:#fff; text-decoration:none;">Manage Connection</a></div>
+            </div>
+        </div>
+</div>
             <div class="account-header-actions">
                 {% if user.role == 'admin' %}
                     <a href="/data-quality" class="header-quick-link admin-studio">🩺 Anomaly Studio</a>
@@ -1169,5 +1187,32 @@ function checkForUpdate() {
 </script>
 
 <script src="/static/ux.js"></script>
+
+    <script>
+        (function () {
+            fetch('/api/connection/status')
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    var loading = document.getElementById('active-conn-loading');
+                    var empty = document.getElementById('active-conn-empty');
+                    var details = document.getElementById('active-conn-details');
+                    if (!loading || !empty || !details) return;
+                    if (d && d.active) {
+                        loading.style.display = 'none';
+                        empty.style.display = 'none';
+                        details.style.display = 'block';
+                        if (document.getElementById('ac-engine')) document.getElementById('ac-engine').textContent = d.engine || 'unknown';
+                        if (document.getElementById('ac-host')) document.getElementById('ac-host').textContent = d.host || '—';
+                        if (document.getElementById('ac-catalog')) document.getElementById('ac-catalog').textContent = d.catalog || '—';
+                        if (document.getElementById('ac-schema')) document.getElementById('ac-schema').textContent = d.schema || '—';
+                        if (document.getElementById('ac-token')) document.getElementById('ac-token').textContent = d.token_masked || '*****';
+                    } else {
+                        loading.style.display = 'none';
+                        empty.style.display = 'block';
+                    }
+                })
+                .catch(function () { });
+        })();
+    </script>
 </body>
 </html>

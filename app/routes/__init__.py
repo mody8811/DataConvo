@@ -283,25 +283,109 @@ def test_connection():
 @main.route('/semantic-studio')
 @login_required
 def semantic_studio():
-    # Members cannot access Semantic Studio
+    """Semantic Studio (admin only) - crash-guarded with persisted-connection fallback."""
     if current_user.role != 'admin':
         return render_template('403.html', title='Access Restricted', reason='Access denied. Only admins can access Semantic Studio.'), 403
-    profile = session.get('db_profile')
-    if not profile:
-        return redirect(url_for('main.index'))
-    # Load the user's published model from the database (account-isolated)
-    published_model = session.get('published_semantic_layer')
-    if not published_model:
-        saved = PublishedModel.query.filter_by(user_id=current_user.id).order_by(PublishedModel.updated_at.desc()).first()
-        if saved:
-            try:
-                published_model = json.loads(saved.model_json)
-                session['published_semantic_layer'] = published_model
-            except Exception:
-                published_model = None
-    fk_constraints = profile.get('fk_constraints', [])
-    primary_keys = profile.get('primary_keys', {})
-    return render_template('semantic_studio.html', profile=profile, published_model=published_model, fk_constraints=fk_constraints, primary_keys=primary_keys)
+    try:
+        profile = session.get('db_profile')
+        if not profile:
+            saved = PublishedModel.query.filter_by(user_id=current_user.id).order_by(PublishedModel.updated_at.desc()).first()
+            conn_str = saved.connection_string if saved and saved.connection_string else None
+            if conn_str:
+                try:
+                    profile = profile_database(conn_str)
+                    session['db_profile'] = profile
+                except Exception as e:
+                    logger.warning("semantic-studio re-profile failed: %s", e)
+                    profile = None
+            if not profile:
+                return render_template(
+                    'semantic_studio.html',
+                    profile={'tables': {}, 'db_type': '', 'fk_constraints': [], 'primary_keys': {}},
+                    published_model={},
+                    fk_constraints=[],
+                    primary_keys={},
+                    studio_error="No database connection found. Connect a database to begin.",
+                )
+
+        published_model = session.get('published_semantic_layer') or {}
+        if not isinstance(published_model, dict):
+            published_model = {}
+        if not published_model:
+            saved = PublishedModel.query.filter_by(user_id=current_user.id).order_by(PublishedModel.updated_at.desc()).first()
+            if saved:
+                try:
+                    published_model = json.loads(saved.model_json) or {}
+                    session['published_semantic_layer'] = published_model
+                except Exception:
+                    published_model = {}
+
+        tables_safe = {t: info for t, info in (profile.get('tables') or {}).items() if isinstance(info, dict)}
+        profile = dict(profile or {})
+        profile['tables'] = tables_safe
+
+        return render_template(
+            'semantic_studio.html',
+            profile=profile,
+            published_model=published_model,
+            fk_constraints=profile.get('fk_constraints') or [],
+            primary_keys=profile.get('primary_keys') or {},
+        )
+    except Exception:
+        logger.exception("Semantic Studio crashed; rendering safe empty state.")
+        return render_template(
+            'semantic_studio.html',
+            profile={'tables': {}, 'db_type': '', 'fk_constraints': [], 'primary_keys': {}},
+            published_model={},
+            fk_constraints=[],
+            primary_keys={},
+            studio_error="The semantic studio failed to load. Check the database connection and try again.",
+        )
+
+@main.route('/api/connection/status')
+@login_required
+def connection_status():
+    """Return workspace active connection (masked, never secrets)."""
+    try:
+        db_type = (session.get('db_profile') or {}).get('db_type')
+        conn_str = session.get('connection_string')
+        saved = None
+        if current_user.id:
+            saved = PublishedModel.query.filter_by(user_id=current_user.id).order_by(PublishedModel.updated_at.desc()).first()
+        if not conn_str and saved and saved.connection_string:
+            conn_str = saved.connection_string
+        if not db_type and saved and saved.db_type:
+            db_type = saved.db_type
+        if not conn_str:
+            return jsonify({"active": False})
+
+        import urllib.parse
+        host = catalog = schema = token_masked = ''
+        try:
+            parsed = urllib.parse.urlparse(conn_str.rstrip('/'))
+            host = parsed.hostname or ''
+            if 'databricks' in (db_type or ''):
+                qs = urllib.parse.parse_qs(parsed.query)
+                catalog = (qs.get('catalog') or [''])[0]
+                schema = (qs.get('schema') or [''])[0]
+                secret = parsed.username or parsed.password or ''
+                token_masked = (secret[:3] + '****') if len(secret) > 3 else '****'
+            else:
+                schema = session.get('schema_name') or ''
+        except Exception:
+            host = ''
+
+        return jsonify({
+            "active": True,
+            "engine": db_type or 'unknown',
+            "host": host,
+            "catalog": catalog,
+            "schema": schema,
+            "token_masked": token_masked,
+        })
+    except Exception:
+        logger.exception("connection_status failed")
+        return jsonify({"active": False, "error": "Failed to read active connection."})
 
 @main.route('/publish-semantic-layer', methods=['POST'])
 @login_required
