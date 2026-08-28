@@ -972,6 +972,8 @@
                                     </div>
                                     <div class="column-input">
                                         <input type="text" name="col_alias_{{ table }}_{{ col }}" value="{{ c_config.get('alias', '') }}" placeholder="Alias (e.g., Order Date)">
+<input type="text" name="col_enum_{{ table }}_{{ col }}" value="{{ c_config.get('enum', '') }}" placeholder="Enums">
+<input type="text" name="col_syn_{{ table }}_{{ col }}" value="{{ c_config.get('synonyms', []) | join(', ') }}" placeholder="Synonyms">
                                     </div>
                                     <div class="column-input">
                                         <input type="text" name="col_syn_{{ table }}_{{ col }}" value="{{ ', '.join(c_config.get('synonyms', [])) }}" placeholder="Description / synonyms">
