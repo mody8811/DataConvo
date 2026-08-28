@@ -1558,6 +1558,26 @@
             saveCardPositions();
         }
 
+        // Draw after layout is stable: a double requestAnimationFrame lets the
+        // browser compute the cards' final bounding boxes before we calculate
+        // connector coordinates.
+        function scheduleErdRender() {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(renderHtmlErd);
+            });
+        }
+
+        const erdContainerListenersBound = {};
+
+        function bindErdContainerEvents() {
+            const wrapper = document.getElementById('erd-canvas-wrapper');
+            if (!wrapper || erdContainerListenersBound.id === wrapper) return;
+            erdContainerListenersBound.id = wrapper;
+            wrapper.addEventListener('mousemove', handleWrapperMouseMove);
+            wrapper.addEventListener('mouseup', handleWrapperMouseUp);
+            wrapper.addEventListener('mouseleave', handleWrapperMouseUp);
+        }
+
         function renderHtmlErd() {
             const wrapper = document.getElementById('erd-canvas-wrapper');
             const grid = document.getElementById('erd-cards-grid');
@@ -1599,24 +1619,61 @@
                 header.addEventListener('mousedown', handleCardHeaderMouseDown);
             });
 
-            wrapper.addEventListener('mousemove', handleWrapperMouseMove);
-            wrapper.addEventListener('mouseup', handleWrapperMouseUp);
-            wrapper.addEventListener('mouseleave', handleWrapperMouseUp);
+            bindErdContainerEvents();
 
-            setTimeout(() => drawErdLines(joins), 50);
+            // Redraw once layout is fully settled (after the drawer slide-down
+            // animation and after card positions are applied).
+            setTimeout(() => drawErdLines(joins), 0);
+            scheduleErdRender();
             applyErdTransform();
+        }
+
+        // Resolve CSS custom-property colors to concrete hex values.
+        // SVG presentation attributes (stroke/fill set via setAttribute) do NOT
+        // evaluate `var(--x)` references — the browser treats them as an invalid
+        // color and paints stroke:none, silently hiding every connector thread.
+        function erdStrokeColors() {
+            const style = getComputedStyle(document.documentElement);
+            return {
+                fk: (style.getPropertyValue('--erd-fk') || '').trim() || '#3b82f6',
+                custom: (style.getPropertyValue('--erd-custom') || '').trim() || '#a855f7'
+            };
+        }
+
+        function ensureErdArrowhead() {
+            const svg = document.getElementById('erd-svg-layer');
+            if (!svg || svg.querySelector('#erd-arrowhead-defs')) return;
+            const colors = erdStrokeColors();
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            defs.id = 'erd-arrowhead-defs';
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            marker.id = 'erd-arrowhead';
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '7');
+            marker.setAttribute('refX', '9');
+            marker.setAttribute('refY', '3.5');
+            marker.setAttribute('orient', 'auto');
+            const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            poly.setAttribute('points', '0 0, 10 3.5, 0 7');
+            poly.setAttribute('fill', colors.fk);
+            marker.appendChild(poly);
+            defs.appendChild(marker);
+            svg.appendChild(defs);
         }
 
         function drawErdLines(joins) {
             const wrapper = document.getElementById('erd-canvas-wrapper');
             const grid = document.getElementById('erd-cards-grid');
             const svg = document.getElementById('erd-svg-layer');
+            if (!wrapper || !grid || !svg) return;
             svg.innerHTML = '';
 
             const gridRect = grid.getBoundingClientRect();
             const wrapperRect = wrapper.getBoundingClientRect();
             svg.style.width = Math.max(gridRect.width, wrapperRect.width) + 'px';
             svg.style.height = Math.max(gridRect.height, wrapperRect.height) + 'px';
+
+            const colors = erdStrokeColors();
 
             joins.forEach((j, index) => {
                 const fromCard = document.getElementById(`erd-card-${j.t1}`);
@@ -1636,7 +1693,7 @@
                     (fk.from_table === j.t1 && fk.to_table === j.t2) ||
                     (fk.from_table === j.t2 && fk.to_table === j.t1)
                 );
-                const color = isIntrospected ? 'var(--erd-fk)' : 'var(--erd-custom)';
+                const color = isIntrospected ? colors.fk : colors.custom;
 
                 const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                 line.setAttribute('x1', x1);
@@ -1645,7 +1702,7 @@
                 line.setAttribute('y2', y2);
                 line.setAttribute('stroke', color);
                 line.setAttribute('stroke-width', '3');
-                line.setAttribute('marker-end', 'url(#arrowhead)');
+                line.setAttribute('marker-end', 'url(#erd-arrowhead)');
                 svg.appendChild(line);
 
                 const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -1659,16 +1716,7 @@
                 svg.appendChild(text);
             });
 
-            if (!document.getElementById('arrowhead')) {
-                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-                defs.id = 'arrowhead';
-                defs.innerHTML = `
-                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                        <polygon points="0 0, 10 3.5, 0 7" fill="var(--erd-fk)" />
-                    </marker>
-                `;
-                svg.appendChild(defs);
-            }
+            ensureErdArrowhead();
         }
 
         let erdOpen = false;
@@ -1681,12 +1729,24 @@
             if (erdOpen) {
                 drawer.classList.add('open');
                 btn.textContent = 'Close Canvas';
-                setTimeout(renderHtmlErd, 50);
+                // First render immediately, then once again after the 0.3s
+                // slideDown animation finishes so bounding-box coordinates
+                // are final and every connector thread lands correctly.
+                scheduleErdRender();
+                drawer.addEventListener('animationend', function onSlideEnd() {
+                    drawer.removeEventListener('animationend', onSlideEnd);
+                    scheduleErdRender();
+                });
             } else {
                 drawer.classList.remove('open');
                 btn.textContent = 'Open Canvas';
             }
         }
+
+        // Window resizes alter card dimensions -> refresh connectors while open.
+        window.addEventListener('resize', () => {
+            if (erdOpen) drawErdLines(currentJoins());
+        });
 
         window.addEventListener('DOMContentLoaded', () => {
             loadCardPositions();
