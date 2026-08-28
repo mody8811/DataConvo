@@ -238,6 +238,19 @@
             transition: transform 0.2s ease;
         }
 
+        /* Live drag-thread overlay: floats ABOVE cards so the rubber-band
+           guide line the user draws between columns is always visible. */
+        .erd-drag-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 3;
+            transform-origin: 0 0;
+        }
+
         .erd-table-card {
             position: absolute;
             width: 260px;
@@ -885,6 +898,7 @@
                 <div class="erd-canvas-wrapper" id="erd-canvas-wrapper">
                     <svg class="erd-svg-layer" id="erd-svg-layer"></svg>
                     <div class="erd-cards-grid" id="erd-cards-grid"></div>
+                    <svg class="erd-drag-layer" id="erd-drag-layer"></svg>
                 </div>
                 <p class="erd-hint">💡 Drag & drop a column onto another column to create a join. Drag table headers to reposition.</p>
             </div>
@@ -1446,7 +1460,7 @@
                 let badge = '<span class="col-badge badge-none">—</span>';
                 if (isPk) badge = '<span class="col-badge badge-pk">PK</span>';
                 else if (isFk) badge = '<span class="col-badge badge-fk">FK</span>';
-                return `<div class="erd-col-row" draggable="true" data-table="${tableName}" data-column="${c}">
+                return `<div class="erd-col-row" data-table="${tableName}" data-column="${c}">
                     <span class="col-name"><span class="drag-handle"></span>${c}</span>
                     ${badge}
                 </div>`;
@@ -1459,55 +1473,124 @@
                 <div class="erd-table-body">${colRows}</div>`;
         }
 
-        let erdDragSource = null;
+        let erdColDrag = null;       // {table, column, row} while dragging a column anchor
+        let erdRubberLine = null;    // live SVG guide thread during a column drag
+        let erdDrawRaF = null;       // rAF throttle token so redraws never stack per mousemove
+        let erdDocMove = null;       // document-level mousemove handler list
+        let erdDocUp = null;         // document-level mouseup handler
 
-        function handleErdColDragStart(e) {
-            erdDragSource = {
-                table: this.getAttribute('data-table'),
-                column: this.getAttribute('data-column')
+        // Throttle redraws to at most one per animation frame. Drawing
+        // synchronously on every mousemove recreated every SVG node each event
+        // and made the connector threads blink/flicker.
+        function throttledDrawErdLines() {
+            if (erdDrawRaF) return;
+            erdDrawRaF = requestAnimationFrame(() => {
+                erdDrawRaF = null;
+                drawErdLines(currentJoins());
+            });
+        }
+
+        function handleErdColMouseDown(e) {
+            if (e.button !== 0) return;
+            const colRow = this.closest('.erd-col-row');
+            if (!colRow) return;
+            e.preventDefault();
+            erdColDrag = {
+                table: colRow.getAttribute('data-table'),
+                column: colRow.getAttribute('data-column'),
+                row: colRow
             };
-            this.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'link';
+            colRow.classList.add('dragging');
+            const colors = erdStrokeColors();
+            const dragLayer = document.getElementById('erd-drag-layer');
+            if (dragLayer) {
+                erdRubberLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                erdRubberLine.setAttribute('stroke', colors.custom);
+                erdRubberLine.setAttribute('stroke-width', '3');
+                erdRubberLine.setAttribute('stroke-dasharray', '6 4');
+                erdRubberLine.setAttribute('marker-end', 'url(#erd-arrowhead)');
+                erdRubberLine.setAttribute('pointer-events', 'none');
+                dragLayer.appendChild(erdRubberLine);
+            }
+            updateErdRubberLine(e);
+            // Track at DOCUMENT level so the rubber band keeps following the
+            // cursor even when it briefly leaves the wrapper on the way to
+            // another table (accidental overshoot).
+            erdDocMove = (ev) => {
+                updateErdRubberLine(ev);
+                highlightErdDropTarget(ev);
+            };
+            erdDocUp = (ev) => endErdColumnDrag(ev);
+            document.addEventListener('mousemove', erdDocMove);
+            document.addEventListener('mouseup', erdDocUp);
         }
 
-        function handleErdColDragEnd() {
-            this.classList.remove('dragging');
+        function updateErdRubberLine(e) {
+            if (!erdColDrag || !erdRubberLine) return;
+            const wrapper = document.getElementById('erd-canvas-wrapper');
+            if (!wrapper) return;
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const srcRect = erdColDrag.row.getBoundingClientRect();
+            erdRubberLine.setAttribute('x1', srcRect.left + srcRect.width / 2 - wrapperRect.left);
+            erdRubberLine.setAttribute('y1', srcRect.top + srcRect.height / 2 - wrapperRect.top);
+            erdRubberLine.setAttribute('x2', e.clientX - wrapperRect.left);
+            erdRubberLine.setAttribute('y2', e.clientY - wrapperRect.top);
+        }
+
+        function highlightErdDropTarget(e) {
             document.querySelectorAll('.erd-col-row.drag-over').forEach(r => r.classList.remove('drag-over'));
-            erdDragSource = null;
+            const el = (e && e.clientX != null) ? document.elementFromPoint(e.clientX, e.clientY) : null;
+            const targetRow = el ? el.closest('.erd-col-row') : null;
+            if (!targetRow) return;
+            if (targetRow.getAttribute('data-table') === erdColDrag.table &&
+                targetRow.getAttribute('data-column') === erdColDrag.column) return;
+            targetRow.classList.add('drag-over');
         }
 
-        function handleErdColDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'link';
-            this.classList.add('drag-over');
+        // Idempotent end of a column-anchor drag: remove doc listeners + ghost
+        // line, resolve the target under the cursor, and sync the new join into
+        // #global_joins so it is never silently dropped on publish.
+        function endErdColumnDrag(e) {
+            if (!erdColDrag) return;
+            const src = erdColDrag;
+            erdColDrag = null;
+            if (erdDocMove) { document.removeEventListener('mousemove', erdDocMove); erdDocMove = null; }
+            if (erdDocUp) { document.removeEventListener('mouseup', erdDocUp); erdDocUp = null; }
+            if (erdRubberLine) { erdRubberLine.remove(); erdRubberLine = null; }
+            document.querySelectorAll('.erd-col-row.dragging').forEach(r => r.classList.remove('dragging'));
+            document.querySelectorAll('.erd-col-row.drag-over').forEach(r => r.classList.remove('drag-over'));
+            const el = (e && e.clientX != null) ? document.elementFromPoint(e.clientX, e.clientY) : null;
+            const targetRow = el ? el.closest('.erd-col-row') : null;
+            if (targetRow) {
+                const t2 = targetRow.getAttribute('data-table');
+                const c2 = targetRow.getAttribute('data-column');
+                if (!(t2 === src.table && c2 === src.column)) {
+                    erdAddJoinAndSync(src.table, src.column, t2, c2);
+                }
+            }
         }
 
-        function handleErdColDragLeave() {
-            this.classList.remove('drag-over');
-        }
-
-        function handleErdColDrop(e) {
-            e.preventDefault();
-            this.classList.remove('drag-over');
-            if (!erdDragSource) return;
-
-            const targetTable = this.getAttribute('data-table');
-            const targetColumn = this.getAttribute('data-column');
-
-            if (erdDragSource.table === targetTable && erdDragSource.column === targetColumn) return;
-
-            addJoinToForm(erdDragSource.table, erdDragSource.column, targetTable, targetColumn);
+        // Single source of truth for creating a join: writes the rule into
+        // #global_joins, adds the editable row, re-syncs joinsState from the
+        // textarea, and redraws WITHOUT rebuilding every card (no flicker).
+        function erdAddJoinAndSync(t1, c1, t2, c2) {
+            if (!t1 || !c1 || !t2 || !c2) return;
+            const line = `${t1}.${c1} -> ${t2}.${c2}`;
+            const textarea = document.getElementById('global_joins');
+            if (textarea) {
+                const current = textarea.value.trim();
+                if (!current.includes(line)) {
+                    textarea.value = current ? current + '\n' + line : line;
+                }
+            }
+            addErdJoin(t1, c1, t2, c2);
+            // Canonical two-way sync: rows -> joinsState -> textarea
+            updateGlobalJoinsFromErd();
+            drawErdLines(currentJoins());
         }
 
         function addJoinToForm(t1, c1, t2, c2) {
-            const current = document.getElementById('global_joins').value.trim();
-            const newLine = `${t1}.${c1} -> ${t2}.${c2}`;
-            if (!current.includes(newLine)) {
-                document.getElementById('global_joins').value = current ? current + '\n' + newLine : newLine;
-            }
-            addErdJoin(t1, c1, t2, c2);
-            updateGlobalJoinsFromErd();
-            renderHtmlErd();
+            erdAddJoinAndSync(t1, c1, t2, c2);
         }
 
         let movingCard = null;
@@ -1535,6 +1618,12 @@
         }
 
         function handleWrapperMouseMove(e) {
+            // Column-anchor drag: trace a live guide thread + highlight target.
+            if (erdColDrag) {
+                updateErdRubberLine(e);
+                highlightErdDropTarget(e);
+                return;
+            }
             if (!movingCard) return;
             const dx = (e.clientX - moveStartX) / erdScale;
             const dy = (e.clientY - moveStartY) / erdScale;
@@ -1548,10 +1637,15 @@
             const tableName = movingCard.id.replace('erd-card-', '');
             cardPositions[tableName] = { x: newX, y: newY };
 
-            drawErdLines(currentJoins());
+            throttledDrawErdLines();
         }
 
-        function handleWrapperMouseUp() {
+        function handleWrapperMouseUp(e) {
+            // Column-anchor drag: delegate to the shared (document-level) handler.
+            if (erdColDrag) {
+                endErdColumnDrag(e);
+                return;
+            }
             if (!movingCard) return;
             movingCard.classList.remove('dragging-card');
             movingCard = null;
@@ -1608,11 +1702,7 @@
             });
 
             document.querySelectorAll('.erd-col-row').forEach(row => {
-                row.addEventListener('dragstart', handleErdColDragStart);
-                row.addEventListener('dragend', handleErdColDragEnd);
-                row.addEventListener('dragover', handleErdColDragOver);
-                row.addEventListener('dragleave', handleErdColDragLeave);
-                row.addEventListener('drop', handleErdColDrop);
+                row.addEventListener('mousedown', handleErdColMouseDown);
             });
 
             document.querySelectorAll('.erd-table-header').forEach(header => {
@@ -1621,11 +1711,13 @@
 
             bindErdContainerEvents();
 
-            // Redraw once layout is fully settled (after the drawer slide-down
-            // animation and after card positions are applied).
-            setTimeout(() => drawErdLines(joins), 0);
-            scheduleErdRender();
+            // Apply the transform FIRST so card positions are final, then draw
+            // connectors exactly once. NEVER call scheduleErdRender() here: that
+            // re-enters renderHtmlErd() forever (an unbounded rAF loop) which
+            // rebuilt the grid + SVG every 2 frames and made the connector
+            // threads blink/flicker erratically.
             applyErdTransform();
+            requestAnimationFrame(() => drawErdLines(joins));
         }
 
         // Resolve CSS custom-property colors to concrete hex values.
@@ -1743,9 +1835,10 @@
             }
         }
 
-        // Window resizes alter card dimensions -> refresh connectors while open.
+        // Window resizes alter card dimensions -> refresh connectors while open
+        // (throttled to one redraw per animation frame).
         window.addEventListener('resize', () => {
-            if (erdOpen) drawErdLines(currentJoins());
+            if (erdOpen) throttledDrawErdLines();
         });
 
         window.addEventListener('DOMContentLoaded', () => {
