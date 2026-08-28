@@ -889,9 +889,10 @@
                 <p class="erd-hint">💡 Drag & drop a column onto another column to create a join. Drag table headers to reposition.</p>
             </div>
 
+            <form method="POST" action="{{ url_for('main.publish_semantic_layer') }}" onsubmit="syncEnumInputsToForm()">
             <div class="table-box">
                 <h3 style="margin-bottom: 12px;">🔗 Global Joins</h3>
-                <textarea id="global_joins" name="global_joins" rows="4" style="width: 100%; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; margin-bottom: 12px;" placeholder="orders.customer_id -> customers.id"{{ published_model.global_joins if published_model and published_model.global_joins else '' }}></textarea>
+                <textarea id="global_joins" name="global_joins" rows="4" style="width: 100%; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; margin-bottom: 12px;" placeholder="orders.customer_id -> customers.id">{{ published_model.global_joins if published_model and published_model.global_joins else '' }}</textarea>
                 <div style="display: flex; gap: 10px; margin-bottom: 12px;">
                     <button type="button" class="btn-sm" onclick="addEmptyJoinRow()">+ Add Join</button>
                 </div>
@@ -904,8 +905,6 @@
                     <button type="button" onclick="expandAllTables()">Expand All</button>
                     <button type="button" onclick="collapseAllTables()">Collapse All</button>
                 </div>
-
-                <form method="POST" action="{{ url_for('main.publish_semantic_layer') }}">
                     <div class="tables-grid">
                 {% for table, info in profile.tables.items() %}
                     {% set is_active = published_model and published_model.tables and table in published_model.tables %}
@@ -1064,10 +1063,24 @@
         }
 
         // ===== ENUM MAPPINGS =====
+        function nextEnumRowIndex(table, col) {
+            const container = document.getElementById(`enum-container-${table}-${col}`);
+            if (!container) return 0;
+            let maxIdx = -1;
+            container.querySelectorAll('.enum-mapping-row').forEach(row => {
+                const keyInput = row.querySelector('input[name^="enum_key_"]');
+                if (keyInput && keyInput.name) {
+                    const m = keyInput.name.match(/_(\d+)$/);
+                    if (m) maxIdx = Math.max(maxIdx, parseInt(m[1], 10));
+                }
+            });
+            return maxIdx + 1;
+        }
+
         function addEnumMapping(table, col) {
             const container = document.getElementById(`enum-container-${table}-${col}`);
             if (!container) return;
-            const index = container.querySelectorAll('.enum-mapping-row').length;
+            const index = nextEnumRowIndex(table, col);
             const div = document.createElement('div');
             div.className = 'enum-mapping-row';
             div.innerHTML = `
@@ -1076,6 +1089,35 @@
                 <button type="button" class="remove-btn" onclick="this.parentElement.remove()">✕</button>
             `;
             container.appendChild(div);
+        }
+
+        // Flush the dynamic enum mapping rows into the flat `col_enum_<table>_<col>`
+        // input BEFORE the form is submitted. Without this the backend can only see
+        // the per-row enum_key_*/enum_label_* fields and silently drops enums.
+        function syncEnumInputsToForm() {
+            document.querySelectorAll('.enum-mappings-container').forEach(container => {
+                const id = container.id || '';
+                const m = id.match(/^enum-container-(.*?)-(.*)$/);
+                if (!m) return;
+                const table = m[1];
+                const col = m[2];
+                const flatInputName = `col_enum_${table}_${col}`;
+                const flatInput = document.querySelector(`input[name="${flatInputName}"]`);
+                const pairs = [];
+                container.querySelectorAll('.enum-mapping-row').forEach(row => {
+                    const keyInput = row.querySelector('input[name^="enum_key_"]');
+                    const labelInput = row.querySelector('input[name^="enum_label_"]');
+                    const key = keyInput ? keyInput.value.trim() : '';
+                    const label = labelInput ? labelInput.value.trim() : '';
+                    if (key || label) {
+                        pairs.push(`${key}:${label}`);
+                    }
+                });
+                if (flatInput) {
+                    flatInput.value = pairs.join(', ');
+                }
+            });
+            return true; // allow form submission
         }
 
         function toggleAdvanced(table, col) {
@@ -1107,9 +1149,23 @@
             }
         }
 
+        function nextMetricIndex(table) {
+            const container = document.getElementById(`metrics-container-${table}`);
+            if (!container) return 0;
+            let maxIdx = -1;
+            container.querySelectorAll('.metric-row input[name^="metric_name_"]').forEach(input => {
+                if (input.name) {
+                    const m = input.name.match(/_(\d+)$/);
+                    if (m) maxIdx = Math.max(maxIdx, parseInt(m[1], 10));
+                }
+            });
+            return maxIdx + 1;
+        }
+
         function addMetric(table) {
             const container = document.getElementById(`metrics-container-${table}`);
-            const index = container.children.length;
+            if (!container) return;
+            const index = nextMetricIndex(table);
             const div = document.createElement('div');
             div.className = 'metric-row';
             div.innerHTML = `

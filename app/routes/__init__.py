@@ -387,60 +387,295 @@ def connection_status():
         logger.exception("connection_status failed")
         return jsonify({"active": False, "error": "Failed to read active connection."})
 
+# ---------------------------------------------------------------------------
+# Semantic-layer publish helpers (unified payload handling + explicit parser)
+# ---------------------------------------------------------------------------
+# The Semantic Studio client can submit EITHER form-urlencoded data OR a JSON
+# body. Indexed dynamic fields (metrics, per-row enum mappings) may also be
+# sparse after rows are removed in the UI. We therefore merge both payload
+# sources into one flat dict and scan ALL keys with explicit parsers instead
+# of a brittle `while request.form.get(...) is not None` loop that silently
+# drops everything after the first index gap.
+
+
+def _flatten_publish_payload():
+    """Merge request.get_json() + request.form into ONE flat string dict.
+
+    Form fields win on conflict (browser forms are canonical). JSON list values
+    are comma-joined so downstream parsing stays uniform. `active_tables` is
+    handled separately because it is genuinely multi-valued.
+    """
+    payload = {}
+    json_data = request.get_json(silent=True)
+    if isinstance(json_data, dict):
+        for k, v in json_data.items():
+            if v is None:
+                payload[k] = ''
+            elif isinstance(v, (list, tuple)):
+                payload[k] = ','.join(str(x) for x in v)
+            else:
+                payload[k] = str(v)
+    for k in request.form.keys():
+        vals = request.form.getlist(k)
+        if len(vals) > 1:
+            payload[k] = ','.join(vals)
+        elif vals:
+            payload[k] = vals[0]
+    return payload
+
+
+def _active_tables_from_payload():
+    """Resolve the checked `active_tables` set from form getlist or JSON list."""
+    tables = request.form.getlist('active_tables')
+    if tables:
+        return tables
+    json_data = request.get_json(silent=True)
+    if isinstance(json_data, dict):
+        at = json_data.get('active_tables') or []
+        if isinstance(at, list):
+            return [str(t) for t in at]
+        if isinstance(at, str):
+            return [t.strip() for t in at.split(',') if t.strip()]
+    return []
+
+
+def _build_col_lookup(active_tables, profile_tables):
+    """Build {table_column: (table, column)} for every known pair.
+
+    Used instead of regex boundary-guessing so table/column names containing
+    underscores are never split incorrectly.
+    """
+    lookup = {}
+    for t in active_tables:
+        tinfo = profile_tables.get(t) or {}
+        for c in (tinfo.get('columns') or {}):
+            lookup[f'{t}_{c}'] = (t, c)
+    return lookup
+
+
+def _match_col_field(key, field, lookup):
+    """Match a column field like `col_enum_<table>_<col>` -> (table, col)."""
+    prefix = field + '_'
+    if not key.startswith(prefix):
+        return None
+    rest = key[len(prefix):]
+    best = None
+    for candidate in lookup:
+        if rest.startswith(candidate) and (best is None or len(candidate) > len(best)):
+            best = candidate
+    if best is None:
+        return None
+    return lookup[best]
+
+
+def _match_metric_field(key, field, active_tables):
+    """Match a metric field like `metric_name_<table>_<idx>` -> (table, idx)."""
+    m = re.match(rf'^{field}_(?P<rest>.*?)_(?P<idx>\d+)$', key)
+    if not m:
+        return None
+    rest = m.group('rest')
+    idx = int(m.group('idx'))
+    best = None
+    for t in active_tables:
+        if rest == t and (best is None or len(t) > len(best)):
+            best = t
+    if best is None:
+        return rest, idx   # legacy fallback: rest is the table name
+    return best, idx
+
+
+def _match_enum_row(key, field, lookup):
+    """Match `enum_key_<table>_<col>_<idx>` -> (table, col, idx)."""
+    m = re.match(rf'^{field}_(?P<rest>.*?)_(?P<idx>\d+)$', key)
+    if not m:
+        return None
+    rest = m.group('rest')
+    idx = int(m.group('idx'))
+    best = None
+    for candidate in lookup:
+        if rest == candidate and (best is None or len(candidate) > len(best)):
+            best = candidate
+    if best is None:
+        return None
+    table, col = lookup[best]
+    return table, col, idx
+
+
+def _build_enum_str(flat_str, explicit_pairs):
+    """Merge the flat `col_enum_` shorthand with explicit key/label mapping rows.
+
+    explicit_pairs: {idx: (key, label)} in submitted order. Explicit visual-UI
+    rows win over the flat shorthand so enums entered via the mapping grid are
+    never silently dropped, and duplicate keys are deduplicated (last wins).
+    """
+    pairs = []          # ordered (key, label)
+    if flat_str:
+        for part in flat_str.split(','):
+            part = part.strip()
+            if ':' in part:
+                k, _, label = part.partition(':')
+                k, label = k.strip(), label.strip()
+                if k or label:
+                    pairs.append([k, label])
+    for idx in sorted(explicit_pairs.keys()):
+        k, label = explicit_pairs[idx]
+        replaced = False
+        for entry in pairs:
+            if entry[0] == k:
+                entry[1] = label
+                replaced = True
+                break
+        if not replaced:
+            pairs.append([k, label])
+    return ', '.join(f'{k}:{label}' for k, label in pairs if k or label)
+
+
+def _normalize_synonyms(raw):
+    """Accept 'a, b, c' strings (form) or list values (JSON) -> list."""
+    if isinstance(raw, (list, tuple)):
+        return [str(s).strip() for s in raw if str(s).strip()]
+    if isinstance(raw, str):
+        return [s.strip() for s in raw.split(',') if s.strip()]
+    return []
+
+
 @main.route('/publish-semantic-layer', methods=['POST'])
 @login_required
 def publish_semantic_layer():
+    """Publish Semantic Studio output. Accepts form-urlencoded OR JSON bodies.
+
+    Unified payload handling: both request.form and request.get_json() are
+    inspected and merged. Custom metrics, column enums (flat + per-row mappings),
+    synonyms and global joins are then extracted EXPLICITLY so nothing entered in
+    the Studio UI is silently dropped before writing to `PublishedModel.model_json`.
+    """
     # Members cannot publish semantic layers
     if current_user.role != 'admin':
         return jsonify({"error": "Access denied. Only admins can publish semantic layers."}), 403
-    active_tables = request.form.getlist('active_tables')
-    full_profile = session.get('db_profile')
-    
-    # Global settings (sparse)
-    global_joins = request.form.get('global_joins', '').strip()
-    global_filters = request.form.get('global_filters', '').strip()
-    
+
+    payload = _flatten_publish_payload()
+    active_tables = _active_tables_from_payload()
+    if not active_tables:
+        return jsonify({"error": "No tables selected. Select at least one table to publish."}), 400
+
+    # Support fully-structured JSON bodies directly (nested `tables` dict).
+    json_data = request.get_json(silent=True)
+    nested_tables = json_data.get('tables') if isinstance(json_data, dict) and isinstance(json_data.get('tables'), dict) else None
+
+    full_profile = session.get('db_profile') or {}
+    profile_tables = full_profile.get('tables') or {}
+    if not profile_tables:
+        # Session profile may have expired — fall back to the persisted connection.
+        try:
+            saved = PublishedModel.query.filter_by(user_id=current_user.id).order_by(PublishedModel.updated_at.desc()).first()
+            if saved and saved.connection_string:
+                from app.profiler import profile_database
+                full_profile = profile_database(saved.connection_string) or {}
+                profile_tables = full_profile.get('tables') or {}
+        except Exception as e:
+            logger.warning("publish fallback re-profile failed: %s", e)
+
+    # ---------- Global settings (sparse) ----------
+    global_joins = str(payload.get('global_joins', '') or '').strip()
+    global_filters = str(payload.get('global_filters', '') or '').strip()
+
+    lookup = _build_col_lookup(active_tables, profile_tables)
+
+    # ---------- Explicit extraction of indexed dynamic fields ----------
+    # Metrics: table -> idx -> {name, sql, description} (all keys collected so
+    # sparse/removed rows never truncate the list).
+    metrics_by_table = {}
+    for key, val in payload.items():
+        matched = _match_metric_field(key, 'metric_name', active_tables)
+        if matched:
+            table, idx = matched
+            metrics_by_table.setdefault(table, {})[idx] = {'name': str(val).strip()}
+    for key, val in payload.items():
+        matched = _match_metric_field(key, 'metric_sql', active_tables)
+        if matched:
+            table, idx = matched
+            metrics_by_table.setdefault(table, {}).setdefault(idx, {})['sql'] = str(val).strip()
+    for key, val in payload.items():
+        matched = _match_metric_field(key, 'metric_desc', active_tables)
+        if matched:
+            table, idx = matched
+            metrics_by_table.setdefault(table, {}).setdefault(idx, {})['description'] = str(val).strip()
+
+    # Column enrichments: alias / enum flat string / synonyms
+    col_alias = {}
+    col_enum = {}
+    col_syn = {}
+    for key, val in payload.items():
+        matched = _match_col_field(key, 'col_alias', lookup)
+        if matched:
+            col_alias.setdefault(matched[0], {})[matched[1]] = str(val).strip()
+    for key, val in payload.items():
+        matched = _match_col_field(key, 'col_enum', lookup)
+        if matched:
+            col_enum.setdefault(matched[0], {})[matched[1]] = val
+    for key, val in payload.items():
+        matched = _match_col_field(key, 'col_syn', lookup)
+        if matched:
+            col_syn.setdefault(matched[0], {})[matched[1]] = val
+
+    # Explicit per-row enum mappings: table -> col -> {idx: (key, label)}
+    enum_pairs = {}
+    for key, val in payload.items():
+        matched = _match_enum_row(key, 'enum_key', lookup)
+        if matched:
+            table, col, idx = matched
+            enum_pairs.setdefault(table, {}).setdefault(col, {})[idx] = [str(val).strip(), '']
+    for key, val in payload.items():
+        matched = _match_enum_row(key, 'enum_label', lookup)
+        if matched:
+            table, col, idx = matched
+            enum_pairs.setdefault(table, {}).setdefault(col, {}).setdefault(idx, ['', ''])
+            enum_pairs[table][col][idx][1] = str(val).strip()
+
+    # ---------- Build tables config ----------
     tables_config = {}
     for table in active_tables:
-        table_info = full_profile["tables"][table]
-        
+        table_info = profile_tables.get(table)
+        if not table_info or not isinstance(table_info, dict):
+            logger.warning("Publish skipped unknown/absent table %r", table)
+            continue
+        table_columns = table_info.get('columns') or {}
+
         # Table level
-        alias = request.form.get(f'table_alias_{table}', '').strip()
-        desc = request.form.get(f'table_desc_{table}', '').strip()
-        
-        # Dynamic Custom Metrics parsing
+        alias = str(payload.get(f'table_alias_{table}', '') or '').strip()
+        desc = str(payload.get(f'table_desc_{table}', '') or '').strip()
+
+        # Custom Metrics — ordered by submitted index, gaps tolerated
         metrics = []
-        i = 0
-        while True:
-            m_name = request.form.get(f'metric_name_{table}_{i}')
-            if m_name is None:
-                break
-            m_sql = request.form.get(f'metric_sql_{table}_{i}', '').strip()
-            m_desc = request.form.get(f'metric_desc_{table}_{i}', '').strip()
-            if m_name.strip() and m_sql:
-                metric_dict = {"name": m_name.strip(), "sql": m_sql}
-                if m_desc:
-                    metric_dict["description"] = m_desc
+        for idx in sorted((metrics_by_table.get(table) or {}).keys()):
+            m = metrics_by_table[table][idx]
+            name = (m.get('name') or '').strip()
+            sql = (m.get('sql') or '').strip()
+            if name and sql:
+                metric_dict = {"name": name, "sql": sql}
+                mdesc = (m.get('description') or '').strip()
+                if mdesc:
+                    metric_dict["description"] = mdesc
                 metrics.append(metric_dict)
-            i += 1
-            
-        # Column level (Sparse serialization: skip empty alias, enums, synonyms)
+
+        # Column level (sparse serialization: skip empty alias/enums/synonyms)
         columns_config = {}
-        for col in table_info["columns"].keys():
-            col_alias = request.form.get(f'col_alias_{table}_{col}', '').strip()
-            col_enum = request.form.get(f'col_enum_{table}_{col}', '').strip()
-            col_syn = request.form.get(f'col_syn_{table}_{col}', '').strip()
-            
-            col_data = {"type": table_info["columns"][col]["type"]}
-            if col_alias:
-                col_data["alias"] = col_alias
-            if col_enum:
-                col_data["enum"] = col_enum
-            if col_syn:
-                col_data["synonyms"] = [s.strip() for s in col_syn.split(',') if s.strip()]
-                
+        for col in table_columns.keys():
+            col_type = table_columns[col].get('type', 'unknown') if isinstance(table_columns[col], dict) else 'unknown'
+            col_data = {"type": col_type}
+            calias = (col_alias.get(table, {}).get(col) or '').strip()
+            if calias:
+                col_data["alias"] = calias
+            cenum_flat = str(col_enum.get(table, {}).get(col) or '').strip()
+            explicit = enum_pairs.get(table, {}).get(col) or {}
+            cenum = _build_enum_str(cenum_flat, explicit)
+            if cenum:
+                col_data["enum"] = cenum
+            csyn = _normalize_synonyms(col_syn.get(table, {}).get(col) or '')
+            if csyn:
+                col_data["synonyms"] = csyn
             columns_config[col] = col_data
-            
+
         table_entry = {"columns": columns_config}
         if alias:
             table_entry["alias"] = alias
@@ -448,18 +683,59 @@ def publish_semantic_layer():
             table_entry["description"] = desc
         if metrics:
             table_entry["metrics"] = metrics
-            
+
+        # Merge any structured JSON body for this table (flat fields win).
+        if nested_tables and isinstance(nested_tables.get(table), dict):
+            nested_t = nested_tables[table]
+            for nk in ('alias', 'description', 'metrics'):
+                if nk not in table_entry and nested_t.get(nk) is not None:
+                    table_entry[nk] = nested_t[nk]
+            nested_cols = nested_t.get('columns')
+            if isinstance(nested_cols, dict):
+                for cname, centry in nested_cols.items():
+                    if cname not in columns_config:
+                        columns_config[cname] = {'type': 'unknown'}
+                    if isinstance(centry, dict):
+                        for ck in ('alias', 'enum', 'synonyms'):
+                            if ck not in columns_config[cname] and centry.get(ck) is not None:
+                                columns_config[cname][ck] = centry[ck]
+
         tables_config[table] = table_entry
-    
+
     published_model = {
         "tables": tables_config,
-        "db_type": full_profile["db_type"]
+        "db_type": full_profile.get('db_type', '')
     }
     if global_joins:
         published_model["global_joins"] = global_joins
     if global_filters:
         published_model["global_filters"] = global_filters
-    
+
+    # Structured top-level indexes (explicit task requirement). Downstream LLM
+    # consumers read metrics per-table and enums per-column, but these mirrors
+    # guarantee nothing is lost regardless of which consumer shape is used.
+    if tables_config:
+        published_model["metrics"] = [
+            m for t_entry in tables_config.values()
+            for m in (t_entry.get('metrics') or [])
+        ]
+        published_model["enums"] = {
+            table: {
+                col: c_data.get('enum')
+                for col, c_data in (t_entry.get('columns') or {}).items()
+                if c_data.get('enum')
+            }
+            for table, t_entry in tables_config.items()
+        }
+        # Only keep non-empty dict entries
+        published_model["enums"] = {
+            table: cols for table, cols in published_model["enums"].items() if cols
+        }
+        if not published_model["enums"]:
+            published_model.pop("enums", None)
+        if not published_model["metrics"]:
+            published_model.pop("metrics", None)
+
     session['published_semantic_layer'] = published_model
     # Persist to the database for account isolation
     saved = PublishedModel.query.filter_by(user_id=current_user.id).order_by(PublishedModel.updated_at.desc()).first()
@@ -478,9 +754,14 @@ def publish_semantic_layer():
         )
         db.session.add(saved)
     db.session.commit()
-    # Clear SQL cache so newly published tables are picked up immediately
+    # Clear SQL cache so newly published tables/metrics/enums/joins are picked up immediately
     cache_manager.clear_cache()
-    logger.info("Streamlined sparse semantic layer published successfully.")
+    logger.info(
+        "Semantic layer published: tables=%d metrics=%d joins=%s",
+        len(tables_config),
+        sum(len(t.get('metrics') or []) for t in tables_config.values()),
+        bool(global_joins),
+    )
     return redirect(url_for('main.chat_interface'))
 
 def _build_live_semantic_model(profile=None, published=None):
