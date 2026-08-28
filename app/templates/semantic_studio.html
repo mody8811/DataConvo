@@ -1711,13 +1711,14 @@
 
             bindErdContainerEvents();
 
-            // Apply the transform FIRST so card positions are final, then draw
-            // connectors exactly once. NEVER call scheduleErdRender() here: that
-            // re-enters renderHtmlErd() forever (an unbounded rAF loop) which
-            // rebuilt the grid + SVG every 2 frames and made the connector
-            // threads blink/flicker erratically.
+            // Apply the transform FIRST, force a synchronous layout flush so
+            // offsetLeft/offsetTop are real, then draw immediately + once more
+            // on the next frame for absolute certainty. NEVER self-schedule
+            // renderHtmlErd() (that was an unbounded rAF loop -> flicker).
             applyErdTransform();
-            requestAnimationFrame(() => drawErdLines(joins));
+            void grid.offsetHeight;                 // synchronous layout flush
+            drawErdLines(joins);                    // draw NOW (offset coords)
+            requestAnimationFrame(() => drawErdLines(joins)); // + next frame
         }
 
         // Resolve CSS custom-property colors to concrete hex values.
@@ -1753,6 +1754,10 @@
             svg.appendChild(defs);
         }
 
+        // Thread geometry uses OFFSET coordinates (grid space). These are
+        // synchronous (force layout), unaffected by the drawer slide animation,
+        // and align with the SVG layer because grid + svg share the same
+        // transform. getBoundingClientRect() gave stale coords on first open.
         function drawErdLines(joins) {
             const wrapper = document.getElementById('erd-canvas-wrapper');
             const grid = document.getElementById('erd-cards-grid');
@@ -1760,10 +1765,14 @@
             if (!wrapper || !grid || !svg) return;
             svg.innerHTML = '';
 
-            const gridRect = grid.getBoundingClientRect();
-            const wrapperRect = wrapper.getBoundingClientRect();
-            svg.style.width = Math.max(gridRect.width, wrapperRect.width) + 'px';
-            svg.style.height = Math.max(gridRect.height, wrapperRect.height) + 'px';
+            // Force synchronous layout so every offset* below is real.
+            void grid.offsetHeight;
+            const gridW = grid.scrollWidth || grid.offsetWidth;
+            const gridH = grid.scrollHeight || grid.offsetHeight;
+            const wrapW = wrapper.clientWidth || wrapper.offsetWidth;
+            const wrapH = wrapper.clientHeight || wrapper.offsetHeight;
+            svg.style.width = Math.max(gridW, wrapW) + 'px';
+            svg.style.height = Math.max(gridH, wrapH) + 'px';
 
             const colors = erdStrokeColors();
 
@@ -1772,14 +1781,10 @@
                 const toCard = document.getElementById(`erd-card-${j.t2}`);
                 if (!fromCard || !toCard) return;
 
-                const fromRect = fromCard.getBoundingClientRect();
-                const toRect = toCard.getBoundingClientRect();
-                const wrapperRect = wrapper.getBoundingClientRect();
-
-                const x1 = fromRect.left + fromRect.width / 2 - wrapperRect.left;
-                const y1 = fromRect.top + fromRect.height / 2 - wrapperRect.top;
-                const x2 = toRect.left + toRect.width / 2 - wrapperRect.left;
-                const y2 = toRect.top + toRect.height / 2 - wrapperRect.top;
+                const x1 = fromCard.offsetLeft + fromCard.offsetWidth / 2;
+                const y1 = fromCard.offsetTop + fromCard.offsetHeight / 2;
+                const x2 = toCard.offsetLeft + toCard.offsetWidth / 2;
+                const y2 = toCard.offsetTop + toCard.offsetHeight / 2;
 
                 // ALL connector threads render in the magenta/purple accent
                 // (--erd-custom) so every join is instantly visible and consistent.
@@ -1819,14 +1824,16 @@
             if (erdOpen) {
                 drawer.classList.add('open');
                 btn.textContent = 'Close Canvas';
-                // First render immediately, then once again after the 0.3s
-                // slideDown animation finishes so bounding-box coordinates
-                // are final and every connector thread lands correctly.
-                scheduleErdRender();
+                // Triple-guaranteed draw so threads ALWAYS appear on first open:
+                // 1) immediately (offset coords force layout),
+                // 2) after the 0.3s slideDown animation finishes,
+                // 3) after a 400ms safety net in case animationend is missed.
+                renderHtmlErd();
                 drawer.addEventListener('animationend', function onSlideEnd() {
                     drawer.removeEventListener('animationend', onSlideEnd);
-                    scheduleErdRender();
+                    renderHtmlErd();
                 });
+                setTimeout(renderHtmlErd, 400);
             } else {
                 drawer.classList.remove('open');
                 btn.textContent = 'Open Canvas';
