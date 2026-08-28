@@ -1747,7 +1747,7 @@
             marker.setAttribute('orient', 'auto');
             const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
             poly.setAttribute('points', '0 0, 10 3.5, 0 7');
-            poly.setAttribute('fill', colors.fk);
+            poly.setAttribute('fill', colors.custom); // magenta arrowhead
             marker.appendChild(poly);
             defs.appendChild(marker);
             svg.appendChild(defs);
@@ -1781,11 +1781,9 @@
                 const x2 = toRect.left + toRect.width / 2 - wrapperRect.left;
                 const y2 = toRect.top + toRect.height / 2 - wrapperRect.top;
 
-                const isIntrospected = serverForeignKeys.some(fk =>
-                    (fk.from_table === j.t1 && fk.to_table === j.t2) ||
-                    (fk.from_table === j.t2 && fk.to_table === j.t1)
-                );
-                const color = isIntrospected ? colors.fk : colors.custom;
+                // ALL connector threads render in the magenta/purple accent
+                // (--erd-custom) so every join is instantly visible and consistent.
+                const color = colors.custom;
 
                 const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                 line.setAttribute('x1', x1);
@@ -1793,7 +1791,7 @@
                 line.setAttribute('x2', x2);
                 line.setAttribute('y2', y2);
                 line.setAttribute('stroke', color);
-                line.setAttribute('stroke-width', '3');
+                line.setAttribute('stroke-width', '3.5');
                 line.setAttribute('marker-end', 'url(#erd-arrowhead)');
                 svg.appendChild(line);
 
