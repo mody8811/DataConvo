@@ -39,9 +39,9 @@ def get_supabase_client():
 
 @auth.route('/signup', methods=['GET', 'POST'])
 def signup():
-    # Logged-in users should not see the signup page
+    # Logged-in users should not see the signup page -> go straight to Account.
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('auth.account'))
 
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
@@ -153,9 +153,9 @@ def signup():
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
-    # Logged-in users should not see the login page
+    # Logged-in users should not see the login page -> go straight to Account.
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('auth.account'))
 
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
@@ -200,8 +200,7 @@ def login():
                             session['pending_mfa_next'] = nxt
                         return redirect(url_for('auth.mfa_challenge'))
                     login_user(user, remember=remember)
-                    next_page = request.args.get('next')
-                    return redirect(next_page or url_for('main.index'))
+                    return redirect(url_for('auth.account'))
             except Exception as e:
                 # Supabase login failed — fall through to local auth
                 current_app.logger.warning(f"Supabase login failed (trying local auth): {e}")
@@ -226,8 +225,7 @@ def login():
                     session['pending_mfa_next'] = nxt
                 return redirect(url_for('auth.mfa_challenge'))
             login_user(user, remember=remember)
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('main.index'))
+            return redirect(url_for('auth.account'))
 
         flash('Invalid email or password.', 'error')
         return redirect(url_for('auth.login'))
@@ -521,10 +519,10 @@ def verify_mfa_page():
             user.mfa_verified = True
             db.session.commit()
             login_user(user, remember=bool(session.get('pending_mfa_remember')))
-            nxt = session.pop('pending_mfa_next', None)
+            session.pop('pending_mfa_next', None)
             session.pop('pending_mfa_user', None)
             session.pop('pending_mfa_remember', None)
-            return redirect(nxt or url_for('main.index'))
+            return redirect(url_for('auth.account'))
         else:
             flash('Invalid or expired code.', 'error')
 
@@ -556,10 +554,10 @@ def mfa_challenge():
             user.mfa_verified = True
             db.session.commit()
             login_user(user, remember=bool(session.get('pending_mfa_remember')))
-            nxt = session.pop('pending_mfa_next', None)
+            session.pop('pending_mfa_next', None)
             session.pop('pending_mfa_user', None)
             session.pop('pending_mfa_remember', None)
-            return redirect(nxt or url_for('main.index'))
+            return redirect(url_for('auth.account'))
         else:
             flash('Invalid or expired code.', 'error')
 
