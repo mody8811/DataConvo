@@ -1221,7 +1221,8 @@ def invite_accept_post(token):
     if not getattr(user, 'mfa_verified', False) or not getattr(user, 'totp_secret', None):
         return redirect(url_for('auth.setup_mfa_page'))
 
-    return redirect(url_for('main.chat_interface'))
+    # Consistent post-signin flow: land on the Account page.
+    return redirect(url_for('auth.account'))
 
 # ===== RBAC Admin endpoints =====
 
