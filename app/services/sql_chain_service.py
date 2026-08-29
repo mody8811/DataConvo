@@ -33,8 +33,8 @@ class SQLChainService:
 
     DISCOVERY_PATTERNS = {'what tables', 'show schema', 'list tables', 'available tables', 'what tables can you see', 'show tables'}
 
-    def __init__(self, connection_string, user=None):
-        self.db = DatabaseManager.get_sql_database(connection_string)
+    def __init__(self, connection_string, user=None, schema=None):
+        self.db = DatabaseManager.get_sql_database(connection_string, schema=schema)
         self.dialect = self.db.dialect
         self._byok_blocked_reason = None
         # BYOK-ONLY router: no platform API key fallback. Both the SQL LLM and

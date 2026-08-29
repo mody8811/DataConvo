@@ -1630,7 +1630,7 @@ def internetbot_route():
             """Resolve a delegated tool call with real DB / DeepBot / web access."""
             try:
                 if tool_name == _TOOL_ASK_QUERYBOT or tool_name == 'ask_querybot':
-                    service_qb = SQLChainService(session['connection_string'], user=current_user)
+                    service_qb = SQLChainService(session['connection_string'], user=current_user, schema=session.get('schema_name'))
                     pub_model = session.get('published_semantic_layer')
                     gen = service_qb.generate_sql(tool_query, pub_model, conversation_history=[])
                     if gen.get('type') == 'sql' and gen.get('sql'):
@@ -1837,7 +1837,7 @@ def generate_sql():
             except Exception:
                 pass
             print(f"DEBUG: SQL override detected, executing directly: {sql_override!r}", flush=True)
-            service = SQLChainService(session['connection_string'], user=current_user)
+            service = SQLChainService(session['connection_string'], user=current_user, schema=session.get('schema_name'))
             raw_results, override_guardrail = QueryExecutor.validate_and_execute_tiered(
                 service.db, sql_override, db_type=service.dialect
             )
@@ -2005,7 +2005,7 @@ def generate_sql():
         cached = cache_manager.get_cached_sql(question)
         if cached:
             logger.info(f"Cache hit for prompt: {question[:60]}...")
-            _cache_service = SQLChainService(session['connection_string'], user=current_user)
+            _cache_service = SQLChainService(session['connection_string'], user=current_user, schema=session.get('schema_name'))
             raw_results, _cache_guardrail = QueryExecutor.validate_and_execute_tiered(
                 _cache_service.db,
                 cached["generated_sql"],
@@ -2031,7 +2031,7 @@ def generate_sql():
                 "error": None
             })
 
-        service = SQLChainService(session['connection_string'], user=current_user)
+        service = SQLChainService(session['connection_string'], user=current_user, schema=session.get('schema_name'))
         
         # Build conversation history with user + assistant SQL turns
         history = session.get('chat_history', [])
