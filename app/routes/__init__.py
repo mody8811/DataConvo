@@ -44,6 +44,38 @@ def index():
     from datetime import datetime as _now
     return render_template('index.html', current_year=_now.now().year)
 
+@main.route('/sitemap.xml')
+def sitemap_xml():
+    """Google sitemap (XML). Public pages only. Uses SITE_URL if configured."""
+    base = (os.getenv('SITE_URL') or 'https://www.dataconvo.app').rstrip('/')
+    today = date.today().isoformat()
+    pages = [
+        ('/', '1.0', 'daily'),
+        ('/pricing', '0.9', 'weekly'),
+        ('/signup', '0.8', 'monthly'),
+        ('/login', '0.8', 'monthly'),
+        ('/forgot-password', '0.5', 'monthly'),
+    ]
+    urls = ''.join(
+        f'  <url><loc>{base}{path}</loc><lastmod>{today}</lastmod>'
+        f'<changefreq>{freq}</changefreq><priority>{prio}</priority></url>\n'
+        for path, prio, freq in pages
+    )
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f'{urls}</urlset>\n'
+    )
+    return current_app.response_class(xml, mimetype='application/xml')
+
+
+@main.route('/robots.txt')
+def robots_txt():
+    base = (os.getenv('SITE_URL') or 'https://www.dataconvo.app').rstrip('/')
+    body = f"User-agent: *\nAllow: /\nDisallow: /chat\nDisallow: /semantic-studio\nDisallow: /account\nDisallow: /mfa/\nDisallow: /auth/\nSitemap: {base}/sitemap.xml\n"
+    return current_app.response_class(body, mimetype='text/plain')
+
+
 @main.route('/settings/api-keys')
 @login_required
 def settings_api_keys():
