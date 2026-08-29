@@ -612,15 +612,15 @@
     <section class="hero">
         <div class="hero-badge amber">
             <span class="pulse"></span>
-            ⚡ AUTONOMOUS AGENTIC BI · MULTI-AGENT AGI WORKFLOWS
+            MAKE YOUR DATA AI-READY
         </div>
         <div class="hero-headline">
             <h1>
-                The Agentic AI Data Analytics Platform You Can Run Anywhere.
+                Make your data AI-ready in minutes.
             </h1>
         </div>
         <p class="hero-subtitle">
-            Autonomous data intelligence meets absolute data sovereignty. Deploy our agentic workspace securely on your own infrastructure via Docker with zero data retention and Bring Your Own Key (BYOK) control.
+            Connect your data, teach AI your business, and analyze it with natural language.
         </p>
         <div class="hero-ctas">
             {% if current_user.is_authenticated %}
@@ -628,7 +628,7 @@
             {% else %}
                 <a href="/login" class="btn btn-giant">🚀 Deploy AI Workspace</a>
             {% endif %}
-            <a href="#studios" class="btn-secondary-giant">📊 Explore Studios</a>
+            <a href="#studios" class="btn-secondary-giant">📊 Explore Semantic Studio</a>
         </div>
 
         <div class="preview-card" id="demo">
@@ -637,20 +637,13 @@
                 <span class="preview-title">Data Convo — Live Preview</span>
             </div>
             <div class="preview-body">
-                <div class="preview-line preview-prompt">> User: "Show me monthly revenue by region with web context"</div>
-                <div class="preview-line"><span style="color:#10b981">> QueryBot:</span> Translating intent into secure SQL...</div>
-                <span class="preview-sql">SELECT region, DATE_TRUNC('month', order_date) m, SUM(revenue) r FROM orders GROUP BY 1,2;</span>
-                <div class="preview-line"><span style="color:#a78bfa">> DeepBot:</span> Running Pandas data science (`numeric_only=True`)...</div>
-                <div class="preview-line"><span style="color:#f59e0b">> InternetBot:</span> Fetching real-time market context via web search...</div>
-                <div class="preview-details">
-                    <summary>👁️ View Agent Execution Steps</summary>
-                    <div class="trace">
-                        <div>🤖 QueryBot — Queried internal SQL metrics</div>
-                        <div>🐍 DeepBot — Executed Python trend analysis</div>
-                        <div>🌐 Web Search — Searched external market reports</div>
-                    </div>
-                </div>
-                <div class="preview-line preview-row">✓ 12,408 rows returned · 1.2s · Revenue +18.4% vs last quarter</div>
+                <div class="preview-line preview-prompt">> User: "Which product categories generated the most revenue last quarter?"</div>
+                <div class="preview-line"><span style="color:#10b981">→ Understanding intent:</span> "product categories", "revenue", "last quarter"</div>
+                <div class="preview-line"><span style="color:#a78bfa">→ Finding relevant data:</span> orders, order_items, products</div>
+                <div class="preview-line"><span style="color:#f59e0b">→ Connecting tables:</span> orders → order_items → products</div>
+                <span class="preview-sql">SELECT p.category, SUM(oi.revenue) AS revenue FROM orders o JOIN order_items oi ON o.id = oi.order_id JOIN products p ON oi.product_id = p.id WHERE DATE_TRUNC('quarter', o.created_at) = DATE_TRUNC('quarter', NOW() - INTERVAL '1 quarter') GROUP BY p.category ORDER BY revenue DESC;</span>
+                <div class="preview-line"><span style="color:#34d399">→ Generating SQL:</span> JOIN on order_id and product_id, quarterly filter</div>
+                <div class="preview-line"><span style="color:#7dd3fc">→ Answer:</span> Electronics $1.2M · Apparel $890K · Home & Garden $742K</div>
             </div>
         </div>
     </section>
