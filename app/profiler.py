@@ -21,15 +21,30 @@ def _schemas_for_dialect(inspector):
         logger.warning(f"Could not get schema names for {dialect}: {e}")
         return [None]
 
+    # Normalize: Snowflake/Fabric return TUPLE rows like (database, schema)
+    # instead of bare strings. Flatten to the actual schema name so it never
+    # leaks into SQL as "<str>..None".
+    def _schema_name(s):
+        if isinstance(s, (list, tuple)):
+            s = s[1] if len(s) > 1 else (s[0] if s else None)
+        return s
+
+    schemas = [s for s in (_schema_name(x) for x in schemas) if s]
+
     # Filter out system schemas per dialect
     system_schemas = {
         'postgresql': {'pg_catalog', 'information_schema'},
         'mssql': {'sys', 'INFORMATION_SCHEMA', 'guest', 'db_owner', 'db_accessadmin', 'db_securityadmin', 'db_ddladmin', 'db_backupoperator', 'db_datareader', 'db_datawriter', 'db_denydatareader', 'db_denydatawriter'},
         'mysql': {'information_schema', 'performance_schema', 'mysql', 'sys'},
+        'snowflake': {'INFORMATION_SCHEMA', 'information_schema', 'PUBLIC'},
         'sqlite': set(),  # SQLite has no real schemas; uses main/temp
     }
     exclude = system_schemas.get(dialect, set())
     filtered = [s for s in schemas if s not in exclude]
+    # Snowflake: keep PUBLIC (the default user schema) as the FIRST candidate so
+    # unqualified access works against the database the user authenticated into.
+    if dialect == 'snowflake' and 'PUBLIC' not in filtered and 'PUBLIC' in schemas:
+        filtered.insert(0, 'PUBLIC')
     return filtered or [None]  # fall back to default / no schema
 
 
@@ -167,7 +182,7 @@ def _build_connection_string_for(dialect, **kwargs):
         raise ValueError(f"Unsupported database type: {dialect}")
 
 
-def discover_connection(engine):
+def discover_connection(engine, schema=None):
     """Discover tables, columns, and types using SQLAlchemy Inspector.
 
     Returns:
@@ -187,11 +202,16 @@ def discover_connection(engine):
         "primary_keys": {}
     }
 
-    schemas = _schemas_for_dialect(inspector)
+    # Use the actively-selected schema when supplied (e.g. Snowflake PUBLIC);
+    # otherwise fall back to the dialect's discovered schema list.
+    if schema:
+        schemas = [schema]
+    else:
+        schemas = _schemas_for_dialect(inspector)
 
-    # Get FKs and PKs via Inspector (dialect-agnostic)
-    profile["fk_constraints"] = introspect_foreign_keys(engine)
-    profile["primary_keys"] = introspect_primary_keys(engine)
+    # Get FKs and PKs via Inspector (dialect-agnostic) with the same schema.
+    profile["fk_constraints"] = introspect_foreign_keys(engine, schema=schema)
+    profile["primary_keys"] = introspect_primary_keys(engine, schema=schema)
 
     for sch in schemas:
         try:
@@ -255,7 +275,8 @@ def _fetch_sample(engine, schema, table, dialect, limit=5):
     """Fetch a small sample of rows from a table using dialect-safe LIMIT syntax."""
     if schema and schema not in ('main', 'public', 'dbo') and dialect in ('postgresql', 'mssql'):
         qualified = f'"{schema}"."{table}"' if dialect == 'postgresql' else f"[{schema}].[{table}]"
-    elif dialect == 'databricks' and schema:
+    elif dialect in ('databricks', 'snowflake') and schema:
+        # Snowflake/Databricks identifiers are case-insensitive; backtick-qualify.
         qualified = f"`{schema}`.`{table}`"
     else:
         qualified = f'"{table}"' if dialect in ('postgresql', 'sqlite') else f"[{table}]" if dialect == 'mssql' else f"`{table}`"
@@ -290,7 +311,7 @@ def _clean_row(row):
     return cleaned
 
 
-def profile_database(connection_string, schema='dbo'):
+def profile_database(connection_string, schema=None):
     """Main entry point. Uses SQLAlchemy Inspector for dialect-agnostic schema reflection."""
     engine = create_engine(connection_string)
-    return discover_connection(engine)
+    return discover_connection(engine, schema=schema)
