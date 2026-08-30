@@ -1193,6 +1193,14 @@
 
         let joinsState = [];
 
+        // Split 'schema.table.column' from the LAST dot so schema-qualified
+        // table names (PUBLIC.olist_sellers, catalog.schema.table) survive.
+        function splitTableCol(s) {
+            const i = s.lastIndexOf('.');
+            if (i < 1 || i === s.length - 1) return null;
+            return [s.slice(0, i), s.slice(i + 1)];
+        }
+
         function syncJoinsStateFromTextarea() {
             const linesStr = document.getElementById('global_joins').value.trim();
             joinsState = [];
@@ -1200,9 +1208,9 @@
                 linesStr.split('\n').forEach(line => {
                     const parts = line.split('->');
                     if (parts.length === 2) {
-                        const left = parts[0].trim().split('.');
-                        const right = parts[1].trim().split('.');
-                        if (left.length === 2 && right.length === 2) {
+                        const left = splitTableCol(parts[0].trim());
+                        const right = splitTableCol(parts[1].trim());
+                        if (left && right) {
                             joinsState.push({ t1: left[0], c1: left[1], t2: right[0], c2: right[1] });
                         }
                     }
@@ -1245,9 +1253,10 @@
             }
         }
 
+        let erdRowSeq = 0;
         function addErdJoin(t1Val='', c1Val='', t2Val='', c2Val='') {
             const container = document.getElementById('erd-container');
-            const index = container.children.length;
+            const index = erdRowSeq++;
             const div = document.createElement('div');
             div.className = 'erd-row';
 
@@ -1370,9 +1379,9 @@
                 linesStr.split('\n').forEach(line => {
                     const parts = line.split('->');
                     if (parts.length === 2) {
-                        const left = parts[0].trim().split('.');
-                        const right = parts[1].trim().split('.');
-                        if (left.length === 2 && right.length === 2) {
+                        const left = splitTableCol(parts[0].trim());
+                        const right = splitTableCol(parts[1].trim());
+                        if (left && right) {
                             joins.push({ t1: left[0], c1: left[1], t2: right[0], c2: right[1] });
                         }
                     }
