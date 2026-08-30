@@ -858,7 +858,7 @@ def _build_live_semantic_model(profile=None, published=None):
                 entry[key] = pub_t[key]
         tables[tname] = entry
     model = {'tables': tables, 'db_type': profile.get('db_type', '')}
-    for key in ('global_joins', 'global_filters'):
+    for key in ('global_joins', 'global_filters', 'business_definitions'):
         if published.get(key):
             model[key] = published[key]
     return model
