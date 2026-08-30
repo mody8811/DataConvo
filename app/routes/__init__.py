@@ -664,6 +664,25 @@ def publish_semantic_layer():
             enum_pairs.setdefault(table, {}).setdefault(col, {}).setdefault(idx, ['', ''])
             enum_pairs[table][col][idx][1] = str(val).strip()
 
+    # ---------- Global Business Definitions (named SQL snippets) ----------
+    # Fields: bizdef_name_<idx> / bizdef_sql_<idx> (sparse indices tolerated).
+    bizdefs_by_idx = {}
+    for key, val in payload.items():
+        m = re.match(r'^bizdef_name_(?P<idx>\d+)$', key)
+        if m:
+            bizdefs_by_idx.setdefault(int(m.group('idx')), {})['name'] = str(val).strip()
+    for key, val in payload.items():
+        m = re.match(r'^bizdef_sql_(?P<idx>\d+)$', key)
+        if m:
+            bizdefs_by_idx.setdefault(int(m.group('idx')), {})['sql'] = str(val).strip()
+    business_definitions = []
+    for idx in sorted(bizdefs_by_idx.keys()):
+        d = bizdefs_by_idx[idx]
+        name = (d.get('name') or '').strip()
+        sql = (d.get('sql') or '').strip()
+        if name and sql:
+            business_definitions.append({"name": name, "sql": sql})
+
     # ---------- Build tables config ----------
     tables_config = {}
     for table in active_tables:
@@ -742,6 +761,8 @@ def publish_semantic_layer():
         published_model["global_joins"] = global_joins
     if global_filters:
         published_model["global_filters"] = global_filters
+    if business_definitions:
+        published_model["business_definitions"] = business_definitions
 
     # Structured top-level indexes (explicit task requirement). Downstream LLM
     # consumers read metrics per-table and enums per-column, but these mirrors

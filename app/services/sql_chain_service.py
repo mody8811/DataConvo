@@ -282,6 +282,11 @@ Return ONLY a JSON list of table names required, e.g. ["TableName"]. Do not incl
         lines = []
         lines.append(f"Database Type: {model.get('db_type', 'unknown')}")
         
+        if model.get('business_definitions'):
+            lines.append("\n### Global Business Definitions:")
+            for b in model['business_definitions']:
+                lines.append(f"- {b.get('name', '')}: {b.get('sql', '')}")
+
         if model.get('global_joins'):
             lines.append("\n### Global Join Graph:")
             for j in model['global_joins'].split('\n'):

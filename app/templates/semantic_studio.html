@@ -801,6 +801,10 @@
         .table-card-body.expanded {
             display: block;
         }
+        .bizdef-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; }
+        .bizdef-row .bizdef-name { flex: 1; padding: 10px 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); }
+        .bizdef-row .bizdef-sql { flex: 2; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; resize: vertical; }
+        .bizdef-row .btn-danger { min-width: 34px; align-self: center; }
         .enum-mapping-row {
             display: grid;
             grid-template-columns: 1fr 1fr 32px;
@@ -911,6 +915,24 @@
                     <button type="button" class="btn-sm" onclick="addEmptyJoinRow()">+ Add Join</button>
                 </div>
                 <div id="erd-container"></div>
+            </div>
+
+            <div class="table-box">
+                <h3 style="margin-bottom: 12px;">📐 Global Business Definitions</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 14px;">Reusable SQL business rules the AI can embed into queries. Example: <code>Active Customers</code> → <code>SELECT DISTINCT customer_id FROM orders WHERE status = 'paid'</code></p>
+                <div id="bizdefs-container">
+                    {% set bizdefs = (published_model.business_definitions if published_model and published_model.business_definitions else []) %}
+                    {% for b in bizdefs %}
+                        <div class="bizdef-row">
+                            <input type="text" name="bizdef_name_{{ loop.index0 }}" value="{{ b.name }}" placeholder="Name (e.g. Active Customers)" class="bizdef-name">
+                            <textarea name="bizdef_sql_{{ loop.index0 }}" rows="2" placeholder="SQL definition (joins / WHERE / subquery)" class="bizdef-sql">{{ b.sql }}</textarea>
+                            <button type="button" class="btn-danger" onclick="this.parentElement.remove()">✕</button>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 12px;">
+                    <button type="button" class="btn-sm" onclick="addBizDef()">+ Add Business Definition</button>
+                </div>
             </div>
 
             <div class="section-box">
@@ -1132,6 +1154,21 @@
                 }
             });
             return true; // allow form submission
+        }
+
+        let bizdefSeq = 0;
+        function addBizDef(name='', sql='') {
+            const container = document.getElementById('bizdefs-container');
+            if (!container) return;
+            const index = bizdefSeq++;
+            const div = document.createElement('div');
+            div.className = 'bizdef-row';
+            div.innerHTML = `
+                <input type="text" name="bizdef_name_${index}" placeholder="Name (e.g. Active Customers)" class="bizdef-name" value="${name}">
+                <textarea name="bizdef_sql_${index}" rows="2" placeholder="SQL definition (joins / WHERE / subquery)" class="bizdef-sql">${sql}</textarea>
+                <button type="button" class="btn-danger" onclick="this.parentElement.remove()">✕</button>
+            `;
+            container.appendChild(div);
         }
 
         function toggleAdvanced(table, col) {
