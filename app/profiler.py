@@ -227,7 +227,14 @@ def discover_connection(engine, schema=None):
             # Compute display name
             display_name = table
             schema_display = None
-            if sch and sch not in ('main', 'public', 'dbo'):
+            if dialect == 'snowflake' and sch:
+                # Snowflake: ALWAYS schema-qualify (e.g. PUBLIC.olist_sellers_dataset)
+                # so generated SQL targets the user-selected schema instead of the
+                # connection default — mirrors the Databricks catalog.schema.table
+                # qualification below.
+                display_name = f"{sch}.{table}"
+                schema_display = sch
+            elif sch and sch not in ('main', 'public', 'dbo'):
                 # Keep schema-qualified for non-default schemas so queries target the right one
                 if dialect in ('postgresql', 'mssql'):
                     display_name = f"{sch}.{table}"
