@@ -25,7 +25,9 @@ def demo_page():
                 data_platforms=DATA_PLATFORMS,
                 values=request.form)
         try:
-            from app.services.email_service import _dispatch
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+            from app.services.email_service import _dispatch, FROM_ADDRESS
             rows = ''.join(
                 f'<tr><td style="padding:6px 10px;color:#94a3b8;">{k}</td>'
                 f'<td style="padding:6px 10px;color:#e2e8f0;">{v}</td></tr>'
@@ -34,15 +36,20 @@ def demo_page():
                     ('Role', role or '—'), ('Data platform', platform or '—'),
                     ('Message', message or '—'),
                 ])
-            msg = (
+            html = (
                 '<div style="font-family:Inter,Arial,sans-serif;background:#0b0f19;'
                 'padding:24px;border-radius:12px;max-width:560px;">'
                 '<h2 style="color:#fff;font-size:18px;margin:0 0 12px;">\U0001F4C5 New Demo Request</h2>'
                 f'<table style="border-collapse:collapse;width:100%;">{rows}</table>'
                 '<p style="color:#64748b;font-size:12px;margin-top:14px;">'
                 'Sent from the Data Convo Book a Demo page.</p></div>')
-            ok, note = _dispatch(msg, 'support@dataconvo.app',
-                                 f'Demo Request — {name} ({company})')
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = f'Demo Request — {name} ({company})'
+            msg['From'] = FROM_ADDRESS
+            msg['To'] = 'support@dataconvo.app'
+            msg.attach(MIMEText(f'Demo request from {name} ({email}, {company}).', 'plain'))
+            msg.attach(MIMEText(html, 'html'))
+            ok, note = _dispatch(msg, 'support@dataconvo.app', msg['Subject'])
             return render_template('demo.html', success=True,
                                    data_platforms=DATA_PLATFORMS,
                                    email_note=note if not ok else None)
