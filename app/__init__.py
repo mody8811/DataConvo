@@ -47,6 +47,7 @@ def create_app():
     
     # Setup user loader
     from .models import User, SavedQuery
+    from app import models_blog  # noqa: F401  (registers BlogPost for create_all)
     
     # Configure Flask-Login: redirect unauthenticated users to /login
     login_manager.login_view = 'auth.login'
@@ -178,12 +179,14 @@ def create_app():
     from .routes import main as main_blueprint
     from .routes.auth import auth as auth_blueprint
     from .routes.billing import billing as billing_blueprint
+    from .routes.blog import blog as blog_blueprint
     from .routes.dashboard import dashboard as dashboard_blueprint
     from .routes.data_quality import data_quality as data_quality_blueprint
     
     app.register_blueprint(main_blueprint)
     app.register_blueprint(auth_blueprint)
     app.register_blueprint(billing_blueprint)
+    app.register_blueprint(blog_blueprint)
     app.register_blueprint(dashboard_blueprint)
     app.register_blueprint(data_quality_blueprint)
     

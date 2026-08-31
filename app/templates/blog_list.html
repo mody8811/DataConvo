@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Convo Blog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <style>
+    body{background:#030305;color:#e2e8f0;font-family:Inter,sans-serif;min-height:100vh;}
+    .blog-nav{position:sticky;top:0;z-index:100;background:rgba(3,3,5,.75);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
+    .blog-nav a{color:#94a3b8;text-decoration:none;font-weight:600;font-size:.9rem;margin-left:16px;}
+    .blog-nav a:hover{color:#fff;}
+    .blog-wrap{max-width:900px;margin:0 auto;padding:48px 24px;}
+    .blog-title{font-size:2rem;margin-bottom:8px;}
+    .blog-sub{color:#94a3b8;margin-bottom:32px;}
+    .post-card{background:#111827;border:1px solid #1e293b;border-radius:14px;padding:22px;margin-bottom:16px;display:block;color:#e2e8f0;text-decoration:none;transition:border-color .2s, transform .2s;}
+    .post-card:hover{border-color:#6366f1;transform:translateY(-2px);color:#fff;}
+    .post-card h3{margin:0 0 6px;font-size:1.15rem;}
+    .post-meta{color:#64748b;font-size:.8rem;}
+    .empty{color:#64748b;font-size:.95rem;}
+  </style>
+</head>
+<body>
+  <nav class="blog-nav">
+    <a href="/" style="margin-left:0;font-size:1.05rem;color:#fff;">← Data Convo</a>
+    <div>
+      <a href="/blog">Blog</a>
+      {% if current_user.is_authenticated and current_user.role == 'admin' %}
+        <a href="/blog/new">+ New Post</a>
+      {% else %}
+        <a href="/login">Login</a>
+      {% endif %}
+    </div>
+  </nav>
+  <div class="blog-wrap">
+    <h1 class="blog-title">Data Convo Blog</h1>
+    <p class="blog-sub">Product updates, data-AI insights, and engineering deep dives.</p>
+    {% if posts %}
+      {% for p in posts %}
+        <a class="post-card" href="/blog/{{ p.slug }}">
+          <h3>{{ p.title }}</h3>
+          <div class="post-meta">By {{ p.author_name }} · {{ p.created_at.strftime('%b %d, %Y') if p.created_at else '' }}</div>
+        </a>
+      {% endfor %}
+    {% else %}
+      <p class="empty">No posts yet. Check back soon.</p>
+    {% endif %}
+  </div>
+</body>
+</html>

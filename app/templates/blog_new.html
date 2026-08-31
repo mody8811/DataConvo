@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Blog Post — Data Convo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <style>
+    body{background:#030305;color:#e2e8f0;font-family:Inter,sans-serif;min-height:100vh;}
+    .form-wrap{max-width:900px;margin:0 auto;padding:48px 24px;}
+    h1{font-size:1.6rem;margin-bottom:24px;}
+    label{display:block;color:#94a3b8;font-size:.85rem;font-weight:600;margin:16px 0 6px;text-transform:uppercase;letter-spacing:.04em;}
+    input[type=text]{width:100%;padding:12px 14px;background:#111827;border:1px solid #1e293b;border-radius:10px;color:#e2e8f0;font-size:1rem;}
+    textarea{width:100%;min-height:420px;padding:14px;background:#111827;border:1px solid #1e293b;border-radius:10px;color:#e2e8f0;font-family:'JetBrains Mono',monospace;font-size:.85rem;resize:vertical;}
+    input:focus,textarea:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.2);}
+    .row{display:flex;gap:14px;align-items:center;margin-top:20px;}
+    .btn{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;padding:12px 22px;border-radius:10px;font-weight:600;font-size:.95rem;cursor:pointer;}
+    .btn:hover{filter:brightness(1.1);}
+    .btn-cancel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#cbd5e1;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:600;font-size:.95rem;}
+    .error{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:.9rem;}
+  </style>
+</head>
+<body>
+  <div class="form-wrap">
+    <a href="/blog" style="color:#94a3b8;text-decoration:none;font-weight:600;">← Back to Blog</a>
+    <h1>✍️ New Blog Post</h1>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <p style="color:#64748b;font-size:.9rem;margin-bottom:8px;">Paste markdown directly — no AI involved. Rendered with Marked on the detail page.</p>
+    <form method="POST" action="/blog/new">
+      <label>Title</label>
+      <input type="text" name="title" value="{{ title_value }}" placeholder="Blog post title" required>
+      <label>Body (Markdown)</label>
+      <textarea name="markdown" placeholder="## Intro&#10;Write your post in Markdown...">{{ markdown }}</textarea>
+      <div class="row">
+        <button type="submit" class="btn">🚀 Publish Post</button>
+        <a href="/blog" class="btn-cancel">Cancel</a>
+      </div>
+    </form>
+  </div>
+</body>
+</html>
