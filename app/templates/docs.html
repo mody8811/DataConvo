@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% if page=='source' %}{{ source.name }} Guide{% elif page=='workflow' %}{{ workflow.name }}{% else %}Data Convo Docs{% endif %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#030305;--s:#111827;--b:#1e293b;--a:#6366f1;--a2:#8b5cf6;--am:#fbbf24;--mg:#a855f7;--t:#e2e8f0;--m:#94a3b8}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,sans-serif;background:var(--bg);color:var(--t);line-height:1.6}
+.nav{position:sticky;top:0;background:rgba(3,3,5,.85);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06);padding:13px 24px;display:flex;justify-content:space-between}
+.nav a{color:var(--m);text-decoration:none;font-weight:600;font-size:.9rem}.nav a:hover{color:#fff}
+.wrap{max-width:1100px;margin:0 auto;padding:52px 22px 80px}
+.eyebrow{display:inline-flex;gap:8px;padding:7px 14px;border-radius:999px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--am);font-size:.75rem;font-weight:700;text-transform:uppercase;margin-bottom:16px}
+h1{font-size:clamp(28px,4.5vw,42px);line-height:1.12;margin:0 0 12px;letter-spacing:-.03em}
+.sub{color:var(--m);font-size:1.04rem;max-width:660px;margin:0 0 46px}
+.pipeline{position:relative;background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(17,24,39,.8));border:1px solid var(--b);border-radius:24px;padding:42px 24px;overflow:hidden}
+.pipeline::before{content:'';position:absolute;inset:-40%;background:radial-gradient(circle at 50% 50%,rgba(99,102,241,.14),transparent 55%);animation:p 6s ease-in-out infinite}
+@keyframes p{0%,100%{opacity:.6}50%{opacity:1}}
+.row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;position:relative;z-index:2;align-items:center}
+@media(max-width:820px){.row{grid-template-columns:1fr 1fr}.row .stage:last-child{grid-column:span 2}}
+.stg{background:rgba(7,10,17,.92);border:1px solid rgba(139,92,246,.35);border-radius:16px;padding:20px 14px;text-align:center;position:relative}
+.stg .ic{font-size:1.6rem;margin-bottom:8px}.stg h4{margin:0 0 4px;font-size:.98rem;color:#fff}.stg p{margin:0;color:var(--m);font-size:.78rem}
+.tag{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--a),var(--a2));padding:3px 12px;border-radius:999px;font-size:.65rem;font-weight:700;color:#fff;white-space:nowrap}
+.arm{display:flex;align-items:center;justify-content:center;color:var(--am);font-size:1.3rem}
+.mid{text-align:center;margin:24px 0 0;color:var(--m);font-size:.88rem}.mid strong{color:var(--am)}
+.g3{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:32px}
+@media(max-width:760px){.g3{grid-template-columns:1fr 1fr}}
+.min{border:1px solid var(--b);border-radius:12px;padding:13px;text-align:center;background:var(--s)}
+.min a{color:var(--m);text-decoration:none;font-size:.8rem}.min span{display:block;font-size:1.1rem;margin-bottom:4px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media(max-width:820px){.g2{grid-template-columns:1fr}}
+.card{background:var(--s);border:1px solid var(--b);border-radius:16px;padding:22px}.card h3{margin:0 0 14px;font-size:1.1rem;color:#fff}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.9rem}.kv:last-child{border:none}
+.kv .k{color:var(--m)}.kv .v{color:#fff;font-family:'JetBrains Mono',monospace;font-size:.82rem;text-align:right;word-break:break-all}
+.url{background:#0b0f19;border:1px solid rgba(99,102,241,.35);border-radius:12px;padding:13px 16px;font-family:'JetBrains Mono',monospace;font-size:.78rem;color:#a5f3fc;word-break:break-all}
+.note{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:12px 14px;font-size:.85rem;color:#fcd34d;margin-top:16px}
+.tl{max-width:720px;margin:0 auto;position:relative}.tl::before{content:'';position:absolute;left:22px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,var(--a),var(--mg),var(--am))}
+.st{position:relative;padding:0 0 28px 66px}.st .n{display:flex;align-items:center;justify-content:center;position:absolute;left:6px;top:0;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a2));font-weight:700;color:#fff;box-shadow:0 0 16px rgba(99,102,241,.4)}
+.st h3{margin:0 0 4px;font-size:1.05rem;color:#fff}.st p{margin:0;color:var(--m);font-size:.92rem}
+.footer{text-align:center;padding:26px;border-top:1px solid var(--b);color:var(--m);font-size:.82rem}
+.footer a{color:var(--a2);text-decoration:none;margin:0 8px}
+</style>
+</head>
+<body>
+<nav class="nav"><a href="/" style="font-size:1.05rem;color:#fff">← Data Convo</a><div><a href="/docs" style="margin-right:14px">Docs</a><a href="/blog">Blog</a></div></nav>
+<div class="wrap">
+{% if page=='home' %}
+<div class="eyebrow">🧭 Documentation</div>
+<h1>Every part of your journey, explained.</h1>
+<p class="sub">Connect any source, shape a governed semantic layer, chat with natural language, and keep your dashboards honest. Pick a guide below.</p>
+<div class="pipeline">
+<div class="row">
+<div class="stg"><span class="tag">1 · CONNECT</span><div class="ic">🗃️</div><h4>Data Sources</h4><p>Snowflake · Databricks · Postgres · BigQuery · Redshift · SQL Server · MySQL · SQLite</p></div>
+<div class="arm">→</div>
+<div class="stg"><span class="tag">2 · MODEL</span><div class="ic">🗺️</div><h4>Semantic Layer</h4><p>Joins, aliases, enums, metrics & business definitions</p></div>
+<div class="arm">→</div>
+</div>
+<div class="mid"><strong>Data Convo</strong> sits at the center — introspects your schema, teaches AI your business, stays deterministic via SQL.</div>
+<div class="row" style="margin-top:18px">
+<div class="stg"><span class="tag">3 · ASK</span><div class="ic">💬</div><h4>Chat</h4><p>Natural-language analytics with self-healing SQL</p></div>
+<div class="arm">→</div>
+<div class="stg"><span class="tag">4 · ACT</span><div class="ic">📊</div><h4>Dashboards</h4><p>Charts & KPI cards on live data</p></div>
+<div class="arm">→</div>
+<div class="stg"><span class="tag">5 · MONITOR</span><div class="ic">🚨</div><h4>Anomaly Studio</h4><p>Alerts the moment metrics drift</p></div>
+</div>
+</div>
+<h2 style="margin:46px 0 12px;font-size:1.35rem">Connect guides</h2>
+<div class="g3">{% for k,s in sources.items() %}<div class="min"><span>{{ s.icon }}</span><a href="/docs/sources/{{ k }}">{{ s.name }}</a></div>{% endfor %}</div>
+<h2 style="margin:46px 0 12px;font-size:1.35rem">Workflow guides</h2>
+<div class="g3">{% for k,w in workflows.items() %}<div class="min"><span>{{ w.icon }}</span><a href="/docs/{{ k }}">{{ w.name }}</a></div>{% endfor %}</div>
+{% elif page=='source' %}
+<a href="/docs" style="color:var(--m);text-decoration:none;font-weight:600">← All docs</a>
+<div style="display:flex;align-items:center;gap:16px;margin:20px 0 26px"><div style="width:60px;height:60px;border-radius:16px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);display:flex;align-items:center;justify-content:center;font-size:1.7rem">{{ source.icon }}</div><div><h1 style="font-size:1.7rem">{{ source.name }}</h1><span style="padding:3px 10px;border-radius:999px;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.35);color:#c084fc;font-size:.7rem;font-weight:600;text-transform:uppercase">{{ source.tag }}</span></div></div>
+<div class="g2">
+<div class="card"><h3>Connection fields</h3>{% for k,v in source.fields %}<div class="kv"><span class="k">{{ k }}</span><span class="v">{{ v }}</span></div>{% endfor %}</div>
+<div class="card"><h3>Connection string</h3><div class="url">{{ source.url }}</div><div class="note">💡 {{ source.extra }}</div></div>
+</div>
+<div style="margin-top:26px"><a href="/connect" style="padding:11px 20px;border-radius:10px;background:linear-gradient(135deg,var(--a),var(--a2));color:#fff;text-decoration:none;font-weight:600">🚀 Open Connection Form</a></div>
+{% elif page=='workflow' %}
+<a href="/docs" style="color:var(--m);text-decoration:none;font-weight:600">← All docs</a>
+<div class="eyebrow" style="margin-top:20px">{{ workflow.icon }} {{ workflow.tag }}</div>
+<h1>{{ workflow.name }}</h1>
+<p class="sub">A step-by-step walkthrough of the {{ workflow.name|lower }} workflow.</p>
+<div class="tl">{% for title,desc in workflow.steps %}<div class="st"><div class="n">{{ loop.index }}</div><h3>{{ title }}</h3><p>{{ desc }}</p></div>{% endfor %}</div>
+{% endif %}
+</div>
+<footer class="footer">© 2026 Data Convo · <a href="/docs">Docs</a> · <a href="/demo">Book a Demo</a> · <a href="/blog">Blog</a> · <a href="mailto:support@dataconvo.app">support@dataconvo.app</a></footer>
+</body>
+</html>
+
+</final_file_content>
+
+IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.
+
+
+</final_file_content>
+
+The docs template is now in place. Now: register the `docs` blueprint, add Docs links to the homepage footer, compile, restart, and commit.The docs template is in place. Now register the `docs` blueprint, add a Docs link to the homepage footer, then compile + verify + push.
+
+<write_to_file>
+<path>_wire_docs.py</path>
+<content>"""Register docs blueprint + link it in the homepage footer."""
+from pathlib import Path
+
+# 1) Register docs blueprint in app/__init__.py (line-ending tolerant)
+p = Path('app/__init__.py')
+t = p.read_bytes().decode('utf-8').replace('\r\n', '\n')
+
+if 'from .routes.docs import docs' not in t and 'from app.routes.docs import docs' not in t:
+    old = "    from .routes.demo import demo as demo_blueprint\n"
+    new = "    from .routes.demo import demo as demo_blueprint\n    from .routes.docs import docs as docs_blueprint\n"
+    assert old in t, 'demo import anchor not found'
+    t = t.replace(old, new, 1)
+
+if 'app.register_blueprint(docs_blueprint)' not in t:
+    old = "    app.register_blueprint(demo_blueprint)\n"
+    new = "    app.register_blueprint(demo_blueprint)\n    app.register_blueprint(docs_blueprint)\n"
+    assert old in t, 'demo register anchor not found'
+    t = t.replace(old, new, 1)
+p.write_text(t, encoding='utf-8')
+print('DOCS_BLUEPRINT_REGISTERED')
+
+# 2) Docs link in homepage footer
+p2 = Path('app/templates/index.html')
+t2 = p2.read_bytes().decode('utf-8').replace('\r\n', '\n')
+old_f = '<p>© {{ current_year }} Data Convo. Built for the enterprise AI era.</p>'
+new_f = '<p>© {{ current_year }} Data Convo. <a href="/docs" style="color:#a78bfa;text-decoration:none;">Docs</a> · <a href="/demo" style="color:#a78bfa;text-decoration:none;">Book a Demo</a> · <a href="/blog" style="color:#a78bfa;text-decoration:none;">Blog</a></p>'
+if old_f in t2:
+    t2 = t2.replace(old_f, new_f, 1)
+    print('FOOTER_DOCS_LINK_ADDED')
+else:
+    print('FOOTER_ANCHOR_NOT_FOUND')
+p2.write_text(t2, encoding='utf-8')

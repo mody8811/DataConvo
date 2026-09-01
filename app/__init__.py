@@ -181,6 +181,7 @@ def create_app():
     from .routes.billing import billing as billing_blueprint
     from .routes.blog import blog as blog_blueprint
     from .routes.demo import demo as demo_blueprint
+    from .routes.docs import docs as docs_blueprint
     from .routes.dashboard import dashboard as dashboard_blueprint
     from .routes.data_quality import data_quality as data_quality_blueprint
     
@@ -189,6 +190,7 @@ def create_app():
     app.register_blueprint(billing_blueprint)
     app.register_blueprint(blog_blueprint)
     app.register_blueprint(demo_blueprint)
+    app.register_blueprint(docs_blueprint)
     app.register_blueprint(dashboard_blueprint)
     app.register_blueprint(data_quality_blueprint)
     
