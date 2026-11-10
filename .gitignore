@@ -59,13 +59,10 @@ Mt4 indicator/
 Manage
 
 # ============ Debug/verification scratch (dev only, never ship) ============
-_verify_*.py
-_run_*.py
-_add_*.py
-_find_lines.py
-_glot_out.txt
-_byok_out.txt
-_dbg_byok.txt
+# Root-anchored so this never matches package markers like app/__init__.py.
+# Any one-off debugging or verification script dropped in the repo root
+# (_audit_erd.py, _gtag_check.py, _staged.diff, ...) stays untracked.
+/_*
 inspout.txt
 
 # ============ Logs / temp ============
