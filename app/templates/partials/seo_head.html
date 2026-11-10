@@ -1,0 +1,53 @@
+{# ------------------------------------------------------------------
+   Shared SEO <head> block.
+
+   Emits, for a page with a known canonical path:
+     - <title>
+     - meta description, robots
+     - rel=canonical
+     - Open Graph + Twitter Card tags
+     - JSON-LD (Organization, WebSite, SoftwareApplication, BreadcrumbList)
+
+   Usage (inside <head>):
+     {% set seo_path = '/pricing' %}
+     {% set seo_title = 'Pricing — ...' %}     (optional override)
+     {% set seo_description = '...' %}         (optional override)
+     {% include 'partials/seo_head.html' %}
+   ------------------------------------------------------------------ #}
+{%- set _meta = seo_meta_for(seo_path) if seo_path is defined else None -%}
+{%- set _title = seo_title if seo_title is defined and seo_title else (_meta.title if _meta else 'Data Convo') -%}
+{%- set _desc = seo_description if seo_description is defined and seo_description else (_meta.description if _meta else '') -%}
+{%- set _canonical = seo_canonical(seo_path) if seo_path is defined else seo_canonical() -%}
+{%- set _robots = 'index, follow' if (_meta is none or _meta.indexable) else 'noindex, follow' -%}
+{%- set _image = seo_absolute(seo_og_image if seo_og_image is defined and seo_og_image else '/static/brand/logo.png') -%}
+{%- set _type = seo_og_type if seo_og_type is defined and seo_og_type else 'website' -%}
+
+<title>{{ _title }}</title>
+{%- if _desc %}
+<meta name="description" content="{{ _desc }}">
+{%- endif %}
+<meta name="robots" content="{{ _robots }}">
+<link rel="canonical" href="{{ _canonical }}">
+
+{#- Open Graph -#}
+<meta property="og:site_name" content="Data Convo">
+<meta property="og:type" content="{{ _type }}">
+<meta property="og:title" content="{{ _title }}">
+{%- if _desc %}
+<meta property="og:description" content="{{ _desc }}">
+{%- endif %}
+<meta property="og:url" content="{{ _canonical }}">
+<meta property="og:image" content="{{ _image }}">
+<meta property="og:image:alt" content="{{ seo_og_image_alt if seo_og_image_alt is defined and seo_og_image_alt else 'Data Convo — three studios for AI-ready data' }}">
+<meta property="og:locale" content="en_US">
+
+{#- Twitter Card -#}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ _title }}">
+{%- if _desc %}
+<meta name="twitter:description" content="{{ _desc }}">
+{%- endif %}
+<meta name="twitter:image" content="{{ _image }}">
+
+{#- JSON-LD: site-wide nodes + page breadcrumb -#}
+<script type="application/ld+json">{{ seo_jsonld(seo_path) | safe }}</script>

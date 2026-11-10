@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ post.title }} — Data Convo</title>
+  {% set seo_path = request.path %}
+  {% set seo_title = post.title ~ ' — Data Convo' %}
+  {% set seo_description = (post.markdown or '') | striptags | replace('#', '') | replace('*', '') | replace('`', '') | truncate(155, True, '…') %}
+  {% set seo_og_type = 'article' %}
+  {% include 'partials/seo_head.html' %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">

@@ -193,6 +193,11 @@ def create_app():
     app.register_blueprint(docs_blueprint)
     app.register_blueprint(dashboard_blueprint)
     app.register_blueprint(data_quality_blueprint)
+
+    # SEO template helpers: seo_meta_for(), seo_canonical(), seo_jsonld().
+    # Powers the shared <head> partial and the dynamic sitemap.
+    from app.services import seo as seo_service
+    seo_service.init_app(app)
     
     # Create database tables if they don't exist (after models are imported),
     # then run a dialect-aware auto-migration that safely syncs all columns

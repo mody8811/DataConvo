@@ -44,36 +44,91 @@ def index():
     from datetime import datetime as _now
     return render_template('index.html', current_year=_now.now().year)
 
+@main.route('/semantic-layer')
+def semantic_layer():
+    """Enterprise semantic layer landing page.
+
+    Targets "enterprise semantic layer" and "self-hosted text to SQL" buying
+    intent. Copy lives in the template; metadata plus BreadcrumbList and
+    FAQPage JSON-LD come from app/services/seo.py, which also puts this URL
+    in sitemap.xml automatically.
+    """
+    from app.services.seo import FAQ_ITEMS
+    return render_template(
+        'semantic_layer.html',
+        faq_items=FAQ_ITEMS,
+        current_year=date.today().year,
+    )
+
+
 @main.route('/sitemap.xml')
 def sitemap_xml():
-    """Google sitemap (XML). Public pages only. Uses SITE_URL if configured."""
-    base = (os.getenv('SITE_URL') or 'https://www.dataconvo.app').rstrip('/')
-    today = date.today().isoformat()
-    pages = [
-        ('/', '1.0', 'daily'),
-        ('/pricing', '0.9', 'weekly'),
-        ('/signup', '0.8', 'monthly'),
-        ('/login', '0.8', 'monthly'),
-        ('/forgot-password', '0.5', 'monthly'),
-    ]
+    """Google sitemap (XML) built from the SEO registry + published blog posts.
+
+    Every indexable URL is declared in app/services/seo.py, so the docs hub,
+    the eight connector guides, the two studio walkthroughs and the blog are
+    never missing again. Blog posts are read live from the database so a new
+    post is in the sitemap the moment it is published.
+    """
+    from app.services import seo
+
+    blog_posts = []
+    try:
+        from app.models_blog import BlogPost
+        for post in BlogPost.query.order_by(BlogPost.created_at.desc()).all():
+            stamp = post.updated_at or post.created_at
+            blog_posts.append((post.slug, stamp.date().isoformat() if stamp else None))
+    except Exception as exc:  # keep the sitemap valid even if the DB is unavailable
+        logger.warning("sitemap: blog posts unavailable (%s)", exc)
+
+    entries = seo.sitemap_entries(blog_posts)
+
+    from html import escape as _xml_escape
+
     urls = ''.join(
-        f'  <url><loc>{base}{path}</loc><lastmod>{today}</lastmod>'
-        f'<changefreq>{freq}</changefreq><priority>{prio}</priority></url>\n'
-        for path, prio, freq in pages
+        '  <url><loc>{loc}</loc>'
+        '<lastmod>{lastmod}</lastmod>'
+        '<changefreq>{freq}</changefreq>'
+        '<priority>{prio}</priority></url>\n'.format(
+            loc=_xml_escape(e['loc']), lastmod=_xml_escape(e['lastmod']),
+            freq=_xml_escape(e['changefreq']), prio=_xml_escape(e['priority']))
+        for e in entries
     )
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         f'{urls}</urlset>\n'
     )
-    return current_app.response_class(xml, mimetype='application/xml')
+    resp = current_app.response_class(xml, mimetype='application/xml')
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
 
 
 @main.route('/robots.txt')
 def robots_txt():
-    base = (os.getenv('SITE_URL') or 'https://www.dataconvo.app').rstrip('/')
-    body = f"User-agent: *\nAllow: /\nDisallow: /chat\nDisallow: /semantic-studio\nDisallow: /account\nDisallow: /mfa/\nDisallow: /auth/\nSitemap: {base}/sitemap.xml\n"
-    return current_app.response_class(body, mimetype='text/plain')
+    from app.services import seo
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        # Explicit Allow so a future Disallow rule using a /semantic prefix
+        # cannot accidentally block the public marketing page. robots.txt
+        # matching is prefix-based and longest-match wins, so naming the
+        # public path outright is the safe guard.
+        "Allow: /semantic-layer\n"
+        "Disallow: /chat\n"
+        "Disallow: /semantic-studio\n"
+        "Disallow: /semantic-studio/\n"
+        "Disallow: /account\n"
+        "Disallow: /mfa/\n"
+        "Disallow: /auth/\n"
+        "Disallow: /admin/\n"
+        "Disallow: /api/\n"
+        "Disallow: /blog/new\n"
+        f"Sitemap: {seo.absolute('/sitemap.xml')}\n"
+    )
+    resp = current_app.response_class(body, mimetype='text/plain')
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
 
 
 @main.route('/settings/api-keys')

@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Data Convo Blog</title>
+  {% set seo_path = '/blog' %}
+  {% include 'partials/seo_head.html' %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -18,7 +19,7 @@
     .blog-sub{color:#94a3b8;margin-bottom:32px;}
     .post-card{background:#111827;border:1px solid #1e293b;border-radius:14px;padding:22px;margin-bottom:16px;display:block;color:#e2e8f0;text-decoration:none;transition:border-color .2s, transform .2s;}
     .post-card:hover{border-color:#6366f1;transform:translateY(-2px);color:#fff;}
-    .post-card h3{margin:0 0 6px;font-size:1.15rem;}
+    .post-card h2{margin:0 0 6px;font-size:1.15rem;}
     .post-meta{color:#64748b;font-size:.8rem;}
     .empty{color:#64748b;font-size:.95rem;}
   </style>
@@ -41,7 +42,7 @@
     {% if posts %}
       {% for p in posts %}
         <a class="post-card" href="/blog/{{ p.slug }}">
-          <h3>{{ p.title }}</h3>
+          <h2 class="post-card-title">{{ p.title }}</h2>
           <div class="post-meta">By {{ p.author_name }} · {{ p.created_at.strftime('%b %d, %Y') if p.created_at else '' }}</div>
         </a>
       {% endfor %}
